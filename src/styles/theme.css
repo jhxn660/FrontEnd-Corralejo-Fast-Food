@@ -1,0 +1,626 @@
+/* Tema de Corralejo Fast Food.
+   Único archivo CSS propio (R26): define la marca, repinta las variables de
+   Bootstrap y resuelve lo que Bootstrap no cubre (calendario, torta, avisos,
+   impresión del ticket). Todo lo demás sale de las clases de Bootstrap. */
+
+@import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --cff-naranja: #ff8a00;
+  --cff-naranja-oscuro: #c96400;
+  --cff-naranja-claro: #ffb24d;
+  --cff-naranja-tenue: #fff3e3;
+  --cff-carbon: #16181d;
+  --cff-carbon-claro: #2a2e38;
+  --cff-fondo: #e9ebf0;
+  --cff-superficie: #ffffff;
+  --cff-borde: #d6d9e0;
+  --cff-tinta: #16181d;
+  --cff-tinta-suave: #596070;
+  --cff-header: 72px;
+
+  /* Sombras en una sola escala: así todas las tarjetas pertenecen al mismo
+     sistema en vez de inventar cada una la suya. */
+  --cff-sombra-1: 0 1px 2px rgba(22, 24, 29, 0.06), 0 2px 8px rgba(22, 24, 29, 0.06);
+  --cff-sombra-2: 0 4px 12px rgba(22, 24, 29, 0.1), 0 12px 28px rgba(22, 24, 29, 0.1);
+  --cff-sombra-3: 0 18px 50px rgba(22, 24, 29, 0.28);
+
+  --bs-primary: var(--cff-naranja);
+  --bs-primary-rgb: 255, 138, 0;
+  --bs-body-bg: var(--cff-fondo);
+  --bs-body-color: var(--cff-tinta);
+  --bs-body-font-family: 'Albert Sans', system-ui, sans-serif;
+  --bs-link-color: var(--cff-naranja-oscuro);
+  --bs-link-hover-color: var(--cff-carbon);
+  --bs-border-radius: 0.75rem;
+  --bs-border-radius-sm: 0.5rem;
+  --bs-border-radius-lg: 1rem;
+  --bs-border-color: var(--cff-borde);
+
+  /* El gris de Bootstrap (#6c757d) baja de 4.5:1 sobre el fondo de la página.
+     Este tono mantiene la jerarquía y pasa AA en tarjeta y en fondo. */
+  --bs-secondary-color: var(--cff-tinta-suave);
+
+  /* Paleta de las gráficas. Los componentes las citan como var(…) para que
+     ningún color viva fuera de este archivo (R28). */
+  --cff-grafica-1: #ff8a00;
+  --cff-grafica-2: #ff6b35;
+  --cff-grafica-3: #ffb24d;
+  --cff-grafica-4: #2a9d8f;
+  --cff-grafica-5: #4361ee;
+
+  --cff-cat-perros: #ff8a00;
+  --cff-cat-salchipapas: #e63946;
+  --cff-cat-hamburguesas: #2a9d8f;
+  --cff-cat-bebidas: #4361ee;
+  --cff-cat-acompanamientos: #f4a261;
+  --cff-cat-combos: #7209b7;
+  --cff-cat-otros: #6b7280;
+}
+
+body {
+  /* Un fondo con una veladura cálida separa las tarjetas blancas del lienzo sin
+     recurrir a bordes gruesos. */
+  background-image: radial-gradient(1200px 600px at 100% -5%, #fdf0df 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
+
+/* ---------- Botones ---------- */
+
+/* Bootstrap arma los botones con sus propias variables: se repintan aquí en vez
+   de recompilar Sass. */
+.btn {
+  --bs-btn-font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  --bs-btn-bg: var(--cff-naranja);
+  --bs-btn-border-color: var(--cff-naranja);
+  --bs-btn-hover-bg: var(--cff-naranja-oscuro);
+  --bs-btn-hover-border-color: var(--cff-naranja-oscuro);
+  --bs-btn-active-bg: var(--cff-naranja-oscuro);
+  --bs-btn-active-border-color: var(--cff-naranja-oscuro);
+  --bs-btn-disabled-bg: var(--cff-naranja-claro);
+  --bs-btn-disabled-border-color: var(--cff-naranja-claro);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-color: #fff;
+  --bs-btn-disabled-color: #fff;
+  box-shadow: 0 2px 6px rgba(255, 138, 0, 0.35);
+}
+
+.btn-primary:hover { box-shadow: 0 4px 14px rgba(255, 138, 0, 0.45); }
+
+.btn-outline-primary {
+  --bs-btn-color: var(--cff-naranja-oscuro);
+  --bs-btn-border-color: var(--cff-naranja);
+  --bs-btn-hover-bg: var(--cff-naranja);
+  --bs-btn-hover-border-color: var(--cff-naranja);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: var(--cff-naranja-oscuro);
+  --bs-btn-active-border-color: var(--cff-naranja-oscuro);
+}
+
+/* El gris de Bootstrap sobre blanco es casi invisible: se oscurece el borde
+   para que un botón secundario siga leyéndose como botón. */
+.btn-outline-secondary {
+  --bs-btn-color: var(--cff-carbon-claro);
+  --bs-btn-border-color: #aeb4c0;
+  --bs-btn-hover-bg: var(--cff-carbon-claro);
+  --bs-btn-hover-border-color: var(--cff-carbon-claro);
+  --bs-btn-hover-color: #fff;
+}
+
+.text-brand { color: var(--cff-naranja-oscuro) !important; }
+.bg-brand { background-color: var(--cff-naranja) !important; }
+.bg-carbon { background-color: var(--cff-carbon) !important; }
+.badge.bg-brand { color: #fff; }
+
+/* ---------- Superficies ---------- */
+
+.card {
+  --bs-card-bg: var(--cff-superficie);
+  --bs-card-border-color: var(--cff-borde);
+  --bs-card-border-radius: var(--bs-border-radius-lg);
+}
+
+/* Las pantallas piden "border-0 shadow-sm"; se les da la sombra del sistema y
+   un filo de 1px, que es lo que separa la tarjeta del fondo. */
+.card.border-0 {
+  border: 1px solid rgba(22, 24, 29, 0.07) !important;
+  box-shadow: var(--cff-sombra-1) !important;
+}
+
+.card-header {
+  --bs-card-cap-bg: var(--cff-superficie);
+  border-bottom: 1px solid var(--cff-borde);
+  font-weight: 600;
+}
+
+/* Un filo naranja en la cabecera da jerarquía a cada panel sin añadir ruido. */
+.card-header.bg-white { box-shadow: inset 3px 0 0 var(--cff-naranja); }
+
+.card-footer { border-top: 1px solid var(--cff-borde); }
+
+.table {
+  --bs-table-border-color: var(--cff-borde);
+}
+
+.table > thead th {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--cff-tinta-suave);
+  background: #f5f6f9;
+}
+
+.form-control,
+.form-select {
+  border-color: #c6cad4;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--cff-naranja);
+  box-shadow: 0 0 0 0.2rem rgba(255, 138, 0, 0.22);
+}
+
+.form-label { font-weight: 600; font-size: 0.875rem; }
+
+/* ---------- Estructura de la aplicación ---------- */
+
+.app-header {
+  height: var(--cff-header);
+  background: linear-gradient(100deg, var(--cff-carbon) 0%, var(--cff-carbon-claro) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  box-shadow: 0 2px 12px rgba(22, 24, 29, 0.35);
+  border-bottom: 2px solid var(--cff-naranja);
+}
+
+.app-header .text-brand { color: var(--cff-naranja-claro) !important; }
+
+.app-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+}
+
+/* El sidebar acompaña el scroll en escritorio y se pliega en móvil. */
+@media (min-width: 992px) {
+  .app-sidebar-inner {
+    position: sticky;
+    top: calc(var(--cff-header) + 1rem);
+  }
+}
+
+/* Botón de navegación del panel: activo = naranja. */
+.nav-panel .nav-link {
+  color: var(--cff-carbon);
+  text-align: left;
+  border-radius: var(--bs-border-radius);
+  padding: 0.6rem 0.9rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.nav-panel .nav-link:hover {
+  background: var(--cff-naranja-tenue);
+  color: var(--cff-naranja-oscuro);
+}
+
+.nav-panel .nav-link.active {
+  background: linear-gradient(100deg, var(--cff-naranja) 0%, var(--cff-naranja-claro) 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(255, 138, 0, 0.4);
+}
+
+.nav-panel .nav-link i { width: 1.25rem; }
+
+/* ---------- Piezas reutilizables ---------- */
+
+.auth-screen {
+  min-height: 100vh;
+  background-size: cover;
+  background-position: center;
+}
+
+.auth-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(22, 24, 29, 0.82) 0%, rgba(201, 100, 0, 0.55) 100%);
+}
+
+.logo-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--cff-naranja-tenue);
+  border: 2px solid var(--cff-naranja);
+}
+
+/* Cuadro de icono: fondo sólido e icono blanco. La versión anterior era naranja
+   claro sobre naranja y no llegaba a 3:1. */
+.icon-tile {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--bs-border-radius);
+  background: linear-gradient(140deg, var(--cff-naranja) 0%, var(--cff-naranja-oscuro) 100%);
+  color: #fff;
+  font-size: 1.25rem;
+  box-shadow: 0 3px 8px rgba(255, 138, 0, 0.35);
+}
+
+.icon-tile-sm {
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+}
+
+/* Bootstrap no trae utilidades de min-width: sin esto, un flex hijo con texto
+   largo no se deja encoger y desborda la fila. */
+.min-width-0 { min-width: 0; }
+
+.card-clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--cff-sombra-2) !important;
+  border-color: var(--cff-naranja) !important;
+}
+
+.card-clickable:focus-visible {
+  outline: 3px solid var(--cff-naranja);
+  outline-offset: 2px;
+}
+
+/* Cinta superior de color para clasificar tarjetas (empleados, insumos). */
+.cinta-superior { box-shadow: inset 0 4px 0 var(--color-cinta, var(--cff-naranja)); }
+
+/* Texto recortado a N líneas: una descripción larga no debe estirar la tarjeta
+   y romper la rejilla. */
+.recorte-2,
+.recorte-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.recorte-2 { -webkit-line-clamp: 2; }
+.recorte-3 { -webkit-line-clamp: 3; }
+
+/* ---------- Modales ---------- */
+
+/* El portal monta el diálogo con la clase .modal de Bootstrap: ahí es donde
+   viven TODAS las variables --bs-modal-*. Sin esa clase, .modal-content se
+   queda sin fondo ni relleno y modal-lg no tiene ningún efecto, que era el
+   motivo real de que los modales se vieran mal en toda la aplicación. */
+.modal {
+  --bs-modal-bg: var(--cff-superficie);
+  --bs-modal-border-radius: var(--bs-border-radius-lg);
+  --bs-modal-border-width: 0;
+  --bs-modal-header-border-color: var(--cff-borde);
+  --bs-modal-footer-border-color: var(--cff-borde);
+  --bs-modal-box-shadow: var(--cff-sombra-3);
+}
+
+.cff-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  background: rgba(10, 11, 14, 0.62);
+  backdrop-filter: blur(3px);
+  animation: cff-fundido 0.18s ease-out;
+}
+
+.cff-dialogo {
+  animation: cff-subida 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cff-fundido {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cff-subida {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cff-backdrop,
+  .cff-dialogo { animation: none; }
+}
+
+.modal-content {
+  overflow: hidden;
+  box-shadow: var(--cff-sombra-3);
+}
+
+/* Cabecera oscura con el icono en naranja: el modal deja de parecer un trozo
+   de página suelto y se lee como una capa aparte. */
+.modal-header {
+  background: linear-gradient(100deg, var(--cff-carbon) 0%, var(--cff-carbon-claro) 100%);
+  color: #fff;
+  padding: 1rem 1.25rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-header .modal-title {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.modal-header .text-brand { color: var(--cff-naranja-claro) !important; }
+
+/* btn-close es un SVG negro: sobre la cabecera oscura hay que invertirlo. */
+.modal-header .btn-close {
+  filter: invert(1) grayscale(1) brightness(2);
+  opacity: 0.75;
+}
+
+.modal-header .btn-close:hover { opacity: 1; }
+
+.modal-tono-peligro .modal-header {
+  background: linear-gradient(100deg, #8c1420 0%, #c1272d 100%);
+}
+
+.modal-tono-exito .modal-header {
+  background: linear-gradient(100deg, #10614f 0%, #2a9d8f 100%);
+}
+
+/* Cuerpo desplazable con cabecera y pie fijos: un formulario largo ya no
+   empuja los botones fuera de la pantalla. */
+.modal-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: calc(100vh - var(--cff-header) - 9rem);
+}
+
+.modal-footer {
+  padding: 0.85rem 1.25rem;
+  background: #f7f8fb;
+  gap: 0.5rem;
+}
+
+/* Franja de resumen dentro de un modal (datos del registro, totales). */
+.modal-resumen {
+  background: var(--cff-naranja-tenue);
+  border: 1px solid #ffd9ab;
+  border-radius: var(--bs-border-radius);
+  padding: 0.75rem 0.9rem;
+}
+
+/* ---------- Avisos flotantes ---------- */
+
+.pila-avisos {
+  position: fixed;
+  top: calc(var(--cff-header) + 0.75rem);
+  right: 1rem;
+  z-index: 1090;
+  width: min(23rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.aviso {
+  pointer-events: auto;
+  border: 0;
+  border-left: 5px solid currentColor;
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--cff-sombra-2);
+  animation: cff-entra-derecha 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aviso.saliendo { animation: cff-sale-derecha 0.2s ease-in forwards; }
+
+@keyframes cff-entra-derecha {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cff-sale-derecha {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(28px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso,
+  .aviso.saliendo { animation: none; }
+}
+
+/* Barra que se agota con el temporizador: el aviso dice cuánto le queda. */
+.aviso-progreso {
+  height: 3px;
+  border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+  background: currentColor;
+  opacity: 0.45;
+  animation: cff-agotar var(--aviso-duracion, 3s) linear forwards;
+}
+
+@keyframes cff-agotar {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* ---------- Calendario de días especiales ---------- */
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--cff-borde);
+  background: #fff;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.calendar-day:hover:not(.is-muted):not(.is-readonly) {
+  background: var(--cff-naranja-tenue);
+  border-color: var(--cff-naranja);
+  transform: scale(1.06);
+}
+
+.calendar-day.is-muted { color: #c2c6d0; cursor: default; background: transparent; border-color: transparent; }
+.calendar-day.is-today { border: 2px solid var(--cff-naranja); color: var(--cff-naranja-oscuro); }
+.calendar-day.cerrado { background: #c1272d; color: #fff; border-color: #8c1420; }
+.calendar-day.evento { background: var(--cff-naranja); color: #fff; border-color: var(--cff-naranja-oscuro); }
+
+/* El cliente y el empleado consultan el calendario, no lo editan. */
+.calendar-day.is-readonly { cursor: default; }
+
+/* ---------- Gráfica de torta ---------- */
+
+.pie-chart {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--cff-sombra-1);
+}
+
+.pie-chart::after {
+  content: '';
+  grid-area: 1 / 1;
+  width: 58%;
+  height: 58%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--cff-borde);
+}
+
+.pie-chart > * { grid-area: 1 / 1; z-index: 1; }
+
+/* Texto en el hueco central de la torta. */
+.pie-centro {
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* ---------- Carta del cliente ---------- */
+
+/* Tarjeta de plato: la imagen es un degradado con el emoji de su categoría, así
+   que la carta se ve apetecible sin depender de fotos que no existen. */
+.plato-foto {
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  font-size: 3rem;
+  background: linear-gradient(140deg, var(--plato-tono, var(--cff-naranja-claro)) 0%, #fff 140%);
+  border-bottom: 1px solid var(--cff-borde);
+}
+
+.plato-precio {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--cff-naranja-oscuro);
+}
+
+/* Cinta de categoría pegajosa en la carta larga del cliente. */
+.carta-ancla {
+  position: sticky;
+  top: var(--cff-header);
+  z-index: 10;
+  background: var(--cff-fondo);
+  padding: 0.75rem 0;
+}
+
+/* ---------- Impresión del ticket ---------- */
+
+/* Solo se imprime el ticket, centrado y sin los botones del modal. La clase la
+   pone el propio modal del ticket mientras está abierto. */
+@media print {
+  body.imprimiendo-ticket * { visibility: hidden !important; }
+
+  body.imprimiendo-ticket .ticket-impresion,
+  body.imprimiendo-ticket .ticket-impresion * { visibility: visible !important; }
+
+  body.imprimiendo-ticket .ticket-impresion {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 76mm;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
+
+  body.imprimiendo-ticket .no-imprimir { display: none !important; }
+
+  @page {
+    margin: 8mm;
+  }
+}
+
+/* Cuerpo del ticket: tipografía monoespaciada y ancho de rollo, tanto en
+   pantalla como en papel, para que lo que se ve sea lo que sale. */
+.ticket-impresion {
+  font-family: 'Courier New', ui-monospace, monospace;
+  background: #fff;
+  color: #16181d;
+  max-width: 76mm;
+  margin: 0 auto;
+  padding: 0.5rem 0.25rem;
+}
+
+.ticket-impresion .ticket-separador {
+  border: 0;
+  border-top: 1px dashed #9aa0ad;
+  margin: 0.5rem 0;
+}
+
+.ticket-impresion .ticket-marca {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 1.05rem;
+}
+
+.ticket-impresion table {
+  width: 100%;
+  font-size: 0.8rem;
+  border-collapse: collapse;
+}
+
+.ticket-impresion td { padding: 0.1rem 0; vertical-align: top; }
+
+.ticket-impresion .ticket-total {
+  font-weight: 700;
+  font-size: 1rem;
+  border-top: 1px solid #16181d;
+  border-bottom: 3px double #16181d;
+  padding: 0.25rem 0;
+}

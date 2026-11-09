@@ -1,0 +1,1049 @@
+{
+  "employees": [
+    {
+      "id": "1",
+      "name": "Carlos Ramirez",
+      "schedule": "08:00 AM - 04:00 PM",
+      "role": "Cajero",
+      "status": "Trabajando"
+    },
+    {
+      "id": "2",
+      "name": "Ana Lopez",
+      "schedule": "10:00 AM - 06:00 PM",
+      "role": "Cocinero",
+      "status": "Inactivo"
+    },
+    {
+      "name": "jhxn660's Org",
+      "schedule": "08:00 AM - 04:00 PM",
+      "role": "Jefe",
+      "status": "Trabajando",
+      "id": "kiSks967eEk"
+    }
+  ],
+  "insumos": [
+    {
+      "nombre": "Harina de trigo",
+      "descripcion": "Lorem ipsum dolor sit amet... askaskjlaskjlaskjlasdkladskladskjadskjladskjladskljadslkadskjadslk",
+      "categoria": "Harinas",
+      "unidad": "Kilogramos (kg)",
+      "estado": "Disponible",
+      "stockActual": 49.23,
+      "stockMinimo": 20,
+      "costo": 2500,
+      "vencimiento": "2026-07-10",
+      "pesoUnidad": "---",
+      "calorias": "364 kcal",
+      "id": "1",
+      "icon": "fa-solid fa-wheat-awn"
+    },
+    {
+      "nombre": "pantera",
+      "descripcion": "maiz",
+      "categoria": "Harinas",
+      "unidad": "Kilogramos (kg)",
+      "estado": "Disponible",
+      "stockActual": "15",
+      "stockMinimo": 0,
+      "costo": "2000",
+      "vencimiento": "2026-10-10",
+      "pesoUnidad": "",
+      "calorias": "",
+      "icon": "fa-solid fa-wheat-awn",
+      "id": "GAo6oA2PL5g"
+    },
+    {
+      "nombre": "sas",
+      "descripcion": "5",
+      "categoria": "Harinas",
+      "unidad": "Kilogramos (kg)",
+      "estado": "Disponible",
+      "stockActual": "05",
+      "stockMinimo": "02",
+      "costo": "02",
+      "vencimiento": "2026-09-17",
+      "pesoUnidad": "",
+      "calorias": "",
+      "icon": "fa-solid fa-wheat-awn",
+      "id": "7NWre1bTvJQ"
+    },
+    {
+      "nombre": "perro",
+      "descripcion": "6",
+      "categoria": "Carnes",
+      "unidad": "Kilogramos (kg)",
+      "estado": "Disponible",
+      "stockActual": "06",
+      "stockMinimo": 0,
+      "costo": "05",
+      "vencimiento": "2026-09-03",
+      "pesoUnidad": "",
+      "calorias": "",
+      "icon": "fa-solid fa-drumstick-bite",
+      "id": "Itl8DN0E9v8"
+    }
+  ],
+  "kpis": [
+    {
+      "id": "1",
+      "icon": "💰",
+      "variant": "sales",
+      "label": "Ventas del Mes",
+      "value": "$12.800.000",
+      "trend": "▲ 8.4% vs mes anterior"
+    },
+    {
+      "id": "2",
+      "icon": "📊",
+      "variant": "year",
+      "label": "Ventas del Año",
+      "value": "$148.500.000",
+      "trend": "▲ 12.1% vs año anterior"
+    },
+    {
+      "id": "3",
+      "icon": "🍔",
+      "variant": "products",
+      "label": "Productos Vendidos",
+      "value": "9.640",
+      "trend": "▲ 5.2% vs mes anterior"
+    }
+  ],
+  "goal": {
+    "label": "Meta Anual de Ventas",
+    "value": "$180.000.000",
+    "progressPercent": 82.5,
+    "remaining": "$31.500.000"
+  },
+  "comparison": {
+    "previous": {
+      "year": "2025",
+      "sales": "$132.450.000",
+      "products": "101.800"
+    },
+    "current": {
+      "year": "2026",
+      "sales": "$148.500.000",
+      "products": "112.400"
+    },
+    "yearlyDiff": "▲ 12.1%",
+    "yearlyNote": "$16.050.000 más que el año anterior",
+    "monthly": {
+      "label": "Junio 2026",
+      "value": "$12.800.000",
+      "diff": "▲ 8.4% vs jun. 2025"
+    }
+  },
+  "productRows": [
+    {
+      "id": "1",
+      "name": "Combo Corralejo Clásico",
+      "monthly": {
+        "qty": "2.480",
+        "revenue": "$49.600.000",
+        "pct": 33
+      },
+      "annual": {
+        "qty": "26.150",
+        "revenue": "$523.000.000",
+        "pct": 35
+      }
+    },
+    {
+      "id": "2",
+      "name": "Hamburguesa Doble Carne",
+      "monthly": {
+        "qty": "1.960",
+        "revenue": "$35.280.000",
+        "pct": 24
+      },
+      "annual": {
+        "qty": "21.300",
+        "revenue": "$383.400.000",
+        "pct": 26
+      }
+    },
+    {
+      "id": "3",
+      "name": "Alitas BBQ x12",
+      "monthly": {
+        "qty": "1.340",
+        "revenue": "$26.800.000",
+        "pct": 18
+      },
+      "annual": {
+        "qty": "14.760",
+        "revenue": "$295.200.000",
+        "pct": 17
+      }
+    },
+    {
+      "id": "4",
+      "name": "Papas Criollas Especiales",
+      "monthly": {
+        "qty": "1.870",
+        "revenue": "$14.960.000",
+        "pct": 14
+      },
+      "annual": {
+        "qty": "19.870",
+        "revenue": "$158.960.000",
+        "pct": 13
+      }
+    },
+    {
+      "id": "5",
+      "name": "Malteada Tropical",
+      "monthly": {
+        "qty": "990",
+        "revenue": "$11.880.000",
+        "pct": 11
+      },
+      "annual": {
+        "qty": "10.320",
+        "revenue": "$123.840.000",
+        "pct": 9
+      }
+    }
+  ],
+  "ranking": [
+    {
+      "id": "1",
+      "pos": 1,
+      "tone": "gold",
+      "name": "Combo Corralejo Clásico",
+      "qty": "26.150",
+      "revenue": "$523.000.000",
+      "pct": 35
+    },
+    {
+      "id": "2",
+      "pos": 2,
+      "tone": "silver",
+      "name": "Hamburguesa Doble Carne",
+      "qty": "21.300",
+      "revenue": "$383.400.000",
+      "pct": 26
+    },
+    {
+      "id": "3",
+      "pos": 3,
+      "tone": "bronze",
+      "name": "Papas Criollas Especiales",
+      "qty": "19.870",
+      "revenue": "$158.960.000",
+      "pct": 17
+    },
+    {
+      "id": "4",
+      "pos": 4,
+      "tone": "plain",
+      "name": "Alitas BBQ x12",
+      "qty": "14.760",
+      "revenue": "$295.200.000",
+      "pct": 13
+    },
+    {
+      "id": "5",
+      "pos": 5,
+      "tone": "plain",
+      "name": "Malteada Tropical",
+      "qty": "10.320",
+      "revenue": "$123.840.000",
+      "pct": 9
+    }
+  ],
+  "reviews": [
+    {
+      "id": "1",
+      "name": "Combo Corralejo Clásico",
+      "count": 324,
+      "score": 4.8
+    },
+    {
+      "id": "2",
+      "name": "Alitas BBQ x12",
+      "count": 211,
+      "score": 4.6
+    },
+    {
+      "id": "3",
+      "name": "Malteada Tropical",
+      "count": 178,
+      "score": 4.5
+    },
+    {
+      "id": "4",
+      "name": "Hamburguesa Doble Carne",
+      "count": 256,
+      "score": 4.3
+    },
+    {
+      "id": "5",
+      "name": "Papas Criollas Especiales",
+      "count": 142,
+      "score": 4.1
+    }
+  ],
+  "adminMenu": [
+    {
+      "id": "1",
+      "categoria": "Entradas",
+      "descripcion": "Deliciosos aperitivos ideales para empezar tu comida con el mejor sabor y variedad.",
+      "icono": "fa-solid fa-utensils",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Salchipapa Sencilla",
+          "precio": "$12.500",
+          "descripcion": "Papa francesa con salchicha Zenú acompañada de salsas...",
+          "calificacion": 5
+        },
+        {
+          "nombre": "Salchipapa Especial",
+          "precio": "$20.000",
+          "descripcion": "Papa francesa con salchicha zenú, maíz, jamón y queso doble crema...",
+          "calificacion": 4
+        },
+        {
+          "nombre": "Mega Salchipapa",
+          "precio": "$36.500",
+          "descripcion": "Papa francesa con salchicha zenú, maíz, carne, pollo, queso doble...",
+          "calificacion": 4
+        },
+        {
+          "nombre": "Cheese Bacon",
+          "precio": "$11.500",
+          "descripcion": "Papas a la francesa con queso cheddar derretido y tocineta...",
+          "calificacion": 3
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "categoria": "Hamburguesas",
+      "descripcion": "Jugosas hamburguesas preparadas al momento, con ingredientes frescos y mucho sabor.",
+      "icono": "fa-solid fa-burger",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Hamburguesa Clásica",
+          "precio": "$14.000"
+        },
+        {
+          "nombre": "Hamburguesa Pollo",
+          "precio": "$14.000"
+        },
+        {
+          "nombre": "Hamburguesa Doble",
+          "precio": "$20.000"
+        },
+        {
+          "nombre": "Hamburguesa Colombiana",
+          "precio": "$17.500"
+        },
+        {
+          "nombre": "Hamburguesa Americana",
+          "precio": "$17.500"
+        },
+        {
+          "nombre": "Hamburguesa Mexicana",
+          "precio": "$17.500"
+        },
+        {
+          "nombre": "Hamburguesa Francesa",
+          "precio": "$17.500"
+        },
+        {
+          "nombre": "Hamburguesa Argentina",
+          "precio": "$17.500"
+        },
+        {
+          "nombre": "Hamburguesa Corraleja",
+          "precio": "$22.500"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "categoria": "Mazorcas",
+      "descripcion": "Mazorcas llenas de sabor, acompañadas de carnes, salsas y toppings especiales.",
+      "icono": "fa-solid fa-bowl-food",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Mazorcada Carne",
+          "precio": "$24.000"
+        },
+        {
+          "nombre": "Mazorcada Pollo",
+          "precio": "$24.000"
+        },
+        {
+          "nombre": "Mazorcada Mixta",
+          "precio": "$29.000"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "categoria": "Burritos",
+      "descripcion": "Burritos rellenos con ingredientes frescos envueltos en tortillas suaves y deliciosas.",
+      "icono": "fa-solid fa-pepper-hot",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Burrito Pollo",
+          "precio": "$17.500"
+        },
+        {
+          "nombre": "Burrito Carne",
+          "precio": "$20.000"
+        },
+        {
+          "nombre": "Burrito Mixto",
+          "precio": "$22.500"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "categoria": "Tortillas",
+      "descripcion": "Tortillas calientes y recién preparadas, perfectas para acompañar cualquier plato.",
+      "icono": "fa-solid fa-cookie",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Tortilla Carne",
+          "precio": "$15.000"
+        },
+        {
+          "nombre": "Tortilla Pollo",
+          "precio": "$15.000"
+        },
+        {
+          "nombre": "Tortilla Mixta",
+          "precio": "$19.000"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "categoria": "Carnes",
+      "descripcion": "Cortes de carne tiernos y sazonados, preparados al punto para disfrutar cada bocado.",
+      "icono": "fa-solid fa-drumstick-bite",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Costillas BBQ",
+          "precio": "$35.000"
+        },
+        {
+          "nombre": "Pechuga",
+          "precio": "$25.000"
+        },
+        {
+          "nombre": "Pechuga en Salsa de Champiñones",
+          "precio": "$31.500"
+        },
+        {
+          "nombre": "Pechuga en Salsa Criolla",
+          "precio": "$31.500"
+        },
+        {
+          "nombre": "Pechuga Gratinada",
+          "precio": "$29.000"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "categoria": "Bebidas",
+      "descripcion": "Refrescantes bebidas para acompañar tus comidas y disfrutar en cualquier momento.",
+      "icono": "fa-solid fa-glass-water",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Gaseosa 250 ml",
+          "precio": "$4.000"
+        },
+        {
+          "nombre": "Jugo Hit",
+          "precio": "$5.000"
+        },
+        {
+          "nombre": "Gaseosa 400 ml",
+          "precio": "$5.000"
+        },
+        {
+          "nombre": "Gaseosa 1.5 lts",
+          "precio": "$8.000"
+        },
+        {
+          "nombre": "Jugo Natural en Agua",
+          "precio": "$6.000"
+        },
+        {
+          "nombre": "Jugo Natural en Leche",
+          "precio": "$7.000"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "categoria": "Adicional",
+      "descripcion": "Complementos y extras ideales para personalizar y hacer tu pedido aún más completo.",
+      "icono": "fa-solid fa-cake-candles",
+      "estado": "Disponible",
+      "items": [
+        {
+          "nombre": "Papa Francesa",
+          "precio": "$6.000"
+        },
+        {
+          "nombre": "Papa Criolla",
+          "precio": "$6.000"
+        },
+        {
+          "nombre": "Yuca",
+          "precio": "$5.000"
+        }
+      ]
+    }
+  ],
+  "pedidos": [
+    {
+      "id": "221",
+      "estado": "resuelto",
+      "hora": "08:55 AM",
+      "items": [
+        {
+          "name": "Perro Ranchero",
+          "price": 12000,
+          "qty": 2
+        },
+        {
+          "name": "Agua Botella",
+          "price": 2500,
+          "qty": 1
+        }
+      ],
+      "numero": 221
+    },
+    {
+      "numero": 223,
+      "estado": "preparacion",
+      "fecha": "2026-10-05",
+      "hora": "1:10 PM",
+      "items": [],
+      "id": "l9elypnH-KQ"
+    },
+    {
+      "numero": 224,
+      "estado": "resuelto",
+      "fecha": "2026-10-05",
+      "hora": "1:17 PM",
+      "items": [
+        {
+          "name": "Combo Doble",
+          "price": 24000,
+          "qty": 4
+        }
+      ],
+      "id": "DOnm52PRnAk"
+    },
+    {
+      "numero": 225,
+      "estado": "pendiente",
+      "fecha": "2026-11-09",
+      "hora": "10:40 AM",
+      "items": [],
+      "id": "uULgWq8Pens"
+    },
+    {
+      "numero": 226,
+      "estado": "pendiente",
+      "fecha": "2026-11-09",
+      "hora": "10:40 AM",
+      "items": [],
+      "id": "KGG_mUCpX9w"
+    },
+    {
+      "numero": 227,
+      "estado": "pendiente",
+      "fecha": "2026-11-09",
+      "hora": "10:40 AM",
+      "items": [],
+      "id": "SCzLZEniLNE"
+    }
+  ],
+  "sales": [
+    {
+      "saleId": "#V-1",
+      "date": "2026-10-05",
+      "dateFormatted": "05/10",
+      "time": "08:55 AM",
+      "client": "Consumidor Final",
+      "total": 26500,
+      "ticketId": "#T-0001",
+      "employeeId": "#E-007",
+      "orderId": "#P-221",
+      "pedidoId": "221",
+      "status": "Entregado",
+      "deliveryAddress": "Local / Mostrador",
+      "timeRemaining": 75,
+      "createdAt": "2026-10-05T17:53:33.971Z",
+      "items": [
+        {
+          "id": 1,
+          "product": "Perro Ranchero",
+          "quantity": 2,
+          "unitPrice": 12000,
+          "price": 24000
+        },
+        {
+          "id": 2,
+          "product": "Agua Botella",
+          "quantity": 1,
+          "unitPrice": 2500,
+          "price": 2500
+        }
+      ],
+      "id": "0WbcuMqoqpc",
+      "qrCode": "QR-V1-94040A405D"
+    },
+    {
+      "saleId": "#V-3",
+      "date": "2026-10-05",
+      "dateFormatted": "05/10",
+      "time": "1:17 PM",
+      "client": "Consumidor Final",
+      "total": 96000,
+      "ticketId": "#T-0003",
+      "qrCode": "QR-V3-73319E015C",
+      "employeeId": "#E-007",
+      "orderId": "#P-224",
+      "pedidoId": "DOnm52PRnAk",
+      "status": "Entregado",
+      "deliveryAddress": "Local / Mostrador",
+      "timeRemaining": 75,
+      "createdAt": "2026-10-05T18:17:12.063Z",
+      "items": [
+        {
+          "id": 1,
+          "product": "Combo Doble",
+          "quantity": 4,
+          "unitPrice": 24000,
+          "price": 96000
+        }
+      ],
+      "id": "zJob2Qss4Tw"
+    }
+  ],
+  "entradas": [
+    {
+      "id": "1",
+      "nombre": "Salchipapa Sencilla",
+      "precio": "$12.500",
+      "descripcion": "Papa francesa con salchicha Zenú acompañada de salsas...",
+      "calificacion": 5,
+      "icono": "fa-solid fa-utensils"
+    },
+    {
+      "id": "2",
+      "nombre": "Salchipapa Especial",
+      "precio": "$20.000",
+      "descripcion": "Papa francesa con salchicha zenú, maíz, jamón y queso doble crema...",
+      "calificacion": 4,
+      "icono": "fa-solid fa-utensils"
+    },
+    {
+      "id": "3",
+      "nombre": "Mega Salchipapa",
+      "precio": "$36.500",
+      "descripcion": "Papa francesa con salchicha zenú, maíz, carne, pollo, queso doble...",
+      "calificacion": 4,
+      "icono": "fa-solid fa-utensils"
+    },
+    {
+      "id": "4",
+      "nombre": "Cheese Bacon",
+      "precio": "$11.500",
+      "descripcion": "Papas a la francesa con queso cheddar derretido y tocineta...",
+      "calificacion": 3,
+      "icono": "fa-solid fa-utensils"
+    }
+  ],
+  "catalogo": {
+    "perros": [
+      {
+        "id": "pc1",
+        "name": "Perro Clásico",
+        "desc": "Salchicha, mostaza, ketchup",
+        "price": 8000,
+        "emoji": "🌭"
+      },
+      {
+        "id": "pc2",
+        "name": "Perro Especial",
+        "desc": "Salchicha, papas trituradas, salsas",
+        "price": 10000,
+        "emoji": "🌭"
+      },
+      {
+        "id": "pc3",
+        "name": "Perro Ranchero",
+        "desc": "Salchicha, tocino, queso derretido",
+        "price": 12000,
+        "emoji": "🌭"
+      },
+      {
+        "id": "pc4",
+        "name": "Perro Hawaiano",
+        "desc": "Salchicha, piña, mayonesa",
+        "price": 11000,
+        "emoji": "🌭"
+      }
+    ],
+    "salchipapas": [
+      {
+        "id": "sp1",
+        "name": "Salchipapa Clásica",
+        "desc": "Papa frita, salchicha, salsas",
+        "price": 9000,
+        "emoji": "🍟"
+      },
+      {
+        "id": "sp2",
+        "name": "Salchipapa Especial",
+        "desc": "Papa, salchicha, queso, tocineta",
+        "price": 13000,
+        "emoji": "🍟"
+      },
+      {
+        "id": "sp3",
+        "name": "Salchipapa XXL",
+        "desc": "Porción doble, 2 salchichas",
+        "price": 16000,
+        "emoji": "🍟"
+      },
+      {
+        "id": "sp4",
+        "name": "Salchipapa Pollo",
+        "desc": "Papa, tiras de pollo, salsas",
+        "price": 12000,
+        "emoji": "🍟"
+      }
+    ],
+    "hamburguesas": [
+      {
+        "id": "hc",
+        "name": "Hamburguesa Clásica",
+        "desc": "Carne, lechuga, tomate, queso",
+        "price": 11000,
+        "emoji": "🍔"
+      },
+      {
+        "id": "hd",
+        "name": "Hamburguesa Doble",
+        "desc": "Doble carne, tocino, queso",
+        "price": 15000,
+        "emoji": "🍔"
+      },
+      {
+        "id": "hp",
+        "name": "Hamburguesa Pollo",
+        "desc": "Pechuga apanada, mayonesa",
+        "price": 12000,
+        "emoji": "🍗"
+      },
+      {
+        "id": "hv",
+        "name": "Hamburguesa Veggie",
+        "desc": "Medallón de lentejas, aguacate",
+        "price": 13000,
+        "emoji": "🥗"
+      }
+    ],
+    "bebidas": [
+      {
+        "id": "gs",
+        "name": "Gaseosa 250ml",
+        "desc": "Cola, naranja o uva",
+        "price": 3000,
+        "emoji": "🥤"
+      },
+      {
+        "id": "gm",
+        "name": "Gaseosa 500ml",
+        "desc": "Cola, naranja o uva",
+        "price": 5000,
+        "emoji": "🥤"
+      },
+      {
+        "id": "li",
+        "name": "Limonada Natural",
+        "desc": "Limón, azúcar, hielo",
+        "price": 5000,
+        "emoji": "🍋"
+      },
+      {
+        "id": "ml",
+        "name": "Malteada",
+        "desc": "Fresa, chocolate o vainilla",
+        "price": 8000,
+        "emoji": "🥛"
+      },
+      {
+        "id": "jn",
+        "name": "Jugo Natural",
+        "desc": "Mora, mango o maracuyá",
+        "price": 6000,
+        "emoji": "🍹"
+      },
+      {
+        "id": "ag",
+        "name": "Agua Botella",
+        "desc": "300ml sin gas",
+        "price": 2500,
+        "emoji": "💧"
+      }
+    ],
+    "acompañamientos": [
+      {
+        "id": "pf",
+        "name": "Papa Francesa",
+        "desc": "Porción mediana con sal",
+        "price": 5000,
+        "emoji": "🍟"
+      },
+      {
+        "id": "pg",
+        "name": "Papa Grande",
+        "desc": "Porción grande con sal",
+        "price": 7000,
+        "emoji": "🍟"
+      },
+      {
+        "id": "ar",
+        "name": "Aros de Cebolla",
+        "desc": "Apanados, con dip ranch",
+        "price": 6000,
+        "emoji": "🧅"
+      },
+      {
+        "id": "ns",
+        "name": "Nuggets x6",
+        "desc": "Pollo apanado, salsa BBQ",
+        "price": 8000,
+        "emoji": "🍗"
+      },
+      {
+        "id": "en",
+        "name": "Ensalada",
+        "desc": "Lechuga, tomate, zanahoria",
+        "price": 5000,
+        "emoji": "🥗"
+      }
+    ],
+    "combos": [
+      {
+        "id": "c1",
+        "name": "Combo Clásico",
+        "desc": "Hambur. clásica + papa + gaseosa 250ml",
+        "price": 17000,
+        "emoji": "⭐"
+      },
+      {
+        "id": "c2",
+        "name": "Combo Doble",
+        "desc": "Hambur. doble + papa grande + gaseosa 500ml",
+        "price": 24000,
+        "emoji": "🔥"
+      },
+      {
+        "id": "c3",
+        "name": "Combo Pollo",
+        "desc": "Hambur. pollo + nuggets x6 + limonada",
+        "price": 22000,
+        "emoji": "🍗"
+      },
+      {
+        "id": "c4",
+        "name": "Combo Familiar",
+        "desc": "2 hamburguesas + 2 papas + 2 gaseosas",
+        "price": 38000,
+        "emoji": "👨‍👩‍👧"
+      }
+    ]
+  },
+  "categoriasMenu": [
+    {
+      "id": "1",
+      "nombre": "Entradas",
+      "descripcion": "Deliciosos aperitivos ideales para empezar tu comida con el mejor sabor y variedad.",
+      "icono": "fa-solid fa-utensils",
+      "endpoint": "entradas"
+    },
+    {
+      "id": "2",
+      "nombre": "Hamburguesas",
+      "descripcion": "Jugosas hamburguesas preparadas al momento, con ingredientes frescos y mucho sabor.",
+      "icono": "fa-solid fa-burger",
+      "endpoint": null
+    },
+    {
+      "id": "3",
+      "nombre": "Mazorcas",
+      "descripcion": "Mazorcas llenas de sabor, acompañadas de carnes, salsas y toppings especiales.",
+      "icono": "fa-solid fa-bowl-food",
+      "endpoint": null
+    },
+    {
+      "id": "4",
+      "nombre": "Burritos",
+      "descripcion": "Burritos rellenos con ingredientes frescos envueltos en tortillas suaves y deliciosas.",
+      "icono": "fa-solid fa-pepper-hot",
+      "endpoint": null
+    },
+    {
+      "id": "5",
+      "nombre": "Tortillas",
+      "descripcion": "Tortillas calientes preparadas, perfectas para acompañar cualquier plato.",
+      "icono": "fa-solid fa-cookie",
+      "endpoint": null
+    },
+    {
+      "id": "6",
+      "nombre": "Carnes",
+      "descripcion": "Cortes de carne tiernos y sazonados, preparados al punto para disfrutar cada bocado.",
+      "icono": "fa-solid fa-drumstick-bite",
+      "endpoint": null
+    },
+    {
+      "id": "7",
+      "nombre": "Bebidas",
+      "descripcion": "Refrescantes bebidas para acompañar tus comidas y disfrutar en cualquier momento.",
+      "icono": "fa-solid fa-glass-water",
+      "endpoint": null
+    },
+    {
+      "id": "8",
+      "nombre": "Adicional",
+      "descripcion": "Complementos y extras ideales para personalizar y hacer tu pedido aún más completo.",
+      "icono": "fa-solid fa-cake-candles",
+      "endpoint": null
+    }
+  ],
+  "pqrs": [
+    {
+      "id": "p8O5pXtw0Gs",
+      "tipo": "Petición",
+      "nombre": "Karen M",
+      "asunto": "Solicito amablemente que nos puedan informar si tienen…",
+      "texto": "Solicito amablemente que nos puedan informar si tienen planeado habilitar opciones de menú vegetariano o vegano próximamente.",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "Pendiente",
+      "usuario": null
+    },
+    {
+      "id": "ebyYWA4it7I",
+      "tipo": "Petición",
+      "nombre": "Karen M",
+      "asunto": "Me gustaría solicitar la cotización para la reserva de una…",
+      "texto": "Me gustaría solicitar la cotización para la reserva de una mesa para 8 personas el próximo fin de semana celebrando un cumpleaños.",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "Pendiente",
+      "usuario": null
+    },
+    {
+      "id": "TfQvlE2sMls",
+      "tipo": "Reclamo",
+      "nombre": "Karen M",
+      "asunto": "La comida llegó totalmente fría y el empaque venía roto, lo…",
+      "texto": "La comida llegó totalmente fría y el empaque venía roto, lo cual hizo que se derramara parte de la salsa por la bolsa.",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "Pendiente",
+      "usuario": null
+    },
+    {
+      "id": "Je9OBMQ1B2A",
+      "tipo": "Sugerencia",
+      "nombre": "Karen M",
+      "asunto": "Sugeriría que agreguen una barra de salsas artesanales para…",
+      "texto": "Sugeriría que agreguen una barra de salsas artesanales para acompañar las porciones de papas fritas y las carnes.",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "Pendiente",
+      "usuario": null
+    },
+    {
+      "id": "_DxyNzzDOOk",
+      "tipo": "Sugerencia",
+      "nombre": "Karen M",
+      "asunto": "Sería excelente que implementaran un programa de puntos o…",
+      "texto": "Sería excelente que implementaran un programa de puntos o fidelización para los clientes frecuentes que pedimos seguido.",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "Pendiente",
+      "usuario": null
+    },
+    {
+      "id": "YDzgmyK86rI",
+      "tipo": "Reclamo",
+      "nombre": "Karen M",
+      "asunto": "Pedí una hamburguesa sin cebolla por una alergia fuerte y…",
+      "texto": "Pedí una hamburguesa sin cebolla por una alergia fuerte y me la entregaron con cebolla, poniendo en riesgo mi salud.",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "Pendiente",
+      "usuario": null
+    },
+    {
+      "id": "4sYQZLaHpC0",
+      "tipo": "peticion",
+      "nombre": "Cliente",
+      "asunto": "lp",
+      "texto": "",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "pendiente",
+      "usuario": "cliente@gmail.com"
+    },
+    {
+      "id": "suQ-xbVOXJQ",
+      "tipo": "queja",
+      "nombre": "Cliente",
+      "asunto": "La comida esta dañada",
+      "texto": "",
+      "fecha": "2026-09-22T00:00:00Z",
+      "estado": "pendiente",
+      "usuario": "cliente@gmail.com"
+    }
+  ],
+  "establecimiento": [
+    {
+      "id": "1",
+      "nombre": "Corralejo Fast Food",
+      "descripcion": "Restaurante especializado en comidas rápidas, hamburguesas artesanales, perros calientes, salchipapas y servicio a domicilio para toda la ciudad.",
+      "ciudad": "Bogotá D.C., Colombia",
+      "direccion": "Cl. 32 Sur #23 F 14",
+      "telefono": "+57 311 8370904",
+      "whatsapp": "+57 311 8370904",
+      "horario": "Martes a domingo de 2 pm a 10 pm",
+      "mapa": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3977.0392348398457!2d-74.10398322523777!3d4.587391995387431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f9919fcd7c191%3A0xc48fe33ee5ecf5c9!2sCl.%2032%20Sur%20%2323f-14%2C%20Bogot%C3%A1!5e0!3m2!1ses!2sco!4v1717616000000!5m2!1ses!2sco"
+    }
+  ],
+  "diasEspeciales": [
+    {
+      "id": "1",
+      "fecha": "2026-12-24",
+      "tipo": "cerrado",
+      "motivo": "Cierre por Nochebuena."
+    },
+    {
+      "id": "2",
+      "fecha": "2026-12-31",
+      "tipo": "evento",
+      "motivo": "Fiesta de fin de año en el local."
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
