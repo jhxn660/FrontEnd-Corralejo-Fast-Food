@@ -14,7 +14,9 @@ import {
 } from './servicio'
 import Modal from '../../components/ui/Modal'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
-import { Cargando, Error, Vacio } from '../../components/ui/Estado'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+import { useAvisos } from '../../context/AvisosContext'
+import TicketModal from './TicketModal'
 
 const ESTADOS_VENTA = ['Entregado', 'En Preparación', 'Cancelado']
 const FILTROS_VACIOS = { fecha: '', cliente: '', rango: '' }
@@ -72,6 +74,7 @@ export default function Ventas() {
     []
   )
 
+  const avisos = useAvisos()
   const [filtros, setFiltros] = useState(FILTROS_VACIOS)
   const [seleccionada, setSeleccionada] = useState(null)
   const [minutos, setMinutos] = useState(MINUTOS_MODIFICACION)
@@ -125,15 +128,26 @@ export default function Ventas() {
       setSeleccionada(actualizada)
       setFormEdicion(null)
       recargar()
+      avisos.exito('Venta modificada', `${seleccionada.saleId} quedó actualizada.`)
     } catch (err) {
       setError(err.message)
+      avisos.fallo('No se pudo modificar la venta', err)
     }
   }
 
   return (
     <>
-      <EncabezadoPagina titulo="Panel de Operaciones · Ventas" />
-      <Error texto={error} onReintentar={recargar} />
+      <EncabezadoPagina
+        titulo="Gestión de Ventas"
+        descripcion="Consulta las ventas del día, emite su ticket y corrígelas dentro del plazo."
+      >
+        <button className="btn btn-outline-secondary" onClick={recargar} disabled={cargando}>
+          <i className="fa-solid fa-rotate me-2" />
+          Actualizar
+        </button>
+      </EncabezadoPagina>
+
+      <MensajeError texto={error} onReintentar={recargar} />
 
       <div className="row g-3">
         <div className="col-12 col-xxl-7">
@@ -317,67 +331,15 @@ export default function Ventas() {
       </div>
 
       {modalTicket && seleccionada && (
-        <Modal
-          titulo={`Ticket ${seleccionada.ticketId}`}
-          icono="fa-receipt"
-          onClose={() => setModalTicket(false)}
-          footer={
-            <>
-              <button className="btn btn-outline-secondary" onClick={() => setModalTicket(false)}>
-                Cerrar
-              </button>
-              <button className="btn btn-primary" onClick={() => window.print()}>
-                <i className="fa-solid fa-print me-2" />
-                Imprimir
-              </button>
-            </>
-          }
-        >
-          <div className="text-center mb-3">
-            <strong>Corralejo Fast Food</strong>
-          </div>
-
-          <dl className="row small">
-            {[
-              ['Cliente', seleccionada.client],
-              ['Fecha', `${seleccionada.date} ${seleccionada.time}`],
-              ['Pedido', seleccionada.orderId],
-              ['Atendido por', seleccionada.employeeId],
-            ].map(([etiqueta, valor]) => (
-              <div className="col-6 mb-1" key={etiqueta}>
-                <dt className="text-secondary fw-normal d-inline">{etiqueta}: </dt>
-                <dd className="d-inline fw-semibold">{valor}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <table className="table table-sm small">
-            <tbody>
-              {(seleccionada.items ?? []).map((item) => (
-                <tr key={item.id}>
-                  <td>{item.quantity}×</td>
-                  <td>{item.product}</td>
-                  <td className="text-end">{moneda(item.price)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <p className="text-end fw-bold">Total: {moneda(seleccionada.total)}</p>
-
-          <div className="text-center">
-            <img src={urlQR(seleccionada, 100)} alt={`QR del ticket ${seleccionada.ticketId}`} />
-            <div>
-              <code className="small text-secondary">{seleccionada.qrCode}</code>
-            </div>
-          </div>
-        </Modal>
+        <TicketModal venta={seleccionada} onCerrar={() => setModalTicket(false)} />
       )}
 
       {formEdicion && (
         <Modal
           titulo={`Modificar venta ${seleccionada.saleId}`}
-          icono="fa-pen"
+          icono="fa-pen-to-square"
+          descripcion={`Quedan ${minutos} minuto(s) de la ventana de modificación. Las líneas del pedido no se cambian aquí: para eso hay que reabrir el pedido en Gestión de Pedidos.`}
+          cerrarAlPulsarFuera={false}
           onClose={() => setFormEdicion(null)}
           footer={
             <>
@@ -385,24 +347,39 @@ export default function Ventas() {
                 Cancelar
               </button>
               <button className="btn btn-primary" form="form-venta" type="submit">
+                <i className="fa-solid fa-floppy-disk me-2" />
                 Guardar cambios
               </button>
             </>
           }
         >
+          <div className="modal-resumen d-flex flex-wrap gap-2 mb-4">
+            <span className="badge bg-brand">{seleccionada.saleId}</span>
+            <span className="badge bg-secondary">{seleccionada.ticketId}</span>
+            <span className="badge bg-secondary">{seleccionada.orderId}</span>
+            <span className="badge bg-dark">{moneda(seleccionada.total)}</span>
+          </div>
+
           <form id="form-venta" onSubmit={guardarEdicion} className="d-grid gap-3">
             <div>
-              <label className="form-label">Cliente</label>
+              <label className="form-label" htmlFor="venta-cliente">
+                Cliente
+              </label>
               <input
+                id="venta-cliente"
                 className="form-control"
                 value={formEdicion.client}
                 onChange={(e) => setFormEdicion({ ...formEdicion, client: e.target.value })}
+                placeholder="Ej. Consumidor Final"
                 required
               />
             </div>
             <div>
-              <label className="form-label">Estado del pedido</label>
+              <label className="form-label" htmlFor="venta-estado">
+                Estado del pedido
+              </label>
               <select
+                id="venta-estado"
                 className="form-select"
                 value={formEdicion.status}
                 onChange={(e) => setFormEdicion({ ...formEdicion, status: e.target.value })}
@@ -413,13 +390,17 @@ export default function Ventas() {
               </select>
             </div>
             <div>
-              <label className="form-label">Dirección de entrega</label>
+              <label className="form-label" htmlFor="venta-direccion">
+                Dirección de entrega
+              </label>
               <input
+                id="venta-direccion"
                 className="form-control"
                 value={formEdicion.deliveryAddress}
                 onChange={(e) =>
                   setFormEdicion({ ...formEdicion, deliveryAddress: e.target.value })
                 }
+                placeholder="Ej. Local / Mostrador"
                 required
               />
             </div>

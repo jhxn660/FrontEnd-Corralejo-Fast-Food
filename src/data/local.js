@@ -2,18 +2,64 @@
 // La ficha en sí vive en la API (colección "establecimiento"), no aquí: así el
 // administrador la edita y el cliente ve el mismo valor (R25).
 
+/**
+ * Campos editables de la ficha. Cada entrada lleva además su tipo de input, su
+ * icono, el ancho de columna y la ayuda que hace falta para no equivocarse: el
+ * formulario los recorre y no decide nada por su cuenta (R24).
+ */
 export const CAMPOS_INFO = [
-  { campo: 'nombre', etiqueta: 'Nombre del restaurante' },
-  { campo: 'direccion', etiqueta: 'Dirección' },
-  { campo: 'ciudad', etiqueta: 'Ciudad' },
-  { campo: 'telefono', etiqueta: 'Teléfono' },
-  { campo: 'whatsapp', etiqueta: 'WhatsApp' },
-  { campo: 'horario', etiqueta: 'Horario de atención' },
-  { campo: 'mapa', etiqueta: 'URL del mapa (Google Maps embed)' },
+  {
+    campo: 'nombre',
+    etiqueta: 'Nombre del restaurante',
+    icono: 'fa-store',
+    columna: 'col-12 col-sm-8',
+  },
+  { campo: 'ciudad', etiqueta: 'Ciudad', icono: 'fa-city', columna: 'col-12 col-sm-4' },
+  {
+    campo: 'direccion',
+    etiqueta: 'Dirección',
+    icono: 'fa-location-dot',
+    columna: 'col-12',
+    ayuda: 'Como debe leerla quien llega por primera vez.',
+  },
+  {
+    campo: 'telefono',
+    etiqueta: 'Teléfono',
+    tipo: 'tel',
+    icono: 'fa-phone',
+    columna: 'col-12 col-sm-6',
+  },
+  {
+    campo: 'whatsapp',
+    etiqueta: 'WhatsApp',
+    tipo: 'tel',
+    icono: 'fa-comment-sms',
+    columna: 'col-12 col-sm-6',
+  },
+  {
+    campo: 'horario',
+    etiqueta: 'Horario de atención',
+    icono: 'fa-clock',
+    columna: 'col-12',
+    ayuda: 'Ej. Martes a domingo de 2 pm a 10 pm.',
+  },
+  {
+    campo: 'mapa',
+    etiqueta: 'URL del mapa',
+    tipo: 'url',
+    icono: 'fa-map-location-dot',
+    columna: 'col-12',
+    ayuda: 'En Google Maps: Compartir → Insertar un mapa → copiar el src del iframe.',
+  },
 ]
 
 export const MAPA_EMBED =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3977.0392348398457!2d-74.10398322523777!3d4.587391995387431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f9919fcd7c191%3A0xc48fe33ee5ecf5c9!2sCl.%2032%20Sur%20%2323f-14%2C%20Bogot%C3%A1!5e0!3m2!1ses!2sco!4v1717616000000!5m2!1ses!2sco'
+
+// Número de WhatsApp en el formato que pide wa.me: solo dígitos, con indicativo
+// y sin signos. Se guarda aparte del texto que se muestra en pantalla porque son
+// dos usos distintos del mismo dato y formatearlo en el enlace rompería la URL.
+export const WHATSAPP_NUMERO = '573118370904'
 
 export const CONTACTO = [
   { id: 'direccion', icono: 'fa-location-arrow', texto: 'Cl. 32 Sur #23 F 14, Bogotá, Colombia' },

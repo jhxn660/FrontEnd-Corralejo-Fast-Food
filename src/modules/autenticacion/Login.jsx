@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import Swal from 'sweetalert2'
 
 import { supabase } from '../../services/supabase'
+import { useAvisos } from '../../context/AvisosContext'
 import FormularioAuth from './FormularioAuth'
 import CampoTexto from './CampoTexto'
 import { hayErrores, validarLogin } from './validaciones'
@@ -10,6 +10,7 @@ import { hayErrores, validarLogin } from './validaciones'
 const CREDENCIALES_VACIAS = { email: '', password: '' }
 
 export default function Login() {
+  const avisos = useAvisos()
   const [credenciales, setCredenciales] = useState(CREDENCIALES_VACIAS)
   const [errores, setErrores] = useState({})
   const [autenticando, setAutenticando] = useState(false)
@@ -38,25 +39,17 @@ export default function Login() {
     setAutenticando(false)
 
     if (error || !data.user) {
-      // Mensaje genérico a propósito: distinguir "correo inexistente" de
+      // Mensaje genérico a propósito (R63): distinguir "correo inexistente" de
       // "contraseña incorrecta" revela qué correos están registrados.
-      Swal.fire({
-        icon: 'error',
-        title: 'No pudimos iniciar sesión',
-        text: 'El correo o la contraseña no son correctos.',
-      })
+      avisos.error('No pudimos iniciar sesión', 'El correo o la contraseña no son correctos.')
       return
     }
 
     // No hace falta avisar al padre: AuthContext se entera por su suscripción
-    // a onAuthStateChange y App redirige al panel del rol.
-    await Swal.fire({
-      icon: 'success',
-      title: '¡Inicio exitoso!',
-      text: 'Bienvenido a Corralejo Fast Food.',
-      timer: 1200,
-      showConfirmButton: false,
-    })
+    // a onAuthStateChange y App redirige al panel del rol. El aviso no bloquea
+    // esa redirección: el diálogo modal que había antes obligaba a esperar a su
+    // temporizador antes de entrar al panel.
+    avisos.exito('¡Bienvenido!', 'Sesión iniciada en Corralejo Fast Food.')
   }
 
   return (

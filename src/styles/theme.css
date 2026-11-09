@@ -172,6 +172,49 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 
 .form-label { font-weight: 600; font-size: 0.875rem; }
 
+/* Bootstrap fija el azul de la paginación con un literal, no con --bs-primary:
+   sin repintarlo, la página activa saldría azul en una interfaz naranja. */
+.pagination {
+  --bs-pagination-color: var(--cff-carbon);
+  --bs-pagination-border-color: var(--cff-borde);
+  --bs-pagination-hover-color: var(--cff-naranja-oscuro);
+  --bs-pagination-hover-bg: var(--cff-naranja-tenue);
+  --bs-pagination-hover-border-color: var(--cff-naranja);
+  --bs-pagination-focus-color: var(--cff-naranja-oscuro);
+  --bs-pagination-focus-bg: var(--cff-naranja-tenue);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(255, 138, 0, 0.25);
+  --bs-pagination-active-bg: var(--cff-naranja);
+  --bs-pagination-active-border-color: var(--cff-naranja-oscuro);
+  --bs-pagination-active-color: #fff;
+  font-weight: 600;
+}
+
+/* Los pills del catálogo y de las pestañas también nacen azules. */
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--cff-naranja);
+  --bs-nav-pills-link-active-color: #fff;
+  --bs-nav-link-color: var(--cff-carbon);
+  --bs-nav-link-hover-color: var(--cff-naranja-oscuro);
+}
+
+.nav-pills .nav-link {
+  font-weight: 600;
+  border: 1px solid var(--cff-borde);
+  background: #fff;
+}
+
+.nav-pills .nav-link.active { border-color: var(--cff-naranja-oscuro); }
+
+.form-check-input:checked {
+  background-color: var(--cff-naranja);
+  border-color: var(--cff-naranja-oscuro);
+}
+
+.form-check-input:focus {
+  border-color: var(--cff-naranja);
+  box-shadow: 0 0 0 0.2rem rgba(255, 138, 0, 0.22);
+}
+
 /* ---------- Estructura de la aplicación ---------- */
 
 .app-header {
@@ -470,6 +513,9 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   gap: 4px;
 }
 
+/* El día es un <button> cuando se puede editar y un <div> cuando no: se
+   neutralizan los estilos propios del botón para que las dos variantes se vean
+   exactamente igual. */
 .calendar-day {
   aspect-ratio: 1;
   display: flex;
@@ -479,9 +525,17 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
   border: 1px solid var(--cff-borde);
   background: #fff;
   transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.calendar-day:focus-visible {
+  outline: 3px solid var(--cff-naranja);
+  outline-offset: 2px;
 }
 
 .calendar-day:hover:not(.is-muted):not(.is-readonly) {
@@ -557,32 +611,76 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 
 /* ---------- Impresión del ticket ---------- */
 
-/* Solo se imprime el ticket, centrado y sin los botones del modal. La clase la
-   pone el propio modal del ticket mientras está abierto. */
-@media print {
-  body.imprimiendo-ticket * { visibility: hidden !important; }
+/* Al imprimir solo sale el ticket, centrado y sin los botones del modal. La
+   clase la pone el propio modal del ticket mientras está abierto.
 
-  body.imprimiendo-ticket .ticket-impresion,
-  body.imprimiendo-ticket .ticket-impresion * { visibility: visible !important; }
+   `window.print()` imprime la página entera: antes salía la aplicación completa
+   —cabecera, menú, tabla de ventas— con el ticket pegado arriba y los botones
+   "Cerrar" e "Imprimir" dentro del papel. La salida es apagar todo lo que no es
+   el portal del modal, y dentro del portal apagar la cabecera y el pie.
+
+   Importa que el diálogo pase a `position: static`: un elemento fijo se repite
+   en cada página impresa, y el `inset: 0` del fondo hacía que el documento
+   mantuviera la altura de la pantalla y saliera una segunda hoja en blanco. */
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* El portal del modal es hijo directo de body: todo lo demás no se imprime. */
+  body.imprimiendo-ticket > *:not(.cff-backdrop) { display: none !important; }
+
+  body.imprimiendo-ticket .cff-backdrop {
+    position: static !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    animation: none !important;
+  }
+
+  body.imprimiendo-ticket .modal-dialog {
+    margin: 0 auto !important;
+    max-width: none !important;
+    width: auto !important;
+    min-height: 0 !important;
+    animation: none !important;
+    display: block !important;
+  }
+
+  body.imprimiendo-ticket .modal-content {
+    display: block !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* La cabecera y el pie son interfaz, no ticket. */
+  body.imprimiendo-ticket .modal-header,
+  body.imprimiendo-ticket .modal-footer,
+  body.imprimiendo-ticket .no-imprimir { display: none !important; }
+
+  body.imprimiendo-ticket .modal-body {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
 
   body.imprimiendo-ticket .ticket-impresion {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
     width: 76mm;
-    margin: 0;
-    padding: 0;
+    margin: 0 auto !important;
     border: 0;
     box-shadow: none;
     background: #fff;
     color: #000;
-  }
-
-  body.imprimiendo-ticket .no-imprimir { display: none !important; }
-
-  @page {
-    margin: 8mm;
   }
 }
 

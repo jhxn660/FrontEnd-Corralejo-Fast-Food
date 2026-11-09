@@ -57,14 +57,23 @@ export function useMenu({ editable = false } = {}) {
   const visibles = useMemo(() => {
     const texto = busqueda.toLowerCase().trim()
     const comparar = ORDENES[orden] ?? ORDENES['']
+
+    const coincideCategoria = (categoria) => categoria.nombre.toLowerCase().includes(texto)
+    const coincidePlato = (plato) =>
+      `${plato.nombre} ${plato.descripcion ?? ''}`.toLowerCase().includes(texto)
+
     return categorias
       .filter((c) => editable || c.disponible)
-      .filter(
-        (c) =>
-          c.nombre.toLowerCase().includes(texto) ||
-          c.productos.some((p) => p.nombre.toLowerCase().includes(texto))
-      )
-      .map((c) => ({ ...c, productos: [...c.productos].sort(comparar) }))
+      .map((c) => {
+        // Al buscar se recortan también los platos, no solo las categorías: una
+        // búsqueda de "pollo" que devuelve la categoría entera con sus nueve
+        // platos no ha filtrado nada. Si lo que coincide es el nombre de la
+        // categoría, se muestra completa: ahí la intención es verla toda.
+        const productos =
+          !texto || coincideCategoria(c) ? c.productos : c.productos.filter(coincidePlato)
+        return { ...c, productos: [...productos].sort(comparar) }
+      })
+      .filter((c) => !texto || coincideCategoria(c) || c.productos.length > 0)
   }, [categorias, busqueda, orden, editable])
 
   // Tras cada escritura se recarga el recurso completo (R21): es más lento que

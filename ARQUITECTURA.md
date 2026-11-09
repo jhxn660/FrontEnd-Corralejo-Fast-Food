@@ -164,6 +164,30 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   comparten baja al servicio del módulo dueño, a `src/components/` o a
   `src/data/`.
 
+## 14. Avisos y recuperación de errores
+
+- **R66** Toda acción que el usuario confirma —iniciar sesión, registrarse,
+  crear, guardar, cambiar de estado, eliminar, generar una venta— emite un
+  aviso con `useAvisos()`: verde para lo que salió bien, rojo para un borrado o
+  un fallo, tres segundos, esquina superior derecha. No se usan diálogos
+  modales para confirmar algo que ya ocurrió: obligan a cerrar una ventana para
+  seguir trabajando. Por eso `sweetalert2` salió de las dependencias.
+- **R67** El aviso **no sustituye** al error en pantalla. Un recurso que no
+  carga sigue mostrando `MensajeError`, que se queda y ofrece reintentar; el
+  aviso es para lo que se puede dejar pasar.
+- **R68** El contenido de cada pantalla va dentro de `LimiteDeError`. Una
+  excepción en el render desmonta todo el árbol de React —menú incluido— y deja
+  la aplicación sin salida hasta recargar. El límite se rearma al cambiar de
+  ruta.
+- **R69** El modal se monta con la clase `modal` de Bootstrap. Ahí viven todas
+  las variables `--bs-modal-*`; sin esa clase `.modal-content` se queda sin
+  fondo, sin relleno y sin radio, y `modal-lg` no hace nada. Un portal que
+  pinte `.modal-dialog` suelto está roto aunque lo parezca menos.
+- **R70** Un recurso de la API que no es una colección se pide con
+  `api.obtener()`, nunca con `api.list()`. `list()` normaliza toda respuesta a
+  forma de lista y ante un objeto devuelve `[]`: así se quedaron sin datos el
+  catálogo de Pedidos y los indicadores.
+
 ---
 
 ## Antipatrones excluidos explícitamente
@@ -181,6 +205,9 @@ No se reintroducen, aunque se encuentren en proyectos hermanos:
 | 7 | Versiones `latest` | R31 |
 | 8 | Tuplas posicionales para datos estáticos | R24 |
 | 9 | Filtrado por rol en el navegador | R17 (deuda anotada) |
+| 10 | Diálogo modal para confirmar algo ya hecho | R66 |
+| 11 | `api.list()` sobre un recurso que es un objeto | R70 |
+| 12 | Exportar un componente llamado `Error` | tapa el constructor global |
 
 ## Deuda anotada, no resuelta
 

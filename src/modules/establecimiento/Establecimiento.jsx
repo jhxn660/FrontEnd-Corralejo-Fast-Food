@@ -2,48 +2,42 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { api } from '../../services/api'
 import { useRecurso } from '../../hooks/useRecurso'
-import Modal from '../../components/ui/Modal'
-import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
-import { Cargando, Error, Vacio } from '../../components/ui/Estado'
-import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
+import { usePeticion } from '../../hooks/usePeticion'
 import { useConfirmacion } from '../../hooks/useConfirmacion'
-import { CAMPOS_INFO } from '../../data/local'
-import { HISTORIAS, MISION, PILARES, PUNTOS_CLAVE, VALORACIONES } from '../../data/contenido'
+import { useAvisos } from '../../context/AvisosContext'
+import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
+import { PILARES, PUNTOS_CLAVE, VALORACIONES } from '../../data/contenido'
+import {
+  DIAS_SEMANA,
+  MESES,
+  TIPOS_DIA,
+  desplazamientoDe,
+  diaVacio,
+  diasDelMes,
+  fechaLegible,
+  isoDe,
+  mesDesplazado,
+  partesDe,
+} from './calendario'
+import NarrativaCreativa from './NarrativaCreativa'
+import FormularioFicha from './FormularioFicha'
+import FormularioDiaEspecial from './FormularioDiaEspecial'
 
 const FICHA = 'establecimiento'
 const DIAS = 'diasEspeciales'
 
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-const TIPOS = {
-  cerrado: { etiqueta: 'Cerrado', icono: 'fa-ban', color: 'danger' },
-  evento: { etiqueta: 'Evento', icono: 'fa-star', color: 'brand' },
-}
-
-// No se usa fechaCorta() de utils/format: new Date('2026-12-24') se interpreta en UTC y en
-// Colombia mostraría el día anterior.
-const fechaLegible = (fecha) => {
-  const { year, month, dia } = partesDe(fecha)
-  return Number.isNaN(dia) ? fecha : `${dia} de ${MESES[month] ?? ''} de ${year}`
-}
-
 const hoy = new Date()
-const diaVacio = () => ({ fecha: '', tipo: 'cerrado', motivo: '' })
-
-/** "2026-12-24" → { year: 2026, month: 11, dia: 24 } sin pasar por la zona horaria. */
-const partesDe = (fecha) => {
-  const [year, month, dia] = String(fecha ?? '').split('-').map(Number)
-  return { year, month: month - 1, dia }
-}
 
 /**
  * Ficha del establecimiento: ubicación, horario, días especiales y narrativa.
  * Misma presentación para todos los roles; `editable` es lo único que cambia:
  * el administrador actualiza la ficha y añade, edita o elimina días
- * especiales, el cliente solo consulta.
+ * especiales, el cliente solo consulta (R44).
+ *
+ * Los formularios y la narrativa son archivos hermanos del módulo: aquí queda
+ * la pantalla, que carga, pinta y recoge eventos.
  */
 export default function Establecimiento({ editable = false }) {
   const cargarFicha = useCallback(async () => (await api.list(FICHA))[0] ?? null, [])
@@ -53,7 +47,6 @@ export default function Establecimiento({ editable = false }) {
     datos: ficha,
     cargando: cargandoFicha,
     error: errorFicha,
-    setError: setErrorFicha,
     recargar: recargarFicha,
   } = useRecurso(cargarFicha, null)
 
@@ -61,72 +54,80 @@ export default function Establecimiento({ editable = false }) {
     datos: dias,
     cargando: cargandoDias,
     error: errorDias,
-    setError: setErrorDias,
     recargar: recargarDias,
   } = useRecurso(cargarDias, [])
 
-  const [mes, setMes] = useState({ year: hoy.getFullYear(), month: hoy.getMonth() })
-  const [modalFicha, setModalFicha] = useState(null) // copia editable de la ficha
-  const [modalDia, setModalDia] = useState(null) // { fecha, tipo, motivo, id? }
-  const [historia, setHistoria] = useState(null)
+  const avisos = useAvisos()
+  const [mes, setMes] = useState({ año: hoy.getFullYear(), mes: hoy.getMonth() })
+  const [modalFicha, setModalFicha] = useState(null)
+  const [modalDia, setModalDia] = useState(null)
+
+  const guardadoFicha = usePeticion(
+    useCallback(
+      async (valores) => {
+        await api.update(FICHA, valores.id, valores)
+        await recargarFicha()
+      },
+      [recargarFicha]
+    )
+  )
+
+  const guardadoDia = usePeticion(
+    useCallback(
+      async (valores) => {
+        const { id, ...datos } = valores
+        if (id) await api.update(DIAS, id, valores)
+        else await api.create(DIAS, datos)
+        await recargarDias()
+      },
+      [recargarDias]
+    )
+  )
 
   // Días del mes visible, indexados por número de día para pintar el calendario.
   const delMes = useMemo(() => {
     const indexados = {}
     dias.forEach((dia) => {
-      const { year, month, dia: numero } = partesDe(dia.fecha)
-      if (year === mes.year && month === mes.month) indexados[numero] = dia
+      const { año, mes: mesDia, dia: numero } = partesDe(dia.fecha)
+      if (año === mes.año && mesDia === mes.mes) indexados[numero] = dia
     })
     return indexados
   }, [dias, mes])
 
-  const cambiarMes = (delta) => {
-    let { year, month } = mes
-    month += delta
-    if (month < 0) [month, year] = [11, year - 1]
-    if (month > 11) [month, year] = [0, year + 1]
-    setMes({ year, month })
-  }
+  const especiales = Object.keys(delMes).sort((a, b) => a - b)
 
   const abrirDia = (numero) => {
     if (!editable) return
     const existente = delMes[numero]
-    if (existente) {
-      setModalDia({ ...existente })
-      return
-    }
-    const mm = String(mes.month + 1).padStart(2, '0')
-    const dd = String(numero).padStart(2, '0')
-    setModalDia({ ...diaVacio(), fecha: `${mes.year}-${mm}-${dd}` })
+    setModalDia(
+      existente ? { ...existente } : { ...diaVacio(), fecha: isoDe(mes.año, mes.mes, numero) }
+    )
   }
 
-  const guardarFicha = async (e) => {
-    e.preventDefault()
-    try {
-      await api.update(FICHA, ficha.id, modalFicha)
-      setModalFicha(null)
-      recargarFicha()
-    } catch (err) {
-      setErrorFicha(err.message)
-    }
-  }
-
-  const guardarDia = async (e) => {
-    e.preventDefault()
-    if (!modalDia.fecha) {
-      setErrorDias('Indica la fecha del día especial.')
+  const guardarFicha = async (valores) => {
+    const { ok, error: fallo } = await guardadoFicha.ejecutar(valores)
+    if (!ok) {
+      avisos.fallo('No se pudo guardar la ficha', fallo)
       return
     }
+    setModalFicha(null)
+    avisos.exito('Ficha actualizada', 'Los datos del local ya se ven en el panel del cliente.')
+  }
 
-    const { id, ...datos } = modalDia
-    try {
-      if (id) await api.update(DIAS, id, modalDia)
-      else await api.create(DIAS, datos)
-      setModalDia(null)
-      recargarDias()
-    } catch (err) {
-      setErrorDias(err.message)
+  const guardarDia = async (valores) => {
+    const editando = Boolean(valores.id)
+    const { ok, error: fallo } = await guardadoDia.ejecutar(valores)
+    if (!ok) {
+      avisos.fallo('No se pudo guardar el día', fallo)
+      return
     }
+    setModalDia(null)
+    avisos.exito(
+      editando ? 'Día especial actualizado' : 'Día especial añadido',
+      `${fechaLegible(valores.fecha)} quedó marcado como ${
+        TIPOS_DIA[valores.tipo]?.etiqueta.toLowerCase() ?? valores.tipo
+      }.`
+    )
   }
 
   // RNF-01: un mismo componente confirma todos los borrados de la aplicación.
@@ -134,13 +135,19 @@ export default function Establecimiento({ editable = false }) {
     alTerminar: recargarDias,
   })
 
-  const celdas = () => {
-    const { year, month } = mes
-    const desplazamiento = (new Date(year, month, 1).getDay() + 6) % 7 // la semana inicia lunes
-    const total = new Date(year, month + 1, 0).getDate()
-    const esMesActual = hoy.getFullYear() === year && hoy.getMonth() === month
+  const eliminarDia = async () => {
+    const fecha = eliminacionDia.objetivo?.fecha
+    if (await eliminacionDia.confirmar()) {
+      avisos.error('Día especial eliminado', `${fechaLegible(fecha)} volvió a ser un día normal.`)
+    }
+  }
 
-    const vacias = Array.from({ length: desplazamiento }, (_, i) => (
+  const celdas = () => {
+    const { año, mes: mesVisible } = mes
+    const total = diasDelMes(año, mesVisible)
+    const esMesActual = hoy.getFullYear() === año && hoy.getMonth() === mesVisible
+
+    const vacias = Array.from({ length: desplazamientoDe(año, mesVisible) }, (_, i) => (
       <div key={`vacio-${i}`} className="calendar-day is-muted" />
     ))
 
@@ -152,15 +159,27 @@ export default function Establecimiento({ editable = false }) {
         marca?.tipo ?? '',
         esMesActual && hoy.getDate() === numero ? 'is-today' : '',
         editable ? '' : 'is-readonly',
-      ].join(' ')
+      ]
+        .filter(Boolean)
+        .join(' ')
 
-      return (
-        <div
+      const descripcion = marca
+        ? `${numero}: ${TIPOS_DIA[marca.tipo]?.etiqueta ?? marca.tipo} — ${marca.motivo}`
+        : String(numero)
+
+      return editable ? (
+        <button
           key={numero}
+          type="button"
           className={clases}
-          title={marca?.motivo ?? ''}
+          title={marca?.motivo ?? 'Añadir día especial'}
+          aria-label={descripcion}
           onClick={() => abrirDia(numero)}
         >
+          {numero}
+        </button>
+      ) : (
+        <div key={numero} className={clases} title={marca?.motivo ?? ''} aria-label={descripcion}>
           {numero}
         </div>
       )
@@ -168,8 +187,6 @@ export default function Establecimiento({ editable = false }) {
 
     return [...vacias, ...numeradas]
   }
-
-  const especiales = Object.keys(delMes).sort((a, b) => a - b)
 
   if (cargandoFicha && !ficha) return <Cargando texto="Cargando información del local…" />
 
@@ -189,7 +206,10 @@ export default function Establecimiento({ editable = false }) {
               <i className="fa-solid fa-pen me-2" />
               Editar ficha
             </button>
-            <button className="btn btn-primary" onClick={() => setModalDia(diaVacio())}>
+            <button
+              className="btn btn-outline-primary"
+              onClick={() => setModalDia(diaVacio())}
+            >
               <i className="fa-solid fa-calendar-plus me-2" />
               Añadir día especial
             </button>
@@ -207,11 +227,13 @@ export default function Establecimiento({ editable = false }) {
         </button>
       </EncabezadoPagina>
 
-      <Error texto={errorFicha} onReintentar={recargarFicha} />
-      <Error texto={errorDias} onReintentar={recargarDias} />
+      <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
+      <MensajeError texto={errorDias} onReintentar={recargarDias} />
 
       {!ficha && !cargandoFicha && (
-        <Vacio texto="Todavía no hay una ficha del establecimiento." icono="fa-store" />
+        <div className="card border-0 shadow-sm">
+          <Vacio texto="Todavía no hay una ficha del establecimiento." icono="fa-store" />
+        </div>
       )}
 
       {ficha && (
@@ -219,7 +241,10 @@ export default function Establecimiento({ editable = false }) {
           <div className="col-12 col-xl-7">
             <div className="card border-0 shadow-sm h-100">
               <div className="card-header bg-white">
-                <h2 className="h6 fw-bold mb-0">Ubicación y contacto</h2>
+                <h2 className="h6 fw-bold mb-0">
+                  <i className="fa-solid fa-location-dot text-brand me-2" />
+                  Ubicación y contacto
+                </h2>
               </div>
               <div className="ratio ratio-21x9">
                 <iframe src={ficha.mapa} title="Ubicación Corralejo" style={{ border: 0 }} />
@@ -229,28 +254,23 @@ export default function Establecimiento({ editable = false }) {
                 <p className="text-secondary small">{ficha.descripcion}</p>
 
                 <ul className="list-unstyled small mb-3">
-                  <li className="mb-1">
-                    <i className="fa-solid fa-location-dot text-brand me-2" />
-                    {ficha.direccion} — {ficha.ciudad}
-                  </li>
-                  <li className="mb-1">
-                    <i className="fa-solid fa-phone text-brand me-2" />
-                    {ficha.telefono}
-                  </li>
-                  <li className="mb-1">
-                    <i className="fa-brands fa-whatsapp text-brand me-2" />
-                    {ficha.whatsapp}
-                  </li>
-                  <li>
-                    <i className="fa-solid fa-clock text-brand me-2" />
-                    {ficha.horario}
-                  </li>
+                  {[
+                    { icono: 'fa-solid fa-location-dot', texto: `${ficha.direccion} — ${ficha.ciudad}` },
+                    { icono: 'fa-solid fa-phone', texto: ficha.telefono },
+                    { icono: 'fa-brands fa-whatsapp', texto: ficha.whatsapp },
+                    { icono: 'fa-solid fa-clock', texto: ficha.horario },
+                  ].map(({ icono, texto }) => (
+                    <li className="mb-2 d-flex gap-2" key={icono}>
+                      <i className={`${icono} text-brand mt-1`} />
+                      <span>{texto}</span>
+                    </li>
+                  ))}
                 </ul>
 
-                <strong className="small">Puntos clave</strong>
+                <strong className="small text-uppercase">Puntos clave</strong>
                 <ul className="list-unstyled small text-secondary mt-2 mb-0">
                   {PUNTOS_CLAVE.map(({ id, texto }) => (
-                    <li key={id}>
+                    <li className="mb-1" key={id}>
                       <i className="fa-solid fa-circle-check text-success me-2" />
                       {texto}
                     </li>
@@ -263,23 +283,26 @@ export default function Establecimiento({ editable = false }) {
           <div className="col-12 col-xl-5">
             <div className="card border-0 shadow-sm h-100">
               <div className="card-header bg-white">
-                <h2 className="h6 fw-bold mb-0">Horario de atención</h2>
+                <h2 className="h6 fw-bold mb-0">
+                  <i className="fa-solid fa-calendar-days text-brand me-2" />
+                  Calendario de atención
+                </h2>
               </div>
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <button
                     className="btn btn-sm btn-outline-secondary"
-                    onClick={() => cambiarMes(-1)}
+                    onClick={() => setMes(mesDesplazado(mes, -1))}
                     aria-label="Mes anterior"
                   >
                     <i className="fa-solid fa-chevron-left" />
                   </button>
                   <strong>
-                    {MESES[mes.month]} {mes.year}
+                    {MESES[mes.mes]} {mes.año}
                   </strong>
                   <button
                     className="btn btn-sm btn-outline-secondary"
-                    onClick={() => cambiarMes(1)}
+                    onClick={() => setMes(mesDesplazado(mes, 1))}
                     aria-label="Mes siguiente"
                   >
                     <i className="fa-solid fa-chevron-right" />
@@ -287,19 +310,18 @@ export default function Establecimiento({ editable = false }) {
                 </div>
 
                 <div className="calendar-grid text-center small text-secondary fw-semibold mb-1">
-                  {['LU', 'MA', 'MI', 'JU', 'VI', 'SA', 'DO'].map((dia) => (
+                  {DIAS_SEMANA.map((dia) => (
                     <div key={dia}>{dia}</div>
                   ))}
                 </div>
                 <div className="calendar-grid mb-3">{celdas()}</div>
 
-                <div className="d-flex gap-3 small text-secondary mb-3">
-                  <span>
-                    <span className="badge bg-danger">&nbsp;</span> Cerrado
-                  </span>
-                  <span>
-                    <span className="badge bg-brand">&nbsp;</span> Evento
-                  </span>
+                <div className="d-flex flex-wrap gap-3 small text-secondary mb-3">
+                  {Object.values(TIPOS_DIA).map(({ etiqueta, color }) => (
+                    <span key={etiqueta}>
+                      <span className={`badge bg-${color}`}>&nbsp;</span> {etiqueta}
+                    </span>
+                  ))}
                 </div>
 
                 <h3 className="h6 fw-bold">Días especiales este mes</h3>
@@ -308,39 +330,44 @@ export default function Establecimiento({ editable = false }) {
                 {!cargandoDias && especiales.length === 0 ? (
                   <p className="text-secondary small fst-italic mb-0">
                     No hay días especiales configurados.
-                    {editable && ' Haz clic en un día del calendario para añadirlo.'}
+                    {editable && ' Pulsa un día del calendario para añadirlo.'}
                   </p>
                 ) : (
                   <ul className="list-group list-group-flush">
                     {especiales.map((numero) => {
                       const dia = delMes[numero]
+                      const tipo = TIPOS_DIA[dia.tipo] ?? {}
+
                       return (
                         <li
                           key={dia.id}
                           className="list-group-item d-flex align-items-center gap-2 px-0"
                         >
-                          <span className={`badge bg-${TIPOS[dia.tipo]?.color ?? 'secondary'}`}>
-                            {TIPOS[dia.tipo]?.etiqueta ?? dia.tipo}
+                          <span className={`badge bg-${tipo.color ?? 'secondary'} flex-shrink-0`}>
+                            <i className={`fa-solid ${tipo.icono ?? 'fa-circle'} me-1`} />
+                            {tipo.etiqueta ?? dia.tipo}
                           </span>
-                          <span className="small flex-grow-1">{dia.motivo}</span>
-                          <span className="small text-secondary">{fechaLegible(dia.fecha)}</span>
+                          <span className="small flex-grow-1 min-width-0">
+                            <span className="d-block fw-semibold">{fechaLegible(dia.fecha)}</span>
+                            <span className="text-secondary">{dia.motivo}</span>
+                          </span>
                           {editable && (
-                            <>
+                            <span className="btn-group btn-group-sm flex-shrink-0">
                               <button
-                                className="btn btn-sm btn-outline-primary"
+                                className="btn btn-outline-primary"
                                 onClick={() => setModalDia({ ...dia })}
-                                aria-label="Editar día especial"
+                                aria-label={`Editar el día ${fechaLegible(dia.fecha)}`}
                               >
                                 <i className="fa-solid fa-pen" />
                               </button>
                               <button
-                                className="btn btn-sm btn-outline-danger"
+                                className="btn btn-outline-danger"
                                 onClick={() => eliminacionDia.pedir(dia)}
-                                aria-label="Eliminar día especial"
+                                aria-label={`Eliminar el día ${fechaLegible(dia.fecha)}`}
                               >
-                                <i className="fa-solid fa-xmark" />
+                                <i className="fa-solid fa-trash-can" />
                               </button>
-                            </>
+                            </span>
                           )}
                         </li>
                       )
@@ -369,40 +396,31 @@ export default function Establecimiento({ editable = false }) {
         ))}
       </div>
 
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body">
-          <h2 className="h6 fw-bold text-uppercase mb-3">Narrativa creativa</h2>
-          <p className="text-secondary">{MISION}</p>
-
-          <div className="d-flex flex-wrap gap-2">
-            {HISTORIAS.map((item) => (
-              <button
-                key={item.id}
-                className="btn btn-outline-primary btn-sm"
-                onClick={() => setHistoria(item)}
-              >
-                {item.titulo}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <NarrativaCreativa />
 
       <div className="card border-0 shadow-sm">
         <div className="card-header bg-white">
-          <h2 className="h6 fw-bold mb-0">Valoraciones</h2>
+          <h2 className="h6 fw-bold mb-0">
+            <i className="fa-solid fa-star text-brand me-2" />
+            Valoraciones
+          </h2>
         </div>
         <div className="card-body d-flex flex-wrap gap-4 align-items-center">
           <div className="text-center">
             <p className="display-5 fw-bold text-brand mb-0">{VALORACIONES.promedio}</p>
-            <div className="text-warning">★★★★★</div>
+            <div className="text-warning fs-5" aria-hidden="true">
+              ★★★★★
+            </div>
             <small className="text-secondary">{VALORACIONES.total}</small>
           </div>
           <ul className="list-group list-group-flush flex-grow-1">
             {VALORACIONES.recientes.map(({ id, nombre, estrellas, cuando }) => (
               <li className="list-group-item d-flex justify-content-between px-0 small" key={id}>
                 <span>
-                  {nombre} <span className="text-warning">{estrellas}</span>
+                  {nombre}{' '}
+                  <span className="text-warning" aria-hidden="true">
+                    {estrellas}
+                  </span>
                 </span>
                 <span className="text-secondary">{cuando}</span>
               </li>
@@ -411,106 +429,22 @@ export default function Establecimiento({ editable = false }) {
         </div>
       </div>
 
-      {historia && (
-        <Modal titulo={historia.titulo} icono="fa-book-open" onClose={() => setHistoria(null)}>
-          <p className="mb-0">{historia.texto}</p>
-        </Modal>
-      )}
-
       {modalFicha && (
-        <Modal
-          titulo="Editar ficha del establecimiento"
-          icono="fa-location-dot"
-          onClose={() => setModalFicha(null)}
-          footer={
-            <>
-              <button className="btn btn-outline-secondary" onClick={() => setModalFicha(null)}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary" form="form-ficha" type="submit">
-                Guardar cambios
-              </button>
-            </>
-          }
-        >
-          <form id="form-ficha" className="d-grid gap-3" onSubmit={guardarFicha}>
-            {CAMPOS_INFO.map(({ campo, etiqueta }) => (
-              <div key={campo}>
-                <label className="form-label">{etiqueta}</label>
-                <input
-                  className="form-control"
-                  value={modalFicha[campo] ?? ''}
-                  onChange={(e) => setModalFicha({ ...modalFicha, [campo]: e.target.value })}
-                />
-              </div>
-            ))}
-            <div>
-              <label className="form-label">Descripción</label>
-              <textarea
-                className="form-control"
-                rows="3"
-                value={modalFicha.descripcion ?? ''}
-                onChange={(e) => setModalFicha({ ...modalFicha, descripcion: e.target.value })}
-              />
-            </div>
-          </form>
-        </Modal>
+        <FormularioFicha
+          ficha={modalFicha}
+          enviando={guardadoFicha.enviando}
+          onGuardar={guardarFicha}
+          onCerrar={() => setModalFicha(null)}
+        />
       )}
 
       {modalDia && (
-        <Modal
-          titulo={modalDia.id ? 'Editar día especial' : 'Añadir día especial'}
-          icono="fa-calendar-day"
-          onClose={() => setModalDia(null)}
-          footer={
-            <>
-              <button className="btn btn-outline-secondary" onClick={() => setModalDia(null)}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary" form="form-dia" type="submit">
-                Guardar
-              </button>
-            </>
-          }
-        >
-          <form id="form-dia" className="d-grid gap-3" onSubmit={guardarDia}>
-            <div>
-              <label className="form-label">Fecha</label>
-              <input
-                type="date"
-                className="form-control"
-                value={modalDia.fecha}
-                onChange={(e) => setModalDia({ ...modalDia, fecha: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="btn-group w-100">
-              {Object.entries(TIPOS).map(([clave, { etiqueta, icono }]) => (
-                <button
-                  key={clave}
-                  type="button"
-                  className={`btn btn-outline-primary ${modalDia.tipo === clave ? 'active' : ''}`}
-                  onClick={() => setModalDia({ ...modalDia, tipo: clave })}
-                >
-                  <i className={`fa-solid ${icono} me-2`} />
-                  {etiqueta}
-                </button>
-              ))}
-            </div>
-
-            <div>
-              <label className="form-label">Motivo</label>
-              <textarea
-                className="form-control"
-                rows="3"
-                placeholder="Escribe el motivo…"
-                value={modalDia.motivo}
-                onChange={(e) => setModalDia({ ...modalDia, motivo: e.target.value })}
-              />
-            </div>
-          </form>
-        </Modal>
+        <FormularioDiaEspecial
+          dia={modalDia}
+          enviando={guardadoDia.enviando}
+          onGuardar={guardarDia}
+          onCerrar={() => setModalDia(null)}
+        />
       )}
 
       {eliminacionDia.objetivo && (
@@ -519,13 +453,13 @@ export default function Establecimiento({ editable = false }) {
           nombre={fechaLegible(eliminacionDia.objetivo.fecha)}
           consecuencias={[
             `Estaba marcado como: ${
-              TIPOS[eliminacionDia.objetivo.tipo]?.etiqueta ?? eliminacionDia.objetivo.tipo
-            }.`,
+              TIPOS_DIA[eliminacionDia.objetivo.tipo]?.etiqueta ?? eliminacionDia.objetivo.tipo
+            } — ${eliminacionDia.objetivo.motivo}`,
             'El cliente dejará de verlo en el calendario.',
           ]}
           enviando={eliminacionDia.enviando}
           error={eliminacionDia.error}
-          onConfirmar={eliminacionDia.confirmar}
+          onConfirmar={eliminarDia}
           onCancelar={eliminacionDia.cancelar}
         />
       )}

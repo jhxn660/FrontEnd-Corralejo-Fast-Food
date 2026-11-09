@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Swal from 'sweetalert2'
 
 import { supabase } from '../../services/supabase'
+import { useAvisos } from '../../context/AvisosContext'
 import FormularioAuth from './FormularioAuth'
 import CampoTexto from './CampoTexto'
 import ReglasPassword from './ReglasPassword'
@@ -12,6 +12,7 @@ const FORMULARIO_VACIO = { email: '', password: '', confirmacion: '' }
 
 export default function Register() {
   const navegar = useNavigate()
+  const avisos = useAvisos()
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO)
   const [errores, setErrores] = useState({})
   const [registrando, setRegistrando] = useState(false)
@@ -43,18 +44,15 @@ export default function Register() {
     setRegistrando(false)
 
     if (error) {
-      Swal.fire({ icon: 'error', title: 'Error en el registro', text: error.message })
+      avisos.fallo('No se pudo crear la cuenta', error)
       return
     }
 
-    const { isConfirmed } = await Swal.fire({
-      icon: 'success',
-      title: '¡Registro exitoso!',
-      text: 'Tu cuenta fue creada. Ya puedes iniciar sesión.',
-      confirmButtonText: 'Ir a iniciar sesión',
-    })
-
-    if (isConfirmed) navegar('/login', { replace: true })
+    avisos.exito('¡Cuenta creada!', 'Ya puedes iniciar sesión con tu correo.')
+    // Antes había que pulsar "Ir a iniciar sesión" en un diálogo modal; el
+    // aviso no interrumpe, así que se lleva al login directamente. `replace`
+    // evita que volver atrás regrese al formulario ya enviado (R13).
+    navegar('/login', { replace: true })
   }
 
   // El botón se deshabilita solo cuando la contraseña ya es válida pero falta
