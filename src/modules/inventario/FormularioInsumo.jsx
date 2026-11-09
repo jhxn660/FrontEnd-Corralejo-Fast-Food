@@ -27,7 +27,12 @@ const ID_FORMULARIO = 'formulario-insumo'
  *   icono, el color de la categoría y el valor inmovilizado.
  */
 export default function FormularioInsumo({ insumo, enviando, onGuardar, onCerrar }) {
-  const [valores, setValores] = useState(insumo)
+  // Las calorías se guardan como "364 kcal", pero se editan como número: la
+  // unidad la pone el formulario, no la persona.
+  const [valores, setValores] = useState(() => ({
+    ...insumo,
+    calorias: String(insumo.calorias ?? '').replace(/[^\d.,]/g, '').replace(',', '.'),
+  }))
   const [errores, setErrores] = useState({})
 
   const editando = Boolean(valores.id)
@@ -52,6 +57,10 @@ export default function FormularioInsumo({ insumo, enviando, onGuardar, onCerrar
     const minimo = numero(valores.stockMinimo)
     if (valores.stockMinimo === '' || Number.isNaN(minimo) || minimo < 0) {
       fallos.stockMinimo = 'Indica el mínimo de reposición.'
+    }
+
+    if (valores.calorias !== '' && (Number.isNaN(numero(valores.calorias)) || numero(valores.calorias) < 0)) {
+      fallos.calorias = 'Escribe solo el número de calorías.'
     }
 
     const costo = numero(valores.costo)
@@ -80,6 +89,7 @@ export default function FormularioInsumo({ insumo, enviando, onGuardar, onCerrar
       stockActual: Number(String(valores.stockActual).replace(',', '.')),
       stockMinimo: Number(String(valores.stockMinimo).replace(',', '.')),
       costo: Number(String(valores.costo).replace(',', '.')),
+      calorias: valores.calorias === '' ? '' : `${Number(String(valores.calorias).replace(',', '.'))} kcal`,
       icon: iconoDe(valores.categoria),
     })
   }
@@ -283,7 +293,32 @@ export default function FormularioInsumo({ insumo, enviando, onGuardar, onCerrar
           <div className="row g-3">
             <div className="col-sm-4">{campo('vencimiento', 'Fecha de vencimiento', { tipo: 'date' })}</div>
             <div className="col-sm-4">{campo('pesoUnidad', 'Peso por unidad', { placeholder: 'Ej. 500 g' })}</div>
-            <div className="col-sm-4">{campo('calorias', 'Calorías / 100 g', { placeholder: 'Ej. 364 kcal' })}</div>
+            <div className="col-sm-4">
+              <label className="form-label" htmlFor="calorias">
+                Calorías / 100 g
+              </label>
+              <div className="input-group">
+                <input
+                  id="calorias"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  className={`form-control ${errores.calorias ? 'is-invalid' : ''}`}
+                  placeholder="Ej. 364"
+                  value={valores.calorias}
+                  onChange={actualizar('calorias')}
+                  aria-invalid={Boolean(errores.calorias)}
+                  aria-describedby={errores.calorias ? 'calorias-error' : undefined}
+                />
+                <span className="input-group-text">kcal</span>
+              </div>
+              {errores.calorias && (
+                <div className="invalid-feedback d-block" id="calorias-error" role="alert">
+                  {errores.calorias}
+                </div>
+              )}
+            </div>
           </div>
         </fieldset>
       </form>

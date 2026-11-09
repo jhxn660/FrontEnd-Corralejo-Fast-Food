@@ -162,22 +162,6 @@
       "icon": "fa-solid fa-drumstick-bite"
     },
     {
-      "id": "7",
-      "nombre": "Chorizo santarrosano",
-      "descripcion": "Chorizo artesanal para picada, salchipapa especial y parrilla.",
-      "categoria": "Embutidos",
-      "unidad": "Unidades (u)",
-      "estado": "Disponible",
-      "stockActual": 120,
-      "stockMinimo": 60,
-      "costo": 2300,
-      "vencimiento": "2026-12-10",
-      "pesoUnidad": "80 g",
-      "calorias": "300 kcal",
-      "proveedor": "Distribuidora Zenú",
-      "icon": "fa-solid fa-hotdog"
-    },
-    {
       "id": "8",
       "nombre": "Salchicha ranchera",
       "descripcion": "Salchicha ahumada para perros calientes y salchipapas.",
@@ -896,6 +880,22 @@
       "calorias": "",
       "proveedor": "Desechables Bogotá",
       "icon": "fa-solid fa-utensils"
+    },
+    {
+      "nombre": "Carne de perro",
+      "descripcion": "Carne de perro humeda",
+      "categoria": "Carnes",
+      "unidad": "Paquetes (paq)",
+      "estado": "Disponible",
+      "stockActual": 22,
+      "stockMinimo": 10,
+      "costo": 50000,
+      "vencimiento": "2027-01-09",
+      "pesoUnidad": "1000",
+      "calorias": "120",
+      "proveedor": "Abastos",
+      "icon": "fa-solid fa-drumstick-bite",
+      "id": "48BgKJ4wwLY"
     }
   ],
   "kpis": [
@@ -1385,11 +1385,76 @@
     },
     {
       "numero": 227,
-      "estado": "pendiente",
+      "estado": "resuelto",
       "fecha": "2026-11-09",
       "hora": "10:40 AM",
-      "items": [],
+      "items": [
+        {
+          "name": "Perro Especial",
+          "price": 10000,
+          "qty": 3
+        },
+        {
+          "name": "Salchipapa Especial",
+          "price": 13000,
+          "qty": 4
+        },
+        {
+          "name": "Salchipapa Pollo",
+          "price": 12000,
+          "qty": 2
+        },
+        {
+          "name": "Perro Clásico",
+          "price": 8000,
+          "qty": 2
+        },
+        {
+          "name": "Perro Ranchero",
+          "price": 12000,
+          "qty": 1
+        }
+      ],
       "id": "SCzLZEniLNE"
+    },
+    {
+      "numero": 228,
+      "estado": "resuelto",
+      "fecha": "2026-11-09",
+      "hora": "1:16 PM",
+      "items": [
+        {
+          "name": "Salchipapa Clásica",
+          "price": 9000,
+          "qty": 1
+        },
+        {
+          "name": "Aros de Cebolla",
+          "price": 6000,
+          "qty": 1
+        },
+        {
+          "name": "Combo Familiar",
+          "price": 38000,
+          "qty": 3
+        },
+        {
+          "name": "Salchipapa XXL",
+          "price": 16000,
+          "qty": 2
+        },
+        {
+          "name": "Perro Hawaiano",
+          "price": 11000,
+          "qty": 2
+        },
+        {
+          "name": "Perro Clásico",
+          "price": 8000,
+          "qty": 1
+        }
+      ],
+      "id": "dopT76Nq8ZM"
     }
   ],
   "sales": [
@@ -1453,6 +1518,121 @@
         }
       ],
       "id": "zJob2Qss4Tw"
+    },
+    {
+      "saleId": "#V-4",
+      "date": "2026-11-09",
+      "dateFormatted": "09/11",
+      "time": "10:40 AM",
+      "client": "Consumidor Final",
+      "total": 134000,
+      "ticketId": "#T-0004",
+      "qrCode": "QR-V4-9304A73B46",
+      "employeeId": "#E-007",
+      "orderId": "#P-227",
+      "pedidoId": "SCzLZEniLNE",
+      "status": "Entregado",
+      "deliveryAddress": "Local / Mostrador",
+      "createdAt": "2026-11-09T18:11:25.037Z",
+      "items": [
+        {
+          "id": 1,
+          "product": "Perro Especial",
+          "quantity": 3,
+          "unitPrice": 10000,
+          "price": 30000
+        },
+        {
+          "id": 2,
+          "product": "Salchipapa Especial",
+          "quantity": 4,
+          "unitPrice": 13000,
+          "price": 52000
+        },
+        {
+          "id": 3,
+          "product": "Salchipapa Pollo",
+          "quantity": 2,
+          "unitPrice": 12000,
+          "price": 24000
+        },
+        {
+          "id": 4,
+          "product": "Perro Clásico",
+          "quantity": 2,
+          "unitPrice": 8000,
+          "price": 16000
+        },
+        {
+          "id": 5,
+          "product": "Perro Ranchero",
+          "quantity": 1,
+          "unitPrice": 12000,
+          "price": 12000
+        }
+      ],
+      "id": "E2VkwUGuANs"
+    },
+    {
+      "saleId": "#V-5",
+      "date": "2026-11-09",
+      "dateFormatted": "09/11",
+      "time": "1:16 PM",
+      "client": "Consumidor Final",
+      "total": 191000,
+      "ticketId": "#T-0005",
+      "qrCode": "QR-V5-498857BD4B",
+      "employeeId": "#E-007",
+      "orderId": "#P-228",
+      "pedidoId": "dopT76Nq8ZM",
+      "status": "Entregado",
+      "deliveryAddress": "Local / Mostrador",
+      "createdAt": "2026-11-09T18:16:53.538Z",
+      "items": [
+        {
+          "id": 1,
+          "product": "Salchipapa Clásica",
+          "quantity": 1,
+          "unitPrice": 9000,
+          "price": 9000
+        },
+        {
+          "id": 2,
+          "product": "Aros de Cebolla",
+          "quantity": 1,
+          "unitPrice": 6000,
+          "price": 6000
+        },
+        {
+          "id": 3,
+          "product": "Combo Familiar",
+          "quantity": 3,
+          "unitPrice": 38000,
+          "price": 114000
+        },
+        {
+          "id": 4,
+          "product": "Salchipapa XXL",
+          "quantity": 2,
+          "unitPrice": 16000,
+          "price": 32000
+        },
+        {
+          "id": 5,
+          "product": "Perro Hawaiano",
+          "quantity": 2,
+          "unitPrice": 11000,
+          "price": 22000
+        },
+        {
+          "id": 6,
+          "product": "Perro Clásico",
+          "quantity": 1,
+          "unitPrice": 8000,
+          "price": 8000
+        }
+      ],
+      "id": "3vSYFvj4_pc"
     }
   ],
   "entradas": [
@@ -1857,6 +2037,12 @@
       "fecha": "2026-12-31",
       "tipo": "evento",
       "motivo": "Fiesta de fin de año en el local."
+    },
+    {
+      "fecha": "2026-11-21",
+      "tipo": "evento",
+      "motivo": "six seven",
+      "id": "pR-B5o980AA"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
