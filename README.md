@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Corralejo Fast Food — Frontend
 
 Sistema de gestión para el restaurante Corralejo Fast Food. React 19 + Vite +
@@ -316,3 +317,7 @@ y se declara dos o tres veces en la tabla de navegación, una por rol. La ficha 
 especiales están en la API, así que lo que el administrador guarda es lo que el
 cliente ve: antes la ficha era una constante en el código y el calendario vivía
 en `localStorage` de cada navegador.
+=======
+# FrontEnd-Corralejo-Fast-Food
+FrontEnd del Sistema de información Corralejo Fast Food
+>>>>>>> 6819fce58d1a810b0ed3186de9be9c096469b5a2
