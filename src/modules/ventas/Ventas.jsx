@@ -45,9 +45,13 @@ async function cargarVentas() {
   try {
     const pedidos = await api.list('pedidos')
     const idsPedidos = new Set(pedidos.map((p) => String(p.id)))
-    const huerfanas = ventas.filter(
-      (s) => s.pedidoId != null && !idsPedidos.has(String(s.pedidoId))
-    )
+    // Una lista de pedidos VACÍA casi nunca significa que todas las ventas
+    // sean huérfanas: suele ser una base reiniciada o una respuesta a medias.
+    // Sin esta guarda, abrir la pantalla borraba todas las ventas de golpe.
+    const huerfanas =
+      pedidos.length === 0
+        ? []
+        : ventas.filter((s) => s.pedidoId != null && !idsPedidos.has(String(s.pedidoId)))
     await Promise.all(huerfanas.map((s) => api.remove('sales', s.id).catch(() => null)))
     const idsHuerfanas = new Set(huerfanas.map((s) => s.id))
     vigentes = ventas.filter((s) => !idsHuerfanas.has(s.id))

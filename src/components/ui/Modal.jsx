@@ -2,6 +2,17 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 /**
+ * Pila de modales abiertos; el último es el que está encima. Hace falta porque
+ * hay modales que abren otro encima (el detalle de un insumo abre la
+ * confirmación de borrado). Sin la pila, los dos escuchaban el teclado a la
+ * vez: un Escape cerraba ambos, la trampa de foco del de abajo le robaba el
+ * Tab al de arriba, y al cerrarse el de arriba se liberaba el scroll de la
+ * página aunque el de abajo siguiera abierto.
+ */
+const pila = []
+const bloqueo = { paddingPrevio: '' }
+
+/**
  * Modal con estilos de Bootstrap pero controlado por React (R30).
  * Se monta en document.body para que ningún contenedor con overflow o z-index
  * (como el header fijo) lo recorte.
@@ -42,7 +53,22 @@ export default function Modal({
   const contenido = useRef(null)
   const idTitulo = useRef(`modal-${Math.random().toString(36).slice(2, 9)}`)
 
+  // `onClose` se guarda en una ref y el efecto de abajo corre UNA vez. Antes
+  // dependía de `[onClose]`, y casi todos los padres lo pasan como función
+  // inline: cada render del padre creaba una función nueva, el efecto se
+  // deshacía y se rehacía, y el foco saltaba al primer campo. En "Modificar
+  // venta" eso pasaba con cada tecla, así que era imposible escribir en el
+  // segundo o el tercer campo.
+  const cerrarRef = useRef(onClose)
   useEffect(() => {
+    cerrarRef.current = onClose
+  })
+
+  useEffect(() => {
+    const id = {}
+    pila.push(id)
+    const estaEncima = () => pila[pila.length - 1] === id
+
     const previamenteEnfocado = document.activeElement
 
     const enfocables = () =>
@@ -59,8 +85,11 @@ export default function Modal({
     ;(primerCampo ?? contenido.current)?.focus()
 
     const alPulsarTecla = (evento) => {
+      // Solo el modal de encima atiende el teclado.
+      if (!estaEncima()) return
+
       if (evento.key === 'Escape') {
-        onClose()
+        cerrarRef.current()
         return
       }
       if (evento.key !== 'Tab') return
@@ -83,19 +112,25 @@ export default function Modal({
     document.addEventListener('keydown', alPulsarTecla)
 
     // Bloqueo del scroll compensando la barra: sin el padding, quitar el scroll
-    // ensancha la página y todo se desplaza unos píxeles al abrir el modal.
-    const anchoBarra = window.innerWidth - document.documentElement.clientWidth
-    const paddingPrevio = document.body.style.paddingRight
-    document.body.classList.add('overflow-hidden')
-    if (anchoBarra > 0) document.body.style.paddingRight = `${anchoBarra}px`
+    // ensancha la página y todo se desplaza unos píxeles al abrir el modal. Lo
+    // pone el primer modal de la pila y lo quita el último en cerrarse.
+    if (pila.length === 1) {
+      const anchoBarra = window.innerWidth - document.documentElement.clientWidth
+      bloqueo.paddingPrevio = document.body.style.paddingRight
+      document.body.classList.add('overflow-hidden')
+      if (anchoBarra > 0) document.body.style.paddingRight = `${anchoBarra}px`
+    }
 
     return () => {
       document.removeEventListener('keydown', alPulsarTecla)
-      document.body.classList.remove('overflow-hidden')
-      document.body.style.paddingRight = paddingPrevio
+      pila.splice(pila.indexOf(id), 1)
+      if (pila.length === 0) {
+        document.body.classList.remove('overflow-hidden')
+        document.body.style.paddingRight = bloqueo.paddingPrevio
+      }
       previamenteEnfocado?.focus?.()
     }
-  }, [onClose])
+  }, [])
 
   return createPortal(
     <div
@@ -104,7 +139,7 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby={idTitulo.current}
       onMouseDown={(evento) => {
-        if (cerrarAlPulsarFuera && evento.target === evento.currentTarget) onClose()
+        if (cerrarAlPulsarFuera && evento.target === evento.currentTarget) cerrarRef.current()
       }}
     >
       <div

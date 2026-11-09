@@ -6,7 +6,12 @@ import { useAvisos } from '../../context/AvisosContext'
 import FormularioAuth from './FormularioAuth'
 import CampoTexto from './CampoTexto'
 import ReglasPassword from './ReglasPassword'
-import { esPasswordValida, hayErrores, validarRegistro } from './validaciones'
+import {
+  esPasswordValida,
+  hayErrores,
+  mensajeErrorRegistro,
+  validarRegistro,
+} from './validaciones'
 
 const FORMULARIO_VACIO = { email: '', password: '', confirmacion: '' }
 
@@ -44,7 +49,7 @@ export default function Register() {
     setRegistrando(false)
 
     if (error) {
-      avisos.fallo('No se pudo crear la cuenta', error)
+      avisos.error('No se pudo crear la cuenta', mensajeErrorRegistro(error))
       return
     }
 

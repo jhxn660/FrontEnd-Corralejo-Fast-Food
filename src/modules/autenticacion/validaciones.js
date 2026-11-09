@@ -66,3 +66,28 @@ export const validarRegistro = ({ email, password, confirmacion }) => ({
 })
 
 export const hayErrores = (errores) => Object.values(errores).some(Boolean)
+
+/**
+ * Traduce el error de Supabase al registrarse a un mensaje para la persona.
+ *
+ * Dos motivos para no mostrar `error.message` tal cual:
+ * - Llega en inglés ("User already registered").
+ * - Ese mensaje concreto confirma que el correo YA tiene cuenta: es la misma
+ *   enumeración de usuarios que R63 evita en el login. Por eso "ya existe" cae
+ *   en el mensaje genérico, que es el mismo para cualquier fallo desconocido y
+ *   no permite distinguir un caso del otro.
+ */
+export const mensajeErrorRegistro = (error) => {
+  const texto = String(error?.message ?? '').toLowerCase()
+
+  if (error?.status === 429 || texto.includes('rate limit')) {
+    return 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.'
+  }
+  if (texto.includes('password')) {
+    return 'La contraseña no cumple la política de seguridad del servidor.'
+  }
+  if (texto.includes('email') && texto.includes('invalid')) {
+    return 'Revisa el formato del correo electrónico.'
+  }
+  return 'No pudimos crear la cuenta. Si ya tienes una con ese correo, inicia sesión; si no, inténtalo de nuevo en unos minutos.'
+}

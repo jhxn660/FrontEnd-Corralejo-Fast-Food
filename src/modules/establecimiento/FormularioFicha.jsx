@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import Modal from '../../components/ui/Modal'
 import { CAMPOS_INFO } from '../../data/local'
+import { esMapaDeGoogle } from '../../utils/seguridad'
 
 const ID_FORMULARIO = 'formulario-ficha'
 
@@ -31,9 +32,10 @@ export default function FormularioFicha({ ficha, enviando, onGuardar, onCerrar }
     if (!valores.direccion?.trim()) fallos.direccion = 'Indica la dirección del local.'
 
     // Un enlace de "compartir" de Google Maps no funciona dentro de un iframe:
-    // hace falta el de "insertar un mapa", que contiene /maps/embed.
-    if (valores.mapa?.trim() && !valores.mapa.includes('/maps/embed')) {
-      fallos.mapa = 'Pega la URL de "Insertar un mapa"; debe contener /maps/embed.'
+    // hace falta el de "insertar un mapa". Y se exige el dominio de Google, no
+    // solo la ruta: ver utils/seguridad.js.
+    if (valores.mapa?.trim() && !esMapaDeGoogle(valores.mapa.trim())) {
+      fallos.mapa = 'Pega la URL de "Insertar un mapa" de Google Maps (https://www.google.com/maps/embed…).'
     }
 
     return fallos
@@ -132,7 +134,7 @@ export default function FormularioFicha({ ficha, enviando, onGuardar, onCerrar }
         </div>
 
         {/* Comprobación del mapa sin salir del modal. */}
-        {valores.mapa?.includes('/maps/embed') && (
+        {esMapaDeGoogle(valores.mapa) && (
           <div className="col-12">
             <span className="form-label d-block">Así se verá el mapa</span>
             <div className="ratio ratio-21x9 rounded overflow-hidden border">

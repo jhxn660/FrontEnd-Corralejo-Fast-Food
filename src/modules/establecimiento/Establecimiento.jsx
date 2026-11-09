@@ -5,6 +5,7 @@ import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
 import { useConfirmacion } from '../../hooks/useConfirmacion'
 import { useAvisos } from '../../context/AvisosContext'
+import { esMapaDeGoogle } from '../../utils/seguridad'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
@@ -246,9 +247,25 @@ export default function Establecimiento({ editable = false }) {
                   Ubicación y contacto
                 </h2>
               </div>
-              <div className="ratio ratio-21x9">
-                <iframe src={ficha.mapa} title="Ubicación Corralejo" style={{ border: 0 }} />
-              </div>
+              {/* Solo se incrusta un mapa de Google: la URL viene de la API y
+                  se pinta en el panel de todos los clientes. */}
+              {esMapaDeGoogle(ficha.mapa) ? (
+                <div className="ratio ratio-21x9">
+                  <iframe
+                    src={ficha.mapa}
+                    title="Ubicación Corralejo"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                </div>
+              ) : (
+                <div className="bg-body-tertiary text-center text-secondary small py-4 border-bottom">
+                  <i className="fa-solid fa-map-location-dot fs-3 d-block mb-2 opacity-50" />
+                  Mapa no disponible
+                  {editable && ': la URL guardada no es un mapa insertado de Google Maps.'}
+                </div>
+              )}
               <div className="card-body">
                 <h3 className="h6 fw-bold">{ficha.nombre}</h3>
                 <p className="text-secondary small">{ficha.descripcion}</p>

@@ -36,10 +36,14 @@ export default function ClientePqrs() {
 
   // DEUDA (R17): el recorte por usuario debería hacerlo el servidor. Mientras
   // la colección viva en json-server, toda la tabla llega al navegador.
+  //
+  // Sin correo no se muestra nada. La versión anterior hacía `!usuario || …`:
+  // si por cualquier motivo la sesión llegaba vacía, el filtro dejaba pasar
+  // las PQRS de TODOS los clientes en vez de ninguna.
   const mias = useMemo(
     () =>
       todas
-        .filter((registro) => !usuario || registro.usuario === usuario.email)
+        .filter((registro) => Boolean(usuario?.email) && registro.usuario === usuario.email)
         .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
     [todas, usuario]
   )
