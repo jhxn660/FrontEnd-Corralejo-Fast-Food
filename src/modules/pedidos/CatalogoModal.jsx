@@ -3,56 +3,51 @@ import { useMemo, useState } from 'react'
 import { moneda } from '../../utils/format'
 import Modal from '../../components/ui/Modal'
 import { Vacio } from '../../components/ui/Estado'
-import { CATEGORIAS, COLOR_SIN_CATEGORIA } from '../../data/graficas'
+import { emojiDe, tonoDe } from '../menu/esquema'
 
 const TODAS = '__todas__'
 
 /**
- * Selector de productos del catálogo para añadirlos al pedido.
+ * Selector de productos para añadir al pedido.
  *
- * POR QUÉ ANTES NO FUNCIONABA
- * La pantalla pedía el catálogo con `api.list('catalogo')`, pero `catalogo` no
- * es una colección: es un objeto con una clave por categoría. `http.lista()`
- * normaliza toda respuesta a forma de lista y ante ese objeto devolvía `[]`, así
- * que este modal se abría con cero categorías y cero productos. No era un
- * problema del modal: no le llegaba nada que mostrar.
+ * LAS CATEGORÍAS SON LAS DE LA CARTA
+ * Antes leía `/catalogo`, una lista aparte que nadie editaba desde la app: un
+ * plato nuevo en Gestión de Menú no aparecía aquí, y aquí se vendían platos
+ * que ya no estaban en la carta. Ahora recibe `productosVendibles()` del
+ * módulo de menú: las mismas categorías, platos y precios que publica el
+ * administrador, con su versión combo cuando la tiene, y sin las categorías
+ * ocultas ni los platos agotados.
  *
- * Aprovechando el arreglo se quitó la navegación por subcategorías
- * (`isCategory`/`subKey`): ningún producto del catálogo la usa, así que era
- * código que no se podía alcanzar (R38). En su lugar hay un buscador, que es lo
- * que de verdad hace falta cuando hay veintinueve productos.
+ * UN CLIC SUMA UNA UNIDAD
+ * Toda la tarjeta es el botón de añadir: cada clic suma una. El botón "−"
+ * resta sin propagar el clic, para que quitar no vuelva a sumar.
  */
-export default function CatalogoModal({ catalogo, onAgregar, onCerrar }) {
-  const categorias = Object.keys(catalogo)
+export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
   const [pestana, setPestana] = useState(TODAS)
   const [busqueda, setBusqueda] = useState('')
   const [seleccion, setSeleccion] = useState({}) // { [id]: { name, price, qty } }
 
-  const tituloDe = (clave) => CATEGORIAS[clave]?.titulo ?? clave
-  const colorDe = (clave) => CATEGORIAS[clave]?.color ?? COLOR_SIN_CATEGORIA
-
   const productos = useMemo(() => {
     const texto = busqueda.toLowerCase().trim()
-    const claves = pestana === TODAS ? categorias : [pestana]
-
-    return claves.flatMap((clave) =>
-      (catalogo[clave] ?? [])
-        .filter(
-          (producto) =>
-            !texto ||
-            `${producto.name} ${producto.desc ?? ''}`.toLowerCase().includes(texto)
-        )
-        .map((producto) => ({ ...producto, categoria: clave }))
-    )
-  }, [catalogo, categorias, pestana, busqueda])
+    return categorias
+      .filter((categoria) => pestana === TODAS || categoria.id === pestana)
+      .flatMap((categoria) =>
+        categoria.productos
+          .filter(
+            (producto) =>
+              !texto ||
+              `${producto.nombre} ${producto.descripcion ?? ''}`.toLowerCase().includes(texto)
+          )
+          .map((producto) => ({ ...producto, categoria: categoria.nombre }))
+      )
+  }, [categorias, pestana, busqueda])
 
   const cambiarCantidad = (producto, delta) =>
     setSeleccion((previo) => {
-      const id = producto.id ?? producto.name
-      const cantidad = Math.max(0, Math.min(99, (previo[id]?.qty ?? 0) + delta))
+      const cantidad = Math.max(0, Math.min(99, (previo[producto.id]?.qty ?? 0) + delta))
       const copia = { ...previo }
-      if (cantidad === 0) delete copia[id]
-      else copia[id] = { name: producto.name, price: producto.price, qty: cantidad }
+      if (cantidad === 0) delete copia[producto.id]
+      else copia[producto.id] = { name: producto.nombre, price: producto.precio, qty: cantidad }
       return copia
     })
 
@@ -72,14 +67,19 @@ export default function CatalogoModal({ catalogo, onAgregar, onCerrar }) {
           <span className="small">
             {unidades > 0 ? (
               <>
-                <strong>{unidades}</strong> unidad(es) · subtotal{' '}
+                <strong>{unidades}</strong> und · subtotal{' '}
                 <strong className="text-brand">{moneda(total)}</strong>
               </>
             ) : (
-              <span className="text-secondary">Todavía no has elegido nada.</span>
+              <span className="text-secondary">Toca un producto para añadirlo.</span>
             )}
           </span>
           <span className="d-flex gap-2">
+            {elegidos.length > 0 && (
+              <button className="btn btn-outline-secondary" onClick={() => setSeleccion({})}>
+                Vaciar
+              </button>
+            )}
             <button className="btn btn-outline-secondary" onClick={onCerrar}>
               Cancelar
             </button>
@@ -95,60 +95,66 @@ export default function CatalogoModal({ catalogo, onAgregar, onCerrar }) {
         </div>
       }
     >
-      <div className="mb-3">
-        <div className="input-group mb-3">
-          <span className="input-group-text bg-white">
-            <i className="fa-solid fa-magnifying-glass text-secondary" />
-          </span>
-          <input
-            className="form-control"
-            placeholder="Buscar producto…"
-            aria-label="Buscar producto del catálogo"
-            value={busqueda}
-            onChange={(evento) => setBusqueda(evento.target.value)}
-            autoFocus
-          />
-          {busqueda && (
-            <button
-              className="btn btn-outline-secondary"
-              onClick={() => setBusqueda('')}
-              aria-label="Limpiar búsqueda"
-            >
-              <i className="fa-solid fa-xmark" />
-            </button>
-          )}
-        </div>
+      <div className="input-group mb-3">
+        <span className="input-group-text">
+          <i className="fa-solid fa-magnifying-glass text-secondary" />
+        </span>
+        <input
+          className="form-control"
+          placeholder="Buscar producto…"
+          aria-label="Buscar producto de la carta"
+          value={busqueda}
+          onChange={(evento) => setBusqueda(evento.target.value)}
+          autoFocus
+        />
+        {busqueda && (
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => setBusqueda('')}
+            aria-label="Limpiar búsqueda"
+          >
+            <i className="fa-solid fa-xmark" />
+          </button>
+        )}
+      </div>
 
-        <ul className="nav nav-pills flex-wrap gap-1">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${pestana === TODAS ? 'active' : ''}`}
-              onClick={() => setPestana(TODAS)}
-            >
-              Todas
-            </button>
-          </li>
-          {categorias.map((clave) => (
-            <li className="nav-item" key={clave}>
+      {/* Categorías como botones grandes en rejilla: las pastillas de antes
+          eran pequeñas y estaban pegadas, y era fácil tocar la vecina. */}
+      <div
+        className="row row-cols-2 row-cols-sm-3 row-cols-lg-4 row-cols-xl-6 g-2 mb-3"
+        role="group"
+        aria-label="Categorías de la carta"
+      >
+        {[{ id: TODAS, nombre: 'Todas', icono: 'fa-solid fa-border-all' }, ...categorias].map((categoria) => {
+          const activa = pestana === categoria.id
+          return (
+            <div className="col" key={categoria.id}>
               <button
-                className={`nav-link ${pestana === clave ? 'active' : ''}`}
-                onClick={() => setPestana(clave)}
+                type="button"
+                className={`btn w-100 h-100 py-2 px-2 fw-semibold sin-seleccion ${
+                  activa ? 'btn-primary' : 'btn-outline-secondary'
+                }`}
+                style={{ minHeight: '3rem' }}
+                onClick={() => setPestana(categoria.id)}
+                aria-pressed={activa}
               >
-                <span
-                  className="d-inline-block rounded-circle me-2"
-                  style={{ width: 9, height: 9, background: colorDe(clave) }}
+                {/* El mismo icono que el administrador eligió para la
+                    categoría en Gestión de Menú. */}
+                <i
+                  className={`${categoria.icono ?? 'fa-solid fa-utensils'} me-2`}
+                  style={activa ? undefined : { color: tonoDe(categoria.nombre, categoria.nombre) }}
                   aria-hidden="true"
                 />
-                {tituloDe(clave)}
+                <span className="small">{categoria.nombre}</span>
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )
+        })}
       </div>
 
       {categorias.length === 0 && (
         <Vacio
-          texto="El catálogo llegó vacío. Comprueba que la API esté en marcha."
+          texto="La carta no tiene productos disponibles. Revisa Gestión de Menú o que la API esté en marcha."
           icono="fa-plug-circle-xmark"
         />
       )}
@@ -159,52 +165,65 @@ export default function CatalogoModal({ catalogo, onAgregar, onCerrar }) {
 
       <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-2">
         {productos.map((producto) => {
-          const id = producto.id ?? producto.name
-          const cantidad = seleccion[id]?.qty ?? 0
+          const cantidad = seleccion[producto.id]?.qty ?? 0
 
           return (
-            <div className="col" key={id}>
+            <div className="col" key={producto.id}>
               <div
-                className={`card h-100 ${cantidad > 0 ? 'border-2' : ''}`}
+                className={`card h-100 card-clickable sin-seleccion ${cantidad > 0 ? 'border-2' : ''}`}
                 style={cantidad > 0 ? { borderColor: 'var(--cff-naranja)' } : undefined}
+                role="button"
+                tabIndex={0}
+                aria-label={`Añadir una unidad de ${producto.nombre}${
+                  cantidad > 0 ? `, llevas ${cantidad}` : ''
+                }`}
+                onClick={() => cambiarCantidad(producto, 1)}
+                onKeyDown={(evento) => {
+                  if (evento.key === 'Enter' || evento.key === ' ') {
+                    evento.preventDefault()
+                    cambiarCantidad(producto, 1)
+                  }
+                }}
               >
                 <div className="card-body p-3">
                   <div className="d-flex gap-2 align-items-start mb-2">
                     <span className="fs-3 flex-shrink-0" aria-hidden="true">
-                      {producto.emoji}
+                      {emojiDe(producto.nombre, producto.categoria)}
                     </span>
                     <div className="flex-grow-1 min-width-0">
-                      <p className="fw-semibold mb-0">{producto.name}</p>
-                      <small className="text-secondary recorte-2 d-block">{producto.desc}</small>
+                      <p className="fw-semibold mb-0">
+                        {producto.nombre}
+                        {producto.combo && <span className="badge bg-dark ms-2">Combo</span>}
+                      </p>
+                      <small className="text-secondary recorte-2 d-block">
+                        {producto.descripcion}
+                      </small>
                     </div>
+                    {cantidad > 0 && (
+                      <span className="badge bg-brand fs-6 flex-shrink-0">×{cantidad}</span>
+                    )}
                   </div>
 
                   <div className="d-flex align-items-center justify-content-between gap-2">
-                    <span className="fw-bold text-brand">{moneda(producto.price)}</span>
-
-                    <div className="btn-group btn-group-sm">
+                    <span className="fw-bold text-brand">{moneda(producto.precio)}</span>
+                    {cantidad > 0 ? (
                       <button
-                        className="btn btn-outline-secondary"
-                        onClick={() => cambiarCantidad(producto, -1)}
-                        disabled={cantidad === 0}
-                        aria-label={`Quitar una unidad de ${producto.name}`}
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={(evento) => {
+                          evento.stopPropagation()
+                          cambiarCantidad(producto, -1)
+                        }}
+                        aria-label={`Quitar una unidad de ${producto.nombre}`}
                       >
-                        <i className="fa-solid fa-minus" />
+                        <i className="fa-solid fa-minus me-1" />
+                        Quitar
                       </button>
-                      <span
-                        className="btn btn-outline-secondary disabled"
-                        style={{ minWidth: '2.5rem' }}
-                      >
-                        {cantidad}
-                      </span>
-                      <button
-                        className="btn btn-outline-primary"
-                        onClick={() => cambiarCantidad(producto, 1)}
-                        aria-label={`Añadir una unidad de ${producto.name}`}
-                      >
-                        <i className="fa-solid fa-plus" />
-                      </button>
-                    </div>
+                    ) : (
+                      <small className="text-secondary">
+                        <i className="fa-solid fa-hand-pointer me-1" />
+                        Toca para añadir
+                      </small>
+                    )}
                   </div>
                 </div>
               </div>
@@ -220,7 +239,7 @@ export default function CatalogoModal({ catalogo, onAgregar, onCerrar }) {
             {elegidos.map((item) => (
               <li className="d-flex justify-content-between" key={item.name}>
                 <span>
-                  {item.qty} × {item.name}
+                  {item.qty} und × {item.name}
                 </span>
                 <span className="fw-semibold">{moneda(item.price * item.qty)}</span>
               </li>

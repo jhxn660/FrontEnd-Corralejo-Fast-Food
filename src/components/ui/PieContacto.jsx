@@ -10,10 +10,10 @@ import { CONTACTO, MAPA_EMBED, WHATSAPP_NUMERO } from '../../data/local'
 export default function PieContacto() {
   return (
     <footer className="card border-0 shadow-sm bg-carbon text-white">
-      <div className="card-body row g-4 align-items-center">
-        <div className="col-12 col-lg-6">
+      <div className="card-body row g-4 align-items-center justify-content-center text-center">
+        <div className="col-12 col-lg-5">
           <h2 className="h6 text-brand text-uppercase mb-3">Contacto</h2>
-          <ul className="list-unstyled small mb-3">
+          <ul className="list-unstyled small mb-3 mx-auto text-start" style={{ width: 'fit-content' }}>
             {CONTACTO.map(({ id, icono, texto }) => (
               <li className="mb-2" key={id}>
                 <i className={`fa-solid ${icono} text-brand me-2`} />

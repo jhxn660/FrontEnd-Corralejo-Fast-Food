@@ -90,7 +90,13 @@ export const ICONOS_CATEGORIA = [
   { valor: 'fa-solid fa-plus', etiqueta: 'Adicionales' },
 ]
 
-export const PRODUCTO_VACIO = { nombre: '', precio: '', descripcion: '', estado: 'Disponible' }
+export const PRODUCTO_VACIO = {
+  nombre: '',
+  precio: '',
+  precioCombo: '',
+  descripcion: '',
+  estado: 'Disponible',
+}
 
 export const categoriaVacia = (icono = 'fa-solid fa-utensils') => ({
   nombre: '',

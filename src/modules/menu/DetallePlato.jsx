@@ -13,7 +13,7 @@ import { emojiDe, tonoDe } from './esquema'
  * pedido quede hecho: abre la conversación con el local, que es lo que de
  * verdad ocurre al pulsarlo.
  */
-export default function DetallePlato({ plato, categoria, onCerrar }) {
+export default function DetallePlato({ plato, categoria, vitrina = false, onCerrar }) {
   const tono = tonoDe(plato.nombre, categoria)
 
   const mensaje = encodeURIComponent(
@@ -29,13 +29,18 @@ export default function DetallePlato({ plato, categoria, onCerrar }) {
       onClose={onCerrar}
       footer={
         <>
-          <button className="btn btn-outline-secondary me-auto" onClick={onCerrar}>
-            Seguir viendo la carta
+          <button
+            className={`btn ${vitrina ? 'btn-primary' : 'btn-outline-secondary me-auto'}`}
+            onClick={onCerrar}
+          >
+            {vitrina ? 'Volver a la carta' : 'Seguir viendo la carta'}
           </button>
-          <a className="btn btn-primary" href={enlace} target="_blank" rel="noreferrer">
-            <i className="fa-brands fa-whatsapp me-2" />
-            Pedir por WhatsApp
-          </a>
+          {!vitrina && (
+            <a className="btn btn-primary" href={enlace} target="_blank" rel="noreferrer">
+              <i className="fa-brands fa-whatsapp me-2" />
+              Pedir por WhatsApp
+            </a>
+          )}
         </>
       }
     >
@@ -52,7 +57,13 @@ export default function DetallePlato({ plato, categoria, onCerrar }) {
 
         <div className="col-12 col-sm-7">
           <span className="badge bg-secondary mb-2">{categoria}</span>
-          <p className="display-6 fw-bold text-brand mb-2">{moneda(plato.precio)}</p>
+          <p className="display-6 fw-bold text-brand mb-1">{moneda(plato.precio)}</p>
+          {plato.precioCombo && (
+            <p className="mb-2">
+              <span className="badge bg-dark me-2">Combo {moneda(plato.precioCombo)}</span>
+              <small className="text-secondary">con papa francesa y gaseosa 250 ml</small>
+            </p>
+          )}
 
           {plato.calificacion ? (
             <p className="mb-3">

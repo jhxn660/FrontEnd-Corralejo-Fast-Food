@@ -27,7 +27,11 @@
 
   --bs-primary: var(--cff-naranja);
   --bs-primary-rgb: 255, 138, 0;
-  --bs-body-bg: var(--cff-fondo);
+  /* Bootstrap usa --bs-body-bg también como fondo de listas, tablas e inputs.
+     Si fuera el gris de la página, las reseñas, las solicitudes de PQRS y las
+     tablas saldrían grises dentro de tarjetas blancas: el fondo de la página
+     se pinta en body, y esta variable se queda en blanco. */
+  --bs-body-bg: var(--cff-superficie);
   --bs-body-color: var(--cff-tinta);
   --bs-body-font-family: 'Albert Sans', system-ui, sans-serif;
   --bs-link-color: var(--cff-naranja-oscuro);
@@ -59,6 +63,7 @@
 }
 
 body {
+  background-color: var(--cff-fondo);
   /* Un fondo con una veladura cálida separa las tarjetas blancas del lienzo sin
      recurrir a bordes gruesos. */
   background-image: radial-gradient(1200px 600px at 100% -5%, #fdf0df 0%, transparent 60%);
@@ -234,11 +239,19 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   flex-shrink: 0;
 }
 
-/* El sidebar acompaña el scroll en escritorio y se pliega en móvil. */
+/* El sidebar acompaña el scroll en escritorio y se pliega en móvil.
+   El <aside> se estira a la altura del contenido (align-self: stretch): un
+   elemento sticky solo se queda pegado mientras su contenedor tenga altura
+   por recorrer, y antes el aside medía lo mismo que el menú, así que al bajar
+   el menú se iba con la página. */
 @media (min-width: 992px) {
+  .app-sidebar { align-self: stretch; }
+
   .app-sidebar-inner {
     position: sticky;
     top: calc(var(--cff-header) + 1rem);
+    max-height: calc(100vh - var(--cff-header) - 2rem);
+    overflow-y: auto;
   }
 }
 
@@ -609,6 +622,10 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   padding: 0.75rem 0;
 }
 
+/* Logo del ticket: el archivo es blanco sobre transparente (pensado para la
+   cabecera oscura) y en papel no se vería. brightness(0) lo pinta en negro. */
+.ticket-logo { filter: brightness(0); }
+
 /* ---------- Impresión del ticket ---------- */
 
 /* Al imprimir solo sale el ticket, centrado y sin los botones del modal. La
@@ -722,3 +739,50 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   border-bottom: 3px double #16181d;
   padding: 0.25rem 0;
 }
+
+/* Tarjetas que se pulsan varias veces seguidas (el catálogo de Pedidos suma
+   una unidad por clic): sin esto, el doble y triple clic selecciona el texto
+   de la descripción y la tarjeta queda resaltada en azul. */
+.sin-seleccion {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Barras de desplazamiento ---------- */
+
+/* La barra del sistema (gris claro y ancha en Windows) cortaba la página con
+   una franja ajena a la marca. Se afina y se pinta con los colores del tema:
+   el carril se funde con el fondo y el pulgar es un gris suave que se vuelve
+   naranja al pasar el cursor, para que se encuentre sin estorbar. Vale para
+   la página, el menú lateral, los modales y las listas con scroll propio. */
+* {
+  scrollbar-width: thin; /* Firefox y Chrome 121+ */
+  scrollbar-color: #c3c8d2 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track { background: transparent; }
+
+*::-webkit-scrollbar-thumb {
+  background-color: #c3c8d2;
+  border-radius: 999px;
+  /* El borde del color del fondo hace que el pulgar se vea más fino que el
+     carril sin reducir la zona donde se puede agarrar. */
+  border: 3px solid var(--cff-fondo);
+}
+
+*::-webkit-scrollbar-thumb:hover { background-color: var(--cff-naranja); }
+
+*::-webkit-scrollbar-corner { background: transparent; }
+
+/* Dentro de superficies blancas (modales, tarjetas) el borde debe ser blanco,
+   no el gris de la página. */
+.modal-body::-webkit-scrollbar-thumb,
+.card ::-webkit-scrollbar-thumb { border-color: var(--cff-superficie); }
+
+html:hover { scrollbar-color: #aab0bc transparent; }

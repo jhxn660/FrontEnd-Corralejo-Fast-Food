@@ -18,7 +18,12 @@ import DetallePlato from './DetallePlato'
  * Ordenar por precio en esta pantalla sigue respetando el selector del
  * encabezado, porque las categorías llegan ya ordenadas desde el hook.
  */
-export default function CartaCliente({ categorias }) {
+/**
+ * `vitrina`: la misma carta en el panel del empleado, para enseñarla en el
+ * local. Sin WhatsApp: el cliente ya está delante, el pedido lo toma el
+ * empleado en Gestión de Pedidos.
+ */
+export default function CartaCliente({ categorias, vitrina = false }) {
   const [elegido, setElegido] = useState(null) // { plato, categoria }
 
   const platos = useMemo(
@@ -160,6 +165,7 @@ export default function CartaCliente({ categorias }) {
         <DetallePlato
           plato={elegido.plato}
           categoria={elegido.categoria}
+          vitrina={vitrina}
           onCerrar={() => setElegido(null)}
         />
       )}

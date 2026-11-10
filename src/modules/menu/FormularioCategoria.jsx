@@ -96,6 +96,7 @@ export default function FormularioCategoria({ modo, categoria, enviando, onGuard
         nombre: plato.nombre.trim(),
         descripcion: plato.descripcion?.trim() ?? '',
         precio: Number(plato.precio),
+        precioCombo: Number(plato.precioCombo) > 0 ? Number(plato.precioCombo) : null,
       })),
     })
   }
@@ -271,7 +272,7 @@ export default function FormularioCategoria({ modo, categoria, enviando, onGuard
                       </span>
                     </div>
 
-                    <div className="col-12 col-md-4">
+                    <div className="col-12 col-md-3">
                       <label className="form-label small" htmlFor={`plato-nombre-${posicion}`}>
                         Nombre
                       </label>
@@ -301,6 +302,27 @@ export default function FormularioCategoria({ modo, categoria, enviando, onGuard
                     </div>
 
                     <div className="col-6 col-md-2">
+                      <label className="form-label small" htmlFor={`plato-combo-${posicion}`}>
+                        Precio combo
+                      </label>
+                      <input
+                        id={`plato-combo-${posicion}`}
+                        type="number"
+                        min="0"
+                        step="50"
+                        className="form-control form-control-sm"
+                        value={plato.precioCombo ?? ''}
+                        placeholder="Sin combo"
+                        onChange={(evento) =>
+                          cambiarPlato(posicion, { precioCombo: evento.target.value })
+                        }
+                      />
+                      <div className="form-text">
+                        {Number(plato.precioCombo) > 0 ? moneda(plato.precioCombo) : 'Opcional'}
+                      </div>
+                    </div>
+
+                    <div className="col-6 col-md-2">
                       <label className="form-label small" htmlFor={`plato-estado-${posicion}`}>
                         Estado
                       </label>
@@ -315,7 +337,7 @@ export default function FormularioCategoria({ modo, categoria, enviando, onGuard
                       </select>
                     </div>
 
-                    <div className="col-12 col-md-3 text-md-end">
+                    <div className="col-6 col-md-2 text-md-end">
                       <span className="form-label small d-block">Orden</span>
                       <div className="btn-group btn-group-sm">
                         <button

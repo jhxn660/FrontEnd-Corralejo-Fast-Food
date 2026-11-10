@@ -5,14 +5,24 @@ import logo from '../../assets/logo.png'
 import { MENU } from '../../config/navegacion'
 import { TITULO_PANEL } from '../../config/roles'
 import { useAuth } from '../../context/AuthContext'
+import { useAvisos } from '../../context/AvisosContext'
 import LimiteDeError from './LimiteDeError'
 
 /** Cascarón común a los tres paneles: header, menú lateral y área de contenido. */
 export default function Layout({ children }) {
   const { rol, cerrarSesion } = useAuth()
+  const avisos = useAvisos()
   const { pathname } = useLocation()
   const [menuAbierto, setMenuAbierto] = useState(false)
   const opciones = MENU[rol] ?? []
+
+  // El aviso vive en AvisosProvider, por encima del router: sobrevive a la
+  // redirección al login, así que se ve en la pantalla de entrada.
+  const salir = async () => {
+    const { error } = await cerrarSesion()
+    if (error) avisos.error('No se pudo cerrar la sesión', 'Inténtalo de nuevo.')
+    else avisos.informacion('Sesión cerrada', 'Hasta pronto. Vuelve a entrar cuando quieras.')
+  }
 
   // Capa 2 del control de acceso (R14): solo se dibuja el menú del rol activo.
   const navegacion = (
@@ -51,7 +61,7 @@ export default function Layout({ children }) {
           <i className="fa-solid fa-bars" />
         </button>
 
-        <button className="btn btn-outline-light btn-sm" onClick={cerrarSesion}>
+        <button className="btn btn-outline-light btn-sm" onClick={salir}>
           <i className="fa-solid fa-right-from-bracket" />
           <span className="d-none d-sm-inline ms-2">Salir</span>
         </button>

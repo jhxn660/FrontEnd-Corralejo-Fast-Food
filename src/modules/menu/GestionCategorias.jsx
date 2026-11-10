@@ -109,6 +109,11 @@ export default function GestionCategorias({
                             </td>
                             <td className="text-end fw-semibold text-nowrap">
                               {moneda(plato.precio)}
+                              {plato.precioCombo && (
+                                <small className="d-block text-secondary fw-normal">
+                                  combo {moneda(plato.precioCombo)}
+                                </small>
+                              )}
                             </td>
                             <td className="text-center">
                               <span

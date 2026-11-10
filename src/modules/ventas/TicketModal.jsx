@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import Modal from '../../components/ui/Modal'
 import { moneda } from '../../utils/format'
 import { CONTACTO } from '../../data/local'
+import logo from '../../assets/logo.png'
 import { precioUnitario, urlQR } from './servicio'
 
 /**
@@ -55,6 +56,7 @@ export default function TicketModal({ venta, onCerrar }) {
       {/* Este bloque —y solo este— es lo que sale en el papel. */}
       <div className="ticket-impresion">
         <header className="text-center">
+          <img src={logo} alt="" width="64" height="64" className="ticket-logo mb-1" />
           <p className="ticket-marca mb-0">CORRALEJO FAST FOOD</p>
           <p className="mb-0" style={{ fontSize: '0.72rem' }}>
             {direccion}
@@ -129,11 +131,27 @@ export default function TicketModal({ venta, onCerrar }) {
           <tbody>
             <tr>
               <td>Artículos</td>
-              <td className="text-end">{unidades}</td>
+              <td className="text-end">{unidades} und</td>
             </tr>
+            {venta.discount > 0 && (
+              <>
+                <tr>
+                  <td>Subtotal</td>
+                  <td className="text-end">{moneda(venta.total + venta.discount)}</td>
+                </tr>
+                <tr>
+                  <td>Descuento</td>
+                  <td className="text-end">− {moneda(venta.discount)}</td>
+                </tr>
+              </>
+            )}
             <tr className="ticket-total">
               <td>TOTAL</td>
               <td className="text-end">{moneda(venta.total)}</td>
+            </tr>
+            <tr>
+              <td>Pago</td>
+              <td className="text-end">{venta.paymentMethod ?? 'Efectivo'}</td>
             </tr>
           </tbody>
         </table>

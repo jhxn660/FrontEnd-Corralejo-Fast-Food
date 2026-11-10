@@ -432,14 +432,20 @@ export default function Establecimiento({ editable = false }) {
           </div>
           <ul className="list-group list-group-flush flex-grow-1">
             {VALORACIONES.recientes.map(({ id, nombre, estrellas, cuando }) => (
-              <li className="list-group-item d-flex justify-content-between px-0 small" key={id}>
+              <li
+                className="list-group-item d-flex justify-content-between align-items-center px-0"
+                key={id}
+              >
                 <span>
-                  {nombre}{' '}
-                  <span className="text-warning" aria-hidden="true">
+                  <span className="fw-semibold text-body">{nombre}</span>{' '}
+                  <span className="text-warning" aria-label={`${estrellas.split('★').length - 1} de 5 estrellas`}>
                     {estrellas}
                   </span>
                 </span>
-                <span className="text-secondary">{cuando}</span>
+                <span className="small fw-semibold text-body">
+                  <i className="fa-regular fa-clock me-1 text-brand" />
+                  hace {cuando}
+                </span>
               </li>
             ))}
           </ul>
