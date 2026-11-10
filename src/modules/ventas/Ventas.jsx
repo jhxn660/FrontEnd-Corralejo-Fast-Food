@@ -12,13 +12,16 @@ import {
   precioUnitario,
   urlQR,
 } from './servicio'
-import Modal from '../../components/ui/Modal'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import { useAvisos } from '../../context/AvisosContext'
+import { usePeticion } from '../../hooks/usePeticion'
+import Paginacion from '../../components/ui/Paginacion'
+import { menuApi, productosVendibles } from '../menu/api'
 import TicketModal from './TicketModal'
+import EditarVenta from './EditarVenta'
 
-const ESTADOS_VENTA = ['Entregado', 'En Preparación', 'Cancelado']
+const POR_PAGINA = 15
 const FILTROS_VACIOS = { fecha: '', cliente: '', rango: '' }
 
 /** Compara el total contra un filtro tipo ">20000", "<5000" o "20000". */
@@ -69,7 +72,12 @@ async function cargarVentas() {
     })
   )
 
-  return conQR.sort((a, b) => numeroDeCodigo(b.saleId) - numeroDeCodigo(a.saleId))
+  // De la más reciente a la más antigua por fecha real, no por número: el
+  // número no garantiza el orden cuando hay ventas de otro periodo.
+  const momento = (venta) => Date.parse(venta.createdAt ?? venta.date) || 0
+  return conQR.sort(
+    (a, b) => momento(b) - momento(a) || numeroDeCodigo(b.saleId) - numeroDeCodigo(a.saleId)
+  )
 }
 
 export default function Ventas() {
@@ -83,7 +91,45 @@ export default function Ventas() {
   const [seleccionada, setSeleccionada] = useState(null)
   const [minutos, setMinutos] = useState(MINUTOS_MODIFICACION)
   const [modalTicket, setModalTicket] = useState(false)
-  const [formEdicion, setFormEdicion] = useState(null)
+  const [editando, setEditando] = useState(false)
+  const [pagina, setPagina] = useState(1)
+
+  // Los productos que se pueden añadir al modificar una venta salen de la
+  // carta del administrador, igual que en Pedidos.
+  const { datos: catalogo } = useRecurso(
+    useCallback(async () => {
+      const { categorias } = await menuApi.listarCategorias({ soloDisponibles: true })
+      return productosVendibles(categorias)
+    }, []),
+    []
+  )
+
+  /**
+   * Guarda la venta y, si viene de un pedido, deja el pedido con las mismas
+   * líneas: la gráfica de Pedidos y los indicadores no deben contar cosas
+   * distintas.
+   */
+  const edicion = usePeticion(
+    useCallback(async (venta) => {
+      const actualizada = await api.update('sales', venta.id, venta)
+      if (venta.pedidoId) {
+        try {
+          const pedido = await api.get('pedidos', venta.pedidoId)
+          await api.update('pedidos', pedido.id, {
+            ...pedido,
+            items: venta.items.map((item) => ({
+              name: item.product,
+              price: item.unitPrice,
+              qty: item.quantity,
+            })),
+          })
+        } catch {
+          // El pedido pudo borrarse; la venta ya quedó guardada.
+        }
+      }
+      return actualizada
+    }, [])
+  )
 
   // Al volver de finalizar un pedido, se abre directamente la venta recién creada.
   useEffect(() => {
@@ -120,23 +166,26 @@ export default function Ventas() {
     [ventas, filtros]
   )
 
-  const filtrar = (campo) => (e) => setFiltros({ ...filtros, [campo]: e.target.value })
+  const filtrar = (campo) => (e) => {
+    setFiltros({ ...filtros, [campo]: e.target.value })
+    setPagina(1)
+  }
 
-  const guardarEdicion = async (e) => {
-    e.preventDefault()
-    try {
-      const actualizada = await api.update('sales', seleccionada.id, {
-        ...seleccionada,
-        ...formEdicion,
-      })
-      setSeleccionada(actualizada)
-      setFormEdicion(null)
-      recargar()
-      avisos.exito('Venta modificada', `${seleccionada.saleId} quedó actualizada.`)
-    } catch (err) {
-      setError(err.message)
-      avisos.fallo('No se pudo modificar la venta', err)
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA))
+  const paginaActual = Math.min(pagina, totalPaginas)
+  const visibles = filtradas.slice((paginaActual - 1) * POR_PAGINA, paginaActual * POR_PAGINA)
+
+  const guardarEdicion = async (nueva) => {
+    const { ok, datos, error: fallo } = await edicion.ejecutar(nueva)
+    if (!ok) {
+      setError(fallo?.message ?? 'No se pudo modificar la venta.')
+      avisos.fallo('No se pudo modificar la venta', fallo)
+      return
     }
+    setSeleccionada(datos)
+    setEditando(false)
+    recargar()
+    avisos.exito('Venta modificada', `${nueva.saleId} quedó en ${moneda(nueva.total)}.`)
   }
 
   return (
@@ -209,7 +258,7 @@ export default function Ventas() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtradas.map((venta) => (
+                      {visibles.map((venta) => (
                         <tr
                           key={venta.id}
                           className={seleccionada?.id === venta.id ? 'table-active' : ''}
@@ -230,6 +279,13 @@ export default function Ventas() {
                   </table>
                 </div>
               )}
+
+              <Paginacion
+                pagina={paginaActual}
+                totalPaginas={totalPaginas}
+                onCambiar={setPagina}
+                etiqueta="Páginas de ventas"
+              />
             </div>
           </div>
         </div>
@@ -255,6 +311,8 @@ export default function Ventas() {
                       ['Estado', seleccionada.status],
                       ['Dirección de entrega', seleccionada.deliveryAddress],
                       ['Empleado responsable', seleccionada.employeeId],
+                      ['Medio de pago', seleccionada.paymentMethod ?? 'Efectivo'],
+                      ['Descuento', moneda(seleccionada.discount ?? 0)],
                     ].map(([etiqueta, valor]) => (
                       <div className="col-6 mb-2" key={etiqueta}>
                         <dt className="text-secondary fw-normal">{etiqueta}</dt>
@@ -286,6 +344,13 @@ export default function Ventas() {
                     </table>
                   </div>
 
+                  {seleccionada.notes && (
+                    <p className="small mb-2">
+                      <i className="fa-regular fa-note-sticky text-brand me-2" />
+                      {seleccionada.notes}
+                    </p>
+                  )}
+
                   <p className="text-end fw-bold mb-3">
                     Total pagado: <span className="text-brand">{moneda(seleccionada.total)}</span>
                   </p>
@@ -310,13 +375,7 @@ export default function Ventas() {
                       <button
                         className="btn btn-outline-primary"
                         disabled={minutos === 0}
-                        onClick={() =>
-                          setFormEdicion({
-                            client: seleccionada.client,
-                            status: seleccionada.status,
-                            deliveryAddress: seleccionada.deliveryAddress,
-                          })
-                        }
+                        onClick={() => setEditando(true)}
                       >
                         <i className="fa-solid fa-pen me-2" />
                         Modificar venta
@@ -338,78 +397,15 @@ export default function Ventas() {
         <TicketModal venta={seleccionada} onCerrar={() => setModalTicket(false)} />
       )}
 
-      {formEdicion && (
-        <Modal
-          titulo={`Modificar venta ${seleccionada.saleId}`}
-          icono="fa-pen-to-square"
-          descripcion={`Quedan ${minutos} minuto(s) de la ventana de modificación. Las líneas del pedido no se cambian aquí: para eso hay que reabrir el pedido en Gestión de Pedidos.`}
-          cerrarAlPulsarFuera={false}
-          onClose={() => setFormEdicion(null)}
-          footer={
-            <>
-              <button className="btn btn-outline-secondary" onClick={() => setFormEdicion(null)}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary" form="form-venta" type="submit">
-                <i className="fa-solid fa-floppy-disk me-2" />
-                Guardar cambios
-              </button>
-            </>
-          }
-        >
-          <div className="modal-resumen d-flex flex-wrap gap-2 mb-4">
-            <span className="badge bg-brand">{seleccionada.saleId}</span>
-            <span className="badge bg-secondary">{seleccionada.ticketId}</span>
-            <span className="badge bg-secondary">{seleccionada.orderId}</span>
-            <span className="badge bg-dark">{moneda(seleccionada.total)}</span>
-          </div>
-
-          <form id="form-venta" onSubmit={guardarEdicion} className="d-grid gap-3">
-            <div>
-              <label className="form-label" htmlFor="venta-cliente">
-                Cliente
-              </label>
-              <input
-                id="venta-cliente"
-                className="form-control"
-                value={formEdicion.client}
-                onChange={(e) => setFormEdicion({ ...formEdicion, client: e.target.value })}
-                placeholder="Ej. Consumidor Final"
-                required
-              />
-            </div>
-            <div>
-              <label className="form-label" htmlFor="venta-estado">
-                Estado del pedido
-              </label>
-              <select
-                id="venta-estado"
-                className="form-select"
-                value={formEdicion.status}
-                onChange={(e) => setFormEdicion({ ...formEdicion, status: e.target.value })}
-              >
-                {ESTADOS_VENTA.map((estado) => (
-                  <option key={estado}>{estado}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="form-label" htmlFor="venta-direccion">
-                Dirección de entrega
-              </label>
-              <input
-                id="venta-direccion"
-                className="form-control"
-                value={formEdicion.deliveryAddress}
-                onChange={(e) =>
-                  setFormEdicion({ ...formEdicion, deliveryAddress: e.target.value })
-                }
-                placeholder="Ej. Local / Mostrador"
-                required
-              />
-            </div>
-          </form>
-        </Modal>
+      {editando && seleccionada && (
+        <EditarVenta
+          venta={seleccionada}
+          catalogo={catalogo}
+          minutos={minutos}
+          enviando={edicion.enviando}
+          onGuardar={guardarEdicion}
+          onCerrar={() => setEditando(false)}
+        />
       )}
     </>
   )

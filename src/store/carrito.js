@@ -1,3 +1,12 @@
+// ⚠️ ARCHIVO SIN USO TODAVÍA (fase 2).
+// Ninguna pantalla importa este archivo: solo lo usan otros archivos de la
+// misma "fase 2" (usePedidos, useVentas, pedidos/api, ventas/api,
+// pedidos/calculos, store/carrito, store/bloqueos). Está preparado para cuando
+// exista el back real con /pedidos/:id/estado, versiones y total autoritativo.
+// Si vas a cambiar cómo funcionan Pedidos o Ventas HOY, el código está en
+// Pedidos.jsx, Ventas.jsx y ventas/servicio.js, no aquí.
+// Ver docs/PARTES-COMPLEJAS.md, sección "Código preparado para la fase 2".
+
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'

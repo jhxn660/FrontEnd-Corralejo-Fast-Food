@@ -29,7 +29,7 @@ const ORDENES = {
  * leen las MISMAS categorías del mismo hook, así que lo que el administrador
  * publica es exactamente lo que el cliente ve.
  */
-export default function Menu({ editable = false }) {
+export default function Menu({ editable = false, vitrina = false }) {
   const {
     categorias,
     cargando,
@@ -101,11 +101,13 @@ export default function Menu({ editable = false }) {
   return (
     <>
       <EncabezadoPagina
-        titulo={editable ? 'Gestión de Menú' : 'Nuestra Carta'}
+        titulo={editable ? 'Gestión de Menú' : vitrina ? 'Carta del local' : 'Nuestra Carta'}
         descripcion={
           editable
             ? 'Crea categorías, ajusta precios y decide qué ve el cliente.'
-            : 'Elige lo que se te antoje: todo se prepara al momento.'
+            : vitrina
+              ? 'Vista previa para enseñarle la carta al cliente en el local, sin que tenga que iniciar sesión.'
+              : 'Elige lo que se te antoje: todo se prepara al momento.'
         }
       >
         <select
@@ -215,8 +217,8 @@ export default function Menu({ editable = false }) {
           />
         ) : (
           <>
-            <CartaCliente categorias={categorias} />
-            <PieContacto />
+            <CartaCliente categorias={categorias} vitrina={vitrina} />
+            {!vitrina && <PieContacto />}
           </>
         ))}
 

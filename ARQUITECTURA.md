@@ -188,6 +188,13 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   forma de lista y ante un objeto devuelve `[]`: así se quedaron sin datos el
   catálogo de Pedidos y los indicadores.
 
+- **R71** La carta del administrador (`adminMenu`) es la única fuente de lo
+  que se vende: el catálogo de Pedidos, la edición de ventas y la carta del
+  cliente salen de `productosVendibles()` en `modules/menu/api.js`.
+- **R72** Los indicadores se calculan desde `sales` (`modules/indicadores/
+  calculos.js`); en db.json solo se guardan la meta anual y las valoraciones.
+  Las ventas con `historico: true` son datos de prueba y se pueden borrar.
+
 ---
 
 ## Antipatrones excluidos explícitamente

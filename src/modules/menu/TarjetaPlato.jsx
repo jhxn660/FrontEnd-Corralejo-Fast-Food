@@ -67,7 +67,12 @@ export default function TarjetaPlato({ plato, categoria, destacado = false, onAb
           ) : null}
 
           <div className="mt-auto d-flex align-items-center justify-content-between gap-2">
-            <span className="plato-precio">{moneda(plato.precio)}</span>
+            <span>
+              <span className="plato-precio d-block">{moneda(plato.precio)}</span>
+              {plato.precioCombo && (
+                <small className="text-secondary">Combo {moneda(plato.precioCombo)}</small>
+              )}
+            </span>
             {!agotado && (
               <span className="btn btn-sm btn-outline-primary">
                 Ver

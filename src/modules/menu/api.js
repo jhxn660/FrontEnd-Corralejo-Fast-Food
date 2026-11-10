@@ -30,6 +30,8 @@ export const aCategoriaUi = (cruda) => ({
     id: item.id ?? `${cruda.id}-${i}`,
     nombre: item.nombre,
     precio: aNumero(item.precio),
+    // Precio con papa francesa y gaseosa 250 ml. null = el plato no tiene combo.
+    precioCombo: item.precioCombo ? aNumero(item.precioCombo) : null,
     descripcion: item.descripcion ?? '',
     calificacion: item.calificacion ?? null,
     estado: item.estado ?? 'Disponible',
@@ -43,14 +45,48 @@ export const aCategoriaApi = (ui) => ({
   descripcion: ui.descripcion,
   icono: ui.icono,
   estado: ui.estado,
-  items: ui.productos.map(({ nombre, precio, descripcion, calificacion, estado }) => ({
+  items: ui.productos.map(({ nombre, precio, precioCombo, descripcion, calificacion, estado }) => ({
     nombre,
     precio,
+    ...(Number(precioCombo) > 0 ? { precioCombo: Number(precioCombo) } : {}),
     ...(descripcion ? { descripcion } : {}),
     ...(calificacion ? { calificacion } : {}),
     estado,
   })),
 })
+
+/**
+ * Lo que se puede vender: un producto por plato y, si tiene combo, otro más
+ * con " (combo)" en el nombre. Es la ÚNICA fuente del catálogo de Pedidos y de
+ * la edición de ventas, así que un plato nuevo, un precio cambiado o una
+ * categoría oculta por el administrador se reflejan allí sin tocar nada más.
+ * Los platos agotados y las categorías ocultas no se venden.
+ */
+export const productosVendibles = (categorias) =>
+  categorias
+    .filter((categoria) => categoria.disponible)
+    .map((categoria) => ({
+      id: categoria.id,
+      nombre: categoria.nombre,
+      icono: categoria.icono,
+      productos: categoria.productos
+        .filter((plato) => plato.estado !== 'Inhabilitado')
+        .flatMap((plato) => [
+          { id: plato.id, nombre: plato.nombre, precio: plato.precio, descripcion: plato.descripcion },
+          ...(plato.precioCombo
+            ? [
+                {
+                  id: `${plato.id}-combo`,
+                  nombre: `${plato.nombre} (combo)`,
+                  precio: plato.precioCombo,
+                  descripcion: 'Con papa francesa y gaseosa 250 ml.',
+                  combo: true,
+                },
+              ]
+            : []),
+        ]),
+    }))
+    .filter((categoria) => categoria.productos.length > 0)
 
 export const menuApi = {
   // `soloDisponibles` será un filtro del servidor (?estado=Disponible). Hasta

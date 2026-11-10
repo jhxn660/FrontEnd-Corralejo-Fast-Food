@@ -7,6 +7,14 @@ datos vive en una API REST local servida con json-server.
 
 Las reglas de arquitectura del proyecto están en **[ARQUITECTURA.md](ARQUITECTURA.md)**.
 
+Si llegas nuevo al proyecto, lee también:
+
+- **[docs/GUIA-CODIGO-LEGIBLE.md](docs/GUIA-CODIGO-LEGIBLE.md)**: dónde va cada
+  cosa, cómo ordenar un componente, nombres, comentarios y recetas paso a paso.
+- **[docs/PARTES-COMPLEJAS.md](docs/PARTES-COMPLEJAS.md)**: los flujos que
+  cruzan varios archivos (pedido → venta, indicadores, modales, impresión del
+  ticket) y las trampas ya conocidas.
+
 ---
 
 ## Puesta en marcha
@@ -50,7 +58,7 @@ cliente hasta que se les añada.
 |---|---|---|
 | `admin` | Establecimiento, Inventario, Menú, Indicadores, Empleados | `/admin/*` |
 | `empleado` | Pedidos, Menú, Ventas, PQRS | `/empleado/*` |
-| `cliente` | Establecimiento, Menú, PQRS | `/cliente/*` |
+| `cliente` | Menú, Establecimiento, PQRS | `/cliente/*` |
 
 **Menú** y **Establecimiento** son el mismo componente para los tres roles
 (`src/modules/menu/` y `src/modules/establecimiento/`). La única diferencia es la prop `editable`, que solo
@@ -89,6 +97,7 @@ pantalla que ven dos roles vive en un solo sitio y no hace falta una carpeta
 ```
 FrontEnd/
 ├── ARQUITECTURA.md             Contrato de arquitectura
+├── docs/                       Guía para juniors y partes complejas
 ├── server/db.json              Base de datos de json-server
 ├── public/favicon.svg
 ├── index.html
@@ -101,36 +110,41 @@ FrontEnd/
     │   └── roles.js            Roles, títulos de panel y normalizarRol()
     │
     ├── context/
-    │   └── AuthContext.jsx     Sesión: { usuario, rol, cargando, cerrarSesion }
+    │   ├── AuthContext.jsx     Sesión: { usuario, rol, cargando, cerrarSesion }
+    │   └── AvisosContext.jsx   Avisos de 3 s: useAvisos().exito / error / fallo
     │
     ├── modules/                Un módulo por dominio del negocio
     │   ├── autenticacion/      Login, Register, FormularioAuth, CampoTexto
-    │   ├── establecimiento/    Establecimiento (admin y cliente), PieContacto
-    │   ├── menu/               Menu (los tres roles)
+    │   ├── establecimiento/    Establecimiento, calendario, formularios, narrativa
+    │   ├── menu/               Menu (los tres roles), carta, productosVendibles()
     │   ├── pqrs/               PqrsCliente, PqrsEmpleado, esquema.js
-    │   ├── pedidos/            Pedidos, CatalogoModal, ConfirmarAccion
-    │   ├── ventas/             Ventas, servicio.js (QR, venta ↔ pedido)
-    │   ├── inventario/         Inventario
-    │   ├── indicadores/        Indicadores
-    │   └── empleados/          Empleados
+    │   ├── pedidos/            Pedidos, CatalogoModal, ConfirmarAccion, gráfica
+    │   ├── ventas/             Ventas, EditarVenta, TicketModal, servicio.js
+    │   ├── inventario/         Inventario, tarjeta, detalle, formulario, esquema
+    │   ├── indicadores/        Indicadores, calculos.js (desde /sales), meta
+    │   └── empleados/          Empleados, formulario, esquema
     │
     ├── components/             Piezas sin dominio, reutilizables
-    │   ├── layout/             Layout, RutaProtegida, AccesoDenegado, NoEncontrado
-    │   └── ui/                 Modal, Toast, Estado, EncabezadoPagina
+    │   ├── layout/             Layout, RutaProtegida, LimiteDeError, NoEncontrado…
+    │   └── ui/                 Modal, Aviso, Estado, Paginacion, PieContacto…
     │
     ├── services/               Infraestructura, sin reglas de negocio
     │   ├── api.js              Cliente REST único (list/get/create/update/patch/remove)
     │   └── supabase.js         Cliente de Supabase
     │
     ├── hooks/
-    │   └── useRecurso.js       Carga de datos: {datos, cargando, error, recargar}
+    │   ├── useRecurso.js       Leer: {datos, cargando, error, recargar}
+    │   ├── usePeticion.js      Escribir: {ejecutar, enviando, error}
+    │   └── useConfirmacion.js  Borrar con confirmación
     │
     ├── data/                   Contenido estático, fuera del JSX
     │   ├── contenido.js        Misión, visión, historias, valoraciones
     │   ├── local.js            Campos de la ficha y contacto del pie
     │   └── graficas.js         Paletas de las gráficas (citan var(--cff-…))
     │
-    ├── utils/format.js         Moneda, fechas y horas en formato es-CO
+    ├── utils/
+    │   ├── format.js           Moneda, fechas y horas en formato es-CO
+    │   └── seguridad.js        Validación de la URL del mapa
     ├── styles/theme.css        ÚNICO CSS propio: marca + ajustes de Bootstrap
     └── assets/                 Logo y fondo del login
 ```
@@ -177,8 +191,9 @@ src/modules/<dominio>/
   no conoce Supabase. `{ publica: true }` envía la petición sin cabecera.
 - `http.lista()` acepta array plano (json-server) y `{ datos, total, pagina }`
   (contrato del back): migrar no obliga a tocar ningún hook.
-- Hooks listos para consumir: `modules/menu/useMenu.js` y
-  `modules/ventas/useVentas.js`. Las pantallas los adoptan en la fase 2.
+- `modules/menu/useMenu.js` está en uso. `usePedidos`, `useVentas`, sus
+  `api.js` y `src/store/` están preparados pero **ninguna pantalla los usa
+  todavía** (fase 2): ver docs/PARTES-COMPLEJAS.md, sección 13.
 - **`.env` es obligatorio**: sin credenciales de Supabase la aplicación falla
   al arrancar con un mensaje explícito, en lugar de romperse dentro de la
   librería.

@@ -8,6 +8,9 @@
 // Menú y Establecimiento son el MISMO componente para los tres roles: la prop
 // `editable` es lo único que cambia, y solo la recibe el administrador.
 // Añadir una pantalla = añadir una línea aquí. Nada más.
+//
+// El orden importa: la primera entrada de cada rol es donde aterriza al
+// iniciar sesión (rutaPorDefecto). Por eso el cliente empieza en el menú.
 
 import Establecimiento from '../modules/establecimiento/Establecimiento'
 import Menu from '../modules/menu/Menu'
@@ -71,7 +74,9 @@ export const MENU = {
       ruta: '/empleado/menu',
       titulo: 'Menú',
       icono: 'fa-utensils',
-      elemento: <Menu />,
+      // Vitrina: la carta del cliente para enseñarla en el local, sin
+      // WhatsApp ni datos de contacto.
+      elemento: <Menu vitrina />,
     },
     {
       vista: 'empleado-ventas',
@@ -91,18 +96,18 @@ export const MENU = {
 
   cliente: [
     {
-      vista: 'cliente-establecimiento',
-      ruta: '/cliente/establecimiento',
-      titulo: 'Establecimiento',
-      icono: 'fa-store',
-      elemento: <Establecimiento />,
-    },
-    {
       vista: 'cliente-menu',
       ruta: '/cliente/menu',
       titulo: 'Menú',
       icono: 'fa-utensils',
       elemento: <Menu />,
+    },
+    {
+      vista: 'cliente-establecimiento',
+      ruta: '/cliente/establecimiento',
+      titulo: 'Establecimiento',
+      icono: 'fa-store',
+      elemento: <Establecimiento />,
     },
     {
       vista: 'cliente-pqrs',

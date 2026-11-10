@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { api } from '../../services/api'
@@ -12,7 +12,8 @@ import {
 } from '../ventas/servicio'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
-import { CATEGORIAS, COLOR_SIN_CATEGORIA } from '../../data/graficas'
+import { COLOR_SIN_CATEGORIA, PALETA_CATEGORIAS } from '../../data/graficas'
+import { menuApi, productosVendibles } from '../menu/api'
 import CatalogoModal from './CatalogoModal'
 import ConfirmarAccion from './ConfirmarAccion'
 import GraficaCategorias from './GraficaCategorias'
@@ -23,26 +24,20 @@ const ESTADOS = {
   resuelto: { etiqueta: 'Resuelto', color: 'success', icono: 'fa-circle-check' },
 }
 
-// "categoria" era un duplicado de Perros Calientes: se ignora en el catálogo.
-const CLAVES_OCULTAS = ['categoria']
-
 const numeroDe = (pedido) => pedido?.numero ?? pedido?.id
 
-const normalizarCatalogo = (datos) =>
-  Object.fromEntries(
-    Object.entries(datos ?? {}).filter(
-      ([clave, valor]) => Array.isArray(valor) && !CLAVES_OCULTAS.includes(clave)
-    )
-  )
-
-/** Reparte el total de unidades vendidas por categoría para el gráfico de torta. */
-function calcularVentasPorCategoria(pedidos, catalogo) {
+/**
+ * Reparte el total de unidades vendidas por categoría para el gráfico de torta.
+ * Las categorías son las de la carta del administrador: un producto vendido
+ * que ya no está en la carta cae en "Otros".
+ */
+function calcularVentasPorCategoria(pedidos, categorias) {
   const categoriaDe = {}
-  Object.entries(CATEGORIAS).forEach(([clave, { titulo }]) => {
-    ;(catalogo[clave] ?? []).forEach((producto) => {
-      categoriaDe[producto.name] = titulo
+  categorias.forEach((categoria) =>
+    categoria.productos.forEach((producto) => {
+      categoriaDe[producto.nombre] = categoria.nombre
     })
-  })
+  )
 
   const totales = {}
   pedidos
@@ -57,22 +52,24 @@ function calcularVentasPorCategoria(pedidos, catalogo) {
   const total = Object.values(totales).reduce((suma, valor) => suma + valor, 0)
   if (total === 0) return { total: 0, tramos: [] }
 
-  const colores = Object.fromEntries(
-    Object.values(CATEGORIAS).map(({ titulo, color }) => [titulo, color])
-  )
   let acumulado = 0
 
   // De mayor a menor: la torta se lee de un vistazo y el primer tramo es el que
   // importa.
   const tramos = Object.entries(totales)
     .sort((a, b) => b[1] - a[1])
-    .map(([nombre, cantidad]) => {
+    .map(([nombre, cantidad], posicion) => {
       const inicio = acumulado
       acumulado += (cantidad / total) * 100
       return {
         nombre,
         cantidad,
-        color: colores[nombre] ?? COLOR_SIN_CATEGORIA,
+        // Color por posición y no por nombre: las dos categorías de
+        // hamburguesas tendrían el mismo tono y la torta no las distinguiría.
+        color:
+          nombre === 'Otros'
+            ? COLOR_SIN_CATEGORIA
+            : PALETA_CATEGORIAS[posicion % PALETA_CATEGORIAS.length],
         porcentaje: (cantidad / total) * 100,
         desde: inicio,
         hasta: acumulado,
@@ -87,24 +84,24 @@ export default function Pedidos() {
   const avisos = useAvisos()
 
   const cargar = useCallback(async () => {
-    // `pedidos` es una colección y `catalogo` un objeto con una clave por
-    // categoría: cada uno se pide con el verbo que le corresponde.
-    const [pedidos, catalogo] = await Promise.all([
+    // El catálogo es la carta del administrador (R25: una sola fuente).
+    const [pedidos, { categorias }] = await Promise.all([
       api.list('pedidos'),
-      api.obtener('catalogo'),
+      menuApi.listarCategorias({ soloDisponibles: true }),
     ])
     return {
       pedidos: [...pedidos].sort((a, b) => Number(numeroDe(b)) - Number(numeroDe(a))),
-      catalogo: normalizarCatalogo(catalogo),
+      catalogo: productosVendibles(categorias),
     }
   }, [])
 
   const { datos, cargando, error, setError, recargar } = useRecurso(cargar, {
     pedidos: [],
-    catalogo: {},
+    catalogo: [],
   })
 
   const { pedidos, catalogo } = datos
+  const cargadoUnaVez = useRef(false)
   const [activoId, setActivoId] = useState(null)
   const [procesando, setProcesando] = useState(false)
   const [catalogoAbierto, setCatalogoAbierto] = useState(false)
@@ -282,7 +279,7 @@ export default function Pedidos() {
     guardarItems(nuevos).then((ok) => {
       if (ok) {
         const añadidas = elegidos.reduce((suma, item) => suma + item.qty, 0)
-        avisos.exito('Productos agregados', `${añadidas} unidad(es) en el pedido #${numeroDe(activo)}.`)
+        avisos.exito('Productos agregados', `${añadidas} und en el pedido #${numeroDe(activo)}.`)
       }
     })
   }
@@ -299,7 +296,12 @@ export default function Pedidos() {
       if (ok) avisos.error('Producto quitado', `${nombre} salió del pedido.`)
     })
 
-  if (cargando) return <Cargando texto="Cargando pedidos…" />
+  // El spinner de pantalla completa solo en la PRIMERA carga. Cada cambio de
+  // cantidad recarga los pedidos; si en esa recarga se sustituía toda la
+  // pantalla por el spinner, la página se encogía, el navegador perdía la
+  // posición del scroll y al volver había que bajar otra vez hasta la línea.
+  if (cargando && !cargadoUnaVez.current) return <Cargando texto="Cargando pedidos…" />
+  if (!cargando) cargadoUnaVez.current = true
 
   return (
     <>
@@ -321,40 +323,55 @@ export default function Pedidos() {
 
       <div className="row g-3">
         <div className="col-12 col-xl-5">
-          <div className="card border-0 shadow-sm h-100">
+          {/* Sin h-100: la tarjeta mide lo que su lista. Con h-100 se estiraba
+              hasta la altura de la columna derecha y, al filtrar, quedaba un
+              hueco enorme bajo los pedidos. */}
+          <div className="card border-0 shadow-sm">
             <div className="card-header bg-white d-flex justify-content-between align-items-center gap-2">
               <h2 className="h6 fw-bold mb-0">Pedidos solicitados</h2>
               <small className="text-secondary">{new Date().toLocaleDateString('es-CO')}</small>
             </div>
 
-            <div className="card-body pb-0">
-              <ul className="nav nav-pills flex-wrap gap-1" aria-label="Filtrar por estado">
-                <li className="nav-item">
-                  <button
-                    className={`nav-link ${filtroEstado === 'todos' ? 'active' : ''}`}
-                    onClick={() => setFiltroEstado('todos')}
-                  >
-                    Todos <span className="badge bg-secondary ms-1">{pedidos.length}</span>
-                  </button>
-                </li>
-                {Object.entries(ESTADOS).map(([clave, { etiqueta, color }]) => (
-                  <li className="nav-item" key={clave}>
+            {/* Cuatro filtros en una sola fila de columnas iguales. Antes eran
+                pastillas con texto largo que se partían en 3 + 1. */}
+            <div className="card-body p-2 border-bottom">
+              <div className="row row-cols-4 g-1" role="group" aria-label="Filtrar por estado">
+                {[
+                  { clave: 'todos', etiqueta: 'Todos', cantidad: pedidos.length, color: 'secondary' },
+                  ...Object.entries(ESTADOS).map(([clave, { etiqueta, color }]) => ({
+                    clave,
+                    etiqueta: clave === 'preparacion' ? 'Preparando' : etiqueta,
+                    cantidad: porEstado[clave] ?? 0,
+                    color,
+                  })),
+                ].map(({ clave, etiqueta, cantidad, color }) => (
+                  <div className="col" key={clave}>
                     <button
-                      className={`nav-link ${filtroEstado === clave ? 'active' : ''}`}
+                      className={`btn btn-sm w-100 px-1 ${
+                        filtroEstado === clave ? 'btn-primary' : 'btn-outline-secondary'
+                      }`}
                       onClick={() => setFiltroEstado(clave)}
+                      aria-pressed={filtroEstado === clave}
                     >
-                      {etiqueta}{' '}
-                      <span className={`badge bg-${color} ms-1`}>{porEstado[clave] ?? 0}</span>
+                      <span className="d-block text-truncate small">{etiqueta}</span>
+                      <span className={`badge bg-${filtroEstado === clave ? 'light text-dark' : color}`}>
+                        {cantidad}
+                      </span>
                     </button>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
 
             {visibles.length === 0 ? (
-              <Vacio texto="No hay pedidos con ese estado." icono="fa-receipt" />
+              <p className="text-secondary small text-center my-4 mb-4">
+                No hay pedidos con ese estado.
+              </p>
             ) : (
-              <ul className="list-group list-group-flush mt-3">
+              <ul
+                className="list-group list-group-flush overflow-auto"
+                style={{ maxHeight: 'calc(100vh - 16rem)' }}
+              >
                 {visibles.map((pedido) => {
                   const estado = ESTADOS[pedido.estado] ?? {}
                   const lineas = (pedido.items ?? []).length
@@ -407,7 +424,7 @@ export default function Pedidos() {
               </h2>
               {activo && (
                 <span className="badge bg-secondary">
-                  {numero(unidades)} unidad(es) · {items.length} línea(s)
+                  {numero(unidades)} und · {items.length} línea(s)
                 </span>
               )}
             </div>
@@ -572,7 +589,7 @@ export default function Pedidos() {
 
       {catalogoAbierto && activo && (
         <CatalogoModal
-          catalogo={catalogo}
+          categorias={catalogo}
           onAgregar={agregarDelCatalogo}
           onCerrar={() => setCatalogoAbierto(false)}
         />

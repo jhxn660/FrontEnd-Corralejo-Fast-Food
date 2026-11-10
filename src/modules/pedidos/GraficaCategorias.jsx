@@ -43,7 +43,7 @@ export default function GraficaCategorias({ reparto }) {
         <div className="pie-centro">
           <span className="d-block fw-bold fs-4">{numero(reparto.total)}</span>
           <span className="d-block text-secondary" style={{ fontSize: '0.7rem' }}>
-            unidades
+            und vendidas
           </span>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default function GraficaCategorias({ reparto }) {
                 aria-hidden="true"
               />
               <span className="flex-grow-1 min-width-0 text-truncate">{tramo.nombre}</span>
-              <span className="text-secondary">{numero(tramo.cantidad)} u</span>
+              <span className="text-secondary">{numero(tramo.cantidad)} und</span>
               <strong style={{ minWidth: '3.2rem', textAlign: 'right' }}>
                 {tramo.porcentaje.toFixed(1)}%
               </strong>
