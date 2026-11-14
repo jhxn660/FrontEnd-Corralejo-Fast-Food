@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Corralejo Fast Food — Frontend
 
 Sistema de gestión para el restaurante Corralejo Fast Food. React 19 + Vite +
