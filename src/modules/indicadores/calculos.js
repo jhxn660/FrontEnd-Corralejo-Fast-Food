@@ -129,6 +129,51 @@ export const ranking = (ventas, año, limite = 5) => {
     }))
 }
 
+/**
+ * VALORACIÓN MEDIA POR PRODUCTO, a partir de los comentarios con QR.
+ *
+ * Es el vínculo entre el muro y los indicadores. Antes esta tabla salía de una
+ * colección fija (`reviews`) con cinco productos y una nota escrita a mano: una
+ * valoración nueva no movía nada. Ahora cada registro de `comentarios` que
+ * lleva un QR trae la nota del cliente y los productos de ese ticket, y de ahí
+ * sale la media.
+ *
+ * LA NOTA ES DEL PEDIDO, NO DEL PLATO
+ * El cliente puntúa el ticket completo, así que la misma nota cuenta una vez
+ * para cada producto que iba en él. Es lo más que se puede afirmar sin pedir
+ * una nota por plato, y a cambio nadie puede puntuar algo que no compró: el QR
+ * es la prueba de compra. `reseñas` es, por eso, el número de tickets en los
+ * que apareció ese producto, no el de clientes distintos.
+ *
+ * Solo entran los registros con QR: un comentario del muro sin ticket detrás
+ * no puntúa (ver modules/establecimiento/api.js). La moderación no interviene
+ * —se modera el texto, no la nota—, así que una puntuación cuenta desde que se
+ * registra.
+ */
+export const valoracionesPorProducto = (valoraciones, limite = 5) => {
+  const productos = new Map()
+
+  valoraciones
+    .filter((valoracion) => Boolean(valoracion.qr) && Number(valoracion.estrellas) > 0)
+    .forEach((valoracion) =>
+      (valoracion.productos ?? []).forEach((item) => {
+        const actual = productos.get(item.producto) ?? { suma: 0, reseñas: 0 }
+        actual.suma += Number(valoracion.estrellas)
+        actual.reseñas += 1
+        productos.set(item.producto, actual)
+      })
+    )
+
+  return [...productos.entries()]
+    .map(([nombre, { suma, reseñas }]) => ({
+      nombre,
+      reseñas,
+      puntuacion: Math.round((suma / reseñas) * 10) / 10,
+    }))
+    .sort((a, b) => b.puntuacion - a.puntuacion || b.reseñas - a.reseñas)
+    .slice(0, limite)
+}
+
 /** Avance de la meta anual con las ventas de ese año. */
 export const avanceMeta = (ventas, año, meta) => {
   const vendido = resumen(ventas.filter((v) => añoDe(v) === String(año))).total
@@ -138,4 +183,35 @@ export const avanceMeta = (ventas, año, meta) => {
     porcentaje: meta > 0 ? Math.min(100, Math.round((vendido / meta) * 1000) / 10) : 0,
     restante: Math.max(0, meta - vendido),
   }
+}
+
+export const MESES_CORTOS = [
+  'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+]
+
+/**
+ * Años que se pueden comparar: los que tienen ventas, más el actual y el
+ * anterior (para que la comparativa siempre tenga dos opciones).
+ */
+export const añosDisponibles = (ventas, hoy = new Date()) =>
+  [
+    ...new Set([
+      String(hoy.getFullYear()),
+      String(hoy.getFullYear() - 1),
+      ...ventas.map(añoDe).filter((año) => /^\d{4}$/.test(año)),
+    ]),
+  ]
+    .sort()
+    .reverse()
+
+/** Ingreso de cada uno de los doce meses de un año. */
+export const ventasPorMesDelAño = (ventas, año) => {
+  const meses = Array.from({ length: 12 }, () => 0)
+  ventas
+    .filter((venta) => añoDe(venta) === String(año))
+    .forEach((venta) => {
+      const mes = Number(String(venta.date).slice(5, 7))
+      if (mes >= 1 && mes <= 12) meses[mes - 1] += Number(venta.total) || 0
+    })
+  return meses
 }

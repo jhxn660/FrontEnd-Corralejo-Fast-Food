@@ -27,15 +27,9 @@ export const EMPLEADO_VACIO = { name: '', inicio: '08:00', fin: '16:00', role: '
 export const iconoDe = (cargo) => `fa-solid ${CARGOS[cargo]?.icono ?? 'fa-user'}`
 export const colorDe = (cargo) => CARGOS[cargo]?.color ?? 'var(--cff-cat-otros)'
 
-/** "Carlos Ramírez" → "CR". Un avatar con iniciales distingue mejor que el
- *  mismo icono de usuario repetido en nueve tarjetas. */
-export const inicialesDe = (nombre = '') =>
-  nombre
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((parte) => parte[0]?.toUpperCase() ?? '')
-    .join('') || '?'
+// Las iniciales del avatar viven en utils/format.js: también las usa el muro
+// de reseñas. Se reexportan para no cambiar los imports de este módulo.
+export { inicialesDe } from '../../utils/format'
 
 /** "16:00" → "04:00 PM", el formato con el que la colección guarda el turno. */
 export const a12Horas = (hhmm) => {

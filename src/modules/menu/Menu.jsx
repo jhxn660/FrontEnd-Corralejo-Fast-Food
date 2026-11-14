@@ -12,6 +12,7 @@ import { categoriaVacia } from './esquema'
 import CartaCliente from './CartaCliente'
 import GestionCategorias from './GestionCategorias'
 import FormularioCategoria from './FormularioCategoria'
+import FormularioPlato from './FormularioPlato'
 
 const ORDENES = {
   '': 'Orden de la carta',
@@ -32,6 +33,7 @@ const ORDENES = {
 export default function Menu({ editable = false, vitrina = false }) {
   const {
     categorias,
+    todas,
     cargando,
     error,
     recargar,
@@ -47,6 +49,39 @@ export default function Menu({ editable = false, vitrina = false }) {
 
   const avisos = useAvisos()
   const [formulario, setFormulario] = useState(null) // { modo, categoria }
+  const [platoEnEdicion, setPlatoEnEdicion] = useState(null) // { categoriaId, categoria, plato }
+
+  /** La categoría completa, sin el recorte de la búsqueda ni el orden por precio. */
+  const original = (id) => todas.find((categoria) => categoria.id === id)
+
+  /** Guarda la categoría cambiando solo un plato, identificado por su id. */
+  const guardarPlato = async (categoriaId, plato, mensaje) => {
+    const categoria = original(categoriaId)
+    if (!categoria) return false
+
+    const { ok, error: fallo } = await guardar({
+      ...categoria,
+      productos: categoria.productos.map((actual) => (actual.id === plato.id ? plato : actual)),
+    })
+    if (!ok) {
+      avisos.fallo('No se pudo guardar el plato', fallo)
+      return false
+    }
+    avisos.exito(mensaje.titulo, mensaje.texto)
+    return true
+  }
+
+  const alternarPlato = (categoria, plato) => {
+    const agotar = plato.estado !== 'Inhabilitado'
+    return guardarPlato(
+      categoria.id,
+      { ...plato, estado: agotar ? 'Inhabilitado' : 'Disponible' },
+      {
+        titulo: agotar ? 'Plato agotado' : 'Plato a la venta',
+        texto: `${plato.nombre} ${agotar ? 'ya no se puede pedir' : 'vuelve a estar disponible'}.`,
+      }
+    )
+  }
 
   // useMenu.eliminar no lanza: devuelve { ok, error }. El modal necesita el
   // fallo como excepción para quedarse abierto en vez de cerrarse como si
@@ -98,6 +133,52 @@ export default function Menu({ editable = false, vitrina = false }) {
   const precios = categorias.flatMap((c) => c.productos.map((p) => p.precio)).filter((p) => p > 0)
   const promedio = precios.length > 0 ? precios.reduce((a, b) => a + b, 0) / precios.length : 0
 
+  // Las acciones son las mismas vaya la pantalla suelta o dentro de una
+  // pestaña del panel; lo único que cambia es si las encabeza un <h1>.
+  const acciones = (
+    <>
+      <select
+        className="form-select"
+        style={{ width: 'auto' }}
+        value={orden}
+        onChange={(evento) => setOrden(evento.target.value)}
+        aria-label="Ordenar productos por precio"
+      >
+        {Object.entries(ORDENES).map(([valor, texto]) => (
+          <option key={valor} value={valor}>
+            {texto}
+          </option>
+        ))}
+      </select>
+
+      {editable && (
+        <>
+          <button
+            className="btn btn-primary"
+            onClick={() => setFormulario({ modo: 'categoria', categoria: categoriaVacia() })}
+          >
+            <i className="fa-solid fa-circle-plus me-2" />
+            Nueva categoría
+          </button>
+          <button
+            className="btn btn-outline-primary"
+            onClick={() =>
+              setFormulario({ modo: 'combo', categoria: categoriaVacia('fa-solid fa-star') })
+            }
+          >
+            <i className="fa-solid fa-star me-2" />
+            Nuevo combo
+          </button>
+        </>
+      )}
+
+      <button className="btn btn-outline-secondary" onClick={recargar} disabled={cargando}>
+        <i className="fa-solid fa-rotate me-2" />
+        Actualizar
+      </button>
+    </>
+  )
+
   return (
     <>
       <EncabezadoPagina
@@ -110,45 +191,7 @@ export default function Menu({ editable = false, vitrina = false }) {
               : 'Elige lo que se te antoje: todo se prepara al momento.'
         }
       >
-        <select
-          className="form-select"
-          style={{ width: 'auto' }}
-          value={orden}
-          onChange={(evento) => setOrden(evento.target.value)}
-          aria-label="Ordenar productos por precio"
-        >
-          {Object.entries(ORDENES).map(([valor, texto]) => (
-            <option key={valor} value={valor}>
-              {texto}
-            </option>
-          ))}
-        </select>
-
-        {editable && (
-          <>
-            <button
-              className="btn btn-primary"
-              onClick={() => setFormulario({ modo: 'categoria', categoria: categoriaVacia() })}
-            >
-              <i className="fa-solid fa-circle-plus me-2" />
-              Nueva categoría
-            </button>
-            <button
-              className="btn btn-outline-primary"
-              onClick={() =>
-                setFormulario({ modo: 'combo', categoria: categoriaVacia('fa-solid fa-star') })
-              }
-            >
-              <i className="fa-solid fa-star me-2" />
-              Nuevo combo
-            </button>
-          </>
-        )}
-
-        <button className="btn btn-outline-secondary" onClick={recargar} disabled={cargando}>
-          <i className="fa-solid fa-rotate me-2" />
-          Actualizar
-        </button>
+        {acciones}
       </EncabezadoPagina>
 
       <MensajeError texto={error?.message} onReintentar={recargar} />
@@ -210,14 +253,21 @@ export default function Menu({ editable = false, vitrina = false }) {
             categorias={categorias}
             escribiendo={escribiendo}
             onEditar={(categoria) =>
-              setFormulario({ modo: 'edicion', categoria: structuredClone(categoria) })
+              setFormulario({
+                modo: 'edicion',
+                categoria: structuredClone(original(categoria.id) ?? categoria),
+              })
             }
+            onEditarPlato={(categoria, plato) =>
+              setPlatoEnEdicion({ categoriaId: categoria.id, categoria: categoria.nombre, plato })
+            }
+            onAlternarPlato={alternarPlato}
             onAlternar={alternar}
             onEliminar={eliminacion.pedir}
           />
         ) : (
           <>
-            <CartaCliente categorias={categorias} vitrina={vitrina} />
+            <CartaCliente categorias={categorias} vitrina={vitrina} busqueda={busqueda} />
             {!vitrina && <PieContacto />}
           </>
         ))}
@@ -229,6 +279,22 @@ export default function Menu({ editable = false, vitrina = false }) {
           enviando={escribiendo}
           onGuardar={guardarCategoria}
           onCerrar={() => setFormulario(null)}
+        />
+      )}
+
+      {platoEnEdicion && (
+        <FormularioPlato
+          plato={platoEnEdicion.plato}
+          categoria={platoEnEdicion.categoria}
+          enviando={escribiendo}
+          onGuardar={async (plato) => {
+            const guardado = await guardarPlato(platoEnEdicion.categoriaId, plato, {
+              titulo: 'Plato actualizado',
+              texto: `${plato.nombre} quedó en ${moneda(plato.precio)}.`,
+            })
+            if (guardado) setPlatoEnEdicion(null)
+          }}
+          onCerrar={() => setPlatoEnEdicion(null)}
         />
       )}
 

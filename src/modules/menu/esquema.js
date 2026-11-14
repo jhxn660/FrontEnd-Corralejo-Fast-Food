@@ -1,3 +1,5 @@
+import logo from '../../assets/logo.png'
+
 // Presentación de la carta: iconos, emojis y tonos por categoría (R23, R24).
 //
 // Las categorías de la carta las crea el administrador, así que no se pueden
@@ -95,6 +97,10 @@ export const PRODUCTO_VACIO = {
   precio: '',
   precioCombo: '',
   descripcion: '',
+  // null, no '': es lo que el adaptador entiende por "sin imagen propia", y
+  // así un plato recién creado ya enseña el logo sin pasar por ningún caso
+  // especial.
+  imagen: null,
   estado: 'Disponible',
 }
 
@@ -106,5 +112,30 @@ export const categoriaVacia = (icono = 'fa-solid fa-utensils') => ({
   productos: [],
 })
 
-/** Identificador estable para anclar el menú de categorías de la carta. */
+/** Identificador estable para anclar la cinta de categorías de la carta. */
 export const anclaDe = (categoria) => `carta-${String(categoria.id).replace(/\W/g, '')}`
+
+/**
+ * LA IMAGEN DE UN PLATO, O EL LOGO.
+ *
+ * El administrador sube un JPG o un PNG desde la edición del plato y queda en
+ * `plato.imagen`. Todo lo que pinta un plato con imagen —la carta del cliente,
+ * su ficha, la tabla del administrador, el catálogo de Pedidos, el podio de más
+ * vendidos y la lista top— pasa por aquí, así que una imagen nueva aparece en
+ * los seis sitios a la vez y no hay ningún listado con su propia regla.
+ *
+ * Sin imagen propia se devuelve el logo del Corralejo. Antes había en su lugar
+ * una tabla de fotos de archivo de Unsplash por familia de plato: imágenes que
+ * no eran de los platos reales, enlazadas a un servidor ajeno. Una foto que no
+ * corresponde al plato engaña al cliente, y el logo no.
+ *
+ * `tieneImagen` acompaña a `imagenDe` porque el logo necesita otro trato al
+ * pintarse: el archivo es blanco sobre transparente, así que sobre fondo claro
+ * no se vería. Las clases `.plato-foto-respaldo` y `.miniatura-respaldo` de
+ * theme.css le ponen el fondo oscuro.
+ */
+export const LOGO_CORRALEJO = logo
+
+export const imagenDe = (plato) => plato?.imagen || LOGO_CORRALEJO
+
+export const tieneImagen = (plato) => Boolean(plato?.imagen)

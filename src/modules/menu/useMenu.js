@@ -118,6 +118,11 @@ export function useMenu({ editable = false } = {}) {
 
   return {
     categorias: visibles,
+    // Las categorías tal como llegaron, sin filtrar ni ordenar. Toda edición
+    // parte de aquí: `visibles` recorta los platos al buscar y los reordena por
+    // precio, y guardar esa versión borraría los platos que la búsqueda
+    // ocultaba y cambiaría el orden de la carta.
+    todas: categorias,
     cargando,
     error: error ?? guardar.error ?? eliminar.error ?? alternarEstado.error,
     recargar: cargar,

@@ -1,6 +1,6 @@
 import { moneda } from '../../utils/format'
 import { Vacio } from '../../components/ui/Estado'
-import { emojiDe, tonoDe } from './esquema'
+import { imagenDe, tieneImagen, tonoDe } from './esquema'
 
 /**
  * La carta tal como la administra el dueño: una tarjeta por categoría con sus
@@ -11,6 +11,10 @@ import { emojiDe, tonoDe } from './esquema'
  * cuántos platos hay, cuánto cuestan y qué está oculto; allí importa apetecer.
  * Por eso las dos vistas viven en archivos hermanos del módulo y comparten
  * `useMenu`: una sola fuente de datos, dos presentaciones (R42, R44).
+ *
+ * La miniatura de cada fila es la misma imagen que el cliente ve en la carta,
+ * resuelta por `imagenDe`: así el administrador comprueba de un vistazo a qué
+ * platos les falta foto —se les ve el logo— sin tener que abrir la carta.
  */
 export default function GestionCategorias({
   categorias,
@@ -18,6 +22,8 @@ export default function GestionCategorias({
   onEditar,
   onAlternar,
   onEliminar,
+  onEditarPlato,
+  onAlternarPlato,
 }) {
   if (categorias.length === 0) {
     return (
@@ -90,22 +96,38 @@ export default function GestionCategorias({
                         <tr>
                           <th>Plato</th>
                           <th className="text-end">Precio</th>
-                          <th className="text-center">Estado</th>
+                          <th className="text-center">A la venta</th>
+                          <th />
                         </tr>
                       </thead>
                       <tbody>
                         {categoria.productos.map((plato) => (
                           <tr key={plato.id}>
                             <td>
-                              <span className="me-2" aria-hidden="true">
-                                {emojiDe(plato.nombre, categoria.nombre)}
-                              </span>
-                              <span className="fw-semibold">{plato.nombre}</span>
-                              {plato.descripcion && (
-                                <small className="d-block text-secondary recorte-2">
-                                  {plato.descripcion}
-                                </small>
-                              )}
+                              <div className="d-flex align-items-center gap-2">
+                                <img
+                                  className={`miniatura-plato ${
+                                    tieneImagen(plato) ? '' : 'miniatura-respaldo'
+                                  }`}
+                                  src={imagenDe(plato)}
+                                  alt={tieneImagen(plato) ? `Foto de ${plato.nombre}` : ''}
+                                  aria-hidden={tieneImagen(plato) ? undefined : 'true'}
+                                  loading="lazy"
+                                />
+                                <span className="min-width-0">
+                                  <span className="fw-semibold">{plato.nombre}</span>
+                                  {!tieneImagen(plato) && (
+                                    <span className="badge bg-secondary ms-2 fw-normal">
+                                      Sin foto
+                                    </span>
+                                  )}
+                                  {plato.descripcion && (
+                                    <small className="d-block text-secondary recorte-2">
+                                      {plato.descripcion}
+                                    </small>
+                                  )}
+                                </span>
+                              </div>
                             </td>
                             <td className="text-end fw-semibold text-nowrap">
                               {moneda(plato.precio)}
@@ -115,14 +137,33 @@ export default function GestionCategorias({
                                 </small>
                               )}
                             </td>
+                            {/* Cada plato se gestiona solo: el interruptor lo marca
+                                agotado y el lápiz abre su edición, sin tocar el
+                                resto de la categoría. */}
                             <td className="text-center">
-                              <span
-                                className={`badge bg-${
-                                  plato.estado === 'Inhabilitado' ? 'warning text-dark' : 'success'
-                                }`}
+                              <div className="form-check form-switch d-inline-block mb-0">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  role="switch"
+                                  checked={plato.estado !== 'Inhabilitado'}
+                                  onChange={() => onAlternarPlato(categoria, plato)}
+                                  disabled={escribiendo}
+                                  aria-label={`${plato.nombre}: ${
+                                    plato.estado === 'Inhabilitado' ? 'agotado' : 'a la venta'
+                                  }`}
+                                />
+                              </div>
+                            </td>
+                            <td className="text-end">
+                              <button
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => onEditarPlato(categoria, plato)}
+                                disabled={escribiendo}
+                                aria-label={`Editar ${plato.nombre}`}
                               >
-                                {plato.estado === 'Inhabilitado' ? 'Agotado' : 'A la venta'}
-                              </span>
+                                <i className="fa-solid fa-pen" />
+                              </button>
                             </td>
                           </tr>
                         ))}

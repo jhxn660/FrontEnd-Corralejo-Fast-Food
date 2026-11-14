@@ -166,6 +166,11 @@ export default function TicketModal({ venta, onCerrar }) {
           <p className="mb-0" style={{ fontSize: '0.68rem' }}>
             {venta.qrCode}
           </p>
+          {/* El QR lleva dentro el enlace a /calificar: escanearlo abre el
+              formulario con este ticket cargado, sin necesidad de cuenta. */}
+          <p className="mb-0 fw-semibold" style={{ fontSize: '0.68rem' }}>
+            Escanéalo y califica tu pedido
+          </p>
         </div>
 
         <hr className="ticket-separador" />

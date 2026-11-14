@@ -34,6 +34,12 @@ export const aCategoriaUi = (cruda) => ({
     precioCombo: item.precioCombo ? aNumero(item.precioCombo) : null,
     descripcion: item.descripcion ?? '',
     calificacion: item.calificacion ?? null,
+    // Imagen del plato, subida por el administrador. Hoy es una `data:` URL
+    // guardada en el propio registro; cuando el back tenga almacenamiento de
+    // archivos será una URL http y aquí no cambia nada, porque la UI solo la
+    // pone en un `src`. null = sin imagen propia, se pinta el logo
+    // (`imagenDe` en esquema.js).
+    imagen: item.imagen ?? null,
     estado: item.estado ?? 'Disponible',
   })),
 })
@@ -45,14 +51,19 @@ export const aCategoriaApi = (ui) => ({
   descripcion: ui.descripcion,
   icono: ui.icono,
   estado: ui.estado,
-  items: ui.productos.map(({ nombre, precio, precioCombo, descripcion, calificacion, estado }) => ({
-    nombre,
-    precio,
-    ...(Number(precioCombo) > 0 ? { precioCombo: Number(precioCombo) } : {}),
-    ...(descripcion ? { descripcion } : {}),
-    ...(calificacion ? { calificacion } : {}),
-    estado,
-  })),
+  items: ui.productos.map(
+    ({ nombre, precio, precioCombo, descripcion, calificacion, imagen, estado }) => ({
+      nombre,
+      precio,
+      ...(Number(precioCombo) > 0 ? { precioCombo: Number(precioCombo) } : {}),
+      ...(descripcion ? { descripcion } : {}),
+      ...(calificacion ? { calificacion } : {}),
+      // El campo se omite cuando no hay imagen, no se guarda en null: así
+      // quitarla deja el registro como si nunca hubiera tenido una.
+      ...(imagen ? { imagen } : {}),
+      estado,
+    })
+  ),
 })
 
 /**
@@ -72,7 +83,13 @@ export const productosVendibles = (categorias) =>
       productos: categoria.productos
         .filter((plato) => plato.estado !== 'Inhabilitado')
         .flatMap((plato) => [
-          { id: plato.id, nombre: plato.nombre, precio: plato.precio, descripcion: plato.descripcion },
+          {
+            id: plato.id,
+            nombre: plato.nombre,
+            precio: plato.precio,
+            descripcion: plato.descripcion,
+            imagen: plato.imagen,
+          },
           ...(plato.precioCombo
             ? [
                 {
@@ -80,6 +97,9 @@ export const productosVendibles = (categorias) =>
                   nombre: `${plato.nombre} (combo)`,
                   precio: plato.precioCombo,
                   descripcion: 'Con papa francesa y gaseosa 250 ml.',
+                  // El combo es el mismo plato con acompañamiento: se queda
+                  // con su imagen.
+                  imagen: plato.imagen,
                   combo: true,
                 },
               ]

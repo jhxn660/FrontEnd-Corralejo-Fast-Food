@@ -80,6 +80,22 @@ export default function DetallePqrs({ pqrs, onEditar, onCerrar }) {
         })}
       </ol>
 
+      {/* Respuesta del local: la escribe el administrador en Moderación. */}
+      {pqrs.respuesta && (
+        <section className="modal-resumen mb-4">
+          <h3 className="h6 fw-bold text-uppercase text-secondary">
+            <i className="fa-solid fa-reply text-brand me-2" />
+            Respuesta del restaurante
+          </h3>
+          <p className="mb-1" style={{ whiteSpace: 'pre-line' }}>
+            {pqrs.respuesta}
+          </p>
+          {pqrs.fechaRespuesta && (
+            <small className="text-secondary">Respondida el {fechaCorta(pqrs.fechaRespuesta)}</small>
+          )}
+        </section>
+      )}
+
       <section className="mb-0">
         <h3 className="h6 fw-bold text-uppercase text-secondary">Lo que nos contaste</h3>
         {/* `white-space: pre-line` conserva los saltos de línea que escribió la

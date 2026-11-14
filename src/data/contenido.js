@@ -53,20 +53,44 @@ export const PILARES = [
   { id: 'vision', titulo: 'Visión', icono: 'fa-eye', texto: VISION },
 ]
 
+/**
+ * Normas del muro de comentarios. Se enseñan antes de publicar, no después de
+ * moderar: quien las lee a tiempo no escribe el comentario que habría que
+ * borrar. El administrador sigue aprobando cada uno en Moderación de PQRS.
+ */
+export const REGLAS_COMENTARIOS = [
+  {
+    id: 'respeto',
+    titulo: 'Respeto ante todo',
+    texto: 'Los comentarios deben ser respetuosos con el restaurante y con otros usuarios.',
+  },
+  {
+    id: 'experiencia',
+    titulo: 'Comentarios relacionados con la experiencia',
+    texto: 'Comparte opiniones sobre la comida, el servicio o el ambiente.',
+  },
+  {
+    id: 'lenguaje',
+    titulo: 'Evita lenguaje ofensivo',
+    texto: 'No se permite ningún tipo de insulto, discriminación o contenido inapropiado.',
+  },
+  {
+    id: 'constructivo',
+    titulo: 'Sé honesto y constructivo',
+    texto: 'Las críticas deben ayudar a mejorar el servicio.',
+  },
+  {
+    id: 'spam',
+    titulo: 'No spam ni publicidad',
+    texto: 'No está permitido publicar enlaces o promociones externas.',
+  },
+]
+
+export const PIE_REGLAS = 'Tus comentarios nos ayudan a mejorar la experiencia de todos.'
+
 export const PUNTOS_CLAVE = [
   { id: 'ambiente', texto: 'Fácil acceso y ambiente acogedor' },
   { id: 'transporte', texto: 'A pocas cuadras de la estación de Transmilenio' },
   { id: 'domicilio', texto: 'Servicio a domicilio en la zona' },
   { id: 'whatsapp', texto: 'Información adicional y dudas vía WhatsApp' },
 ]
-
-// Datos de muestra de la pantalla de valoraciones; aún no vienen de la API.
-export const VALORACIONES = {
-  promedio: '4.8',
-  total: '352 reseñas registradas',
-  recientes: [
-    { id: 'juan', nombre: 'Juan Pérez', estrellas: '★★★★★', cuando: '20 min' },
-    { id: 'maria', nombre: 'María Gómez', estrellas: '★★★★☆', cuando: '1 hora' },
-    { id: 'carlos', nombre: 'Carlos Ruiz', estrellas: '★★★★★', cuando: '3 horas' },
-  ],
-}

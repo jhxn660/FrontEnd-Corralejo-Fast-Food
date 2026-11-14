@@ -30,7 +30,19 @@ const ID_FORMULARIO = 'formulario-pqrs'
  * - El título se construía concatenando cadenas y en modo lectura empezaba por
  *   un espacio, así que el encabezado decía " Petición".
  */
-export default function FormularioPqrs({ pqrs, gestion = false, enviando, onGuardar, onCerrar }) {
+/**
+ * `tipoFijo` (panel del cliente): el tipo lo decide el botón que abrió el
+ * formulario y no se puede cambiar aquí. Sin selector no hay forma de empezar
+ * una queja y enviarla como sugerencia a mitad del proceso.
+ */
+export default function FormularioPqrs({
+  pqrs,
+  gestion = false,
+  tipoFijo = false,
+  enviando,
+  onGuardar,
+  onCerrar,
+}) {
   const [valores, setValores] = useState(pqrs)
   const [errores, setErrores] = useState({})
 
@@ -87,30 +99,45 @@ export default function FormularioPqrs({ pqrs, gestion = false, enviando, onGuar
       }
     >
       <form id={ID_FORMULARIO} onSubmit={enviar} noValidate>
-        <fieldset className="mb-4" disabled={enviando}>
-          <legend className="form-label">Tipo de solicitud</legend>
-          <div className="row row-cols-2 row-cols-sm-4 g-2" role="radiogroup" aria-label="Tipo">
-            {NOMBRES_TIPO.map((tipo) => (
-              <div className="col" key={tipo}>
-                <button
-                  type="button"
-                  className={`btn w-100 h-100 py-3 ${
-                    valores.tipo === tipo ? 'btn-primary' : 'btn-outline-secondary'
-                  }`}
-                  onClick={() => cambiar({ tipo })}
-                  aria-pressed={valores.tipo === tipo}
-                >
-                  <i className={`fa-solid ${iconoDe(tipo)} fs-4 d-block mb-1`} />
-                  <span className="small">{tipo}</span>
-                </button>
-              </div>
-            ))}
+        {tipoFijo ? (
+          <div className="modal-resumen d-flex align-items-center gap-3 mb-4">
+            <div
+              className="icon-tile d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ background: colorDe(valores.tipo) }}
+            >
+              <i className={`fa-solid ${iconoDe(valores.tipo)}`} />
+            </div>
+            <div className="min-width-0">
+              <strong className="d-block">{valores.tipo}</strong>
+              <small className="text-secondary">{ayudaDe(valores.tipo)}</small>
+            </div>
           </div>
-          <div className="form-text">
-            <i className="fa-solid fa-circle-info me-1" style={{ color: colorDe(valores.tipo) }} />
-            {ayudaDe(valores.tipo)}
-          </div>
-        </fieldset>
+        ) : (
+          <fieldset className="mb-4" disabled={enviando}>
+            <legend className="form-label">Tipo de solicitud</legend>
+            <div className="row row-cols-2 row-cols-sm-4 g-2" role="radiogroup" aria-label="Tipo">
+              {NOMBRES_TIPO.map((tipo) => (
+                <div className="col" key={tipo}>
+                  <button
+                    type="button"
+                    className={`btn w-100 h-100 py-3 ${
+                      valores.tipo === tipo ? 'btn-primary' : 'btn-outline-secondary'
+                    }`}
+                    onClick={() => cambiar({ tipo })}
+                    aria-pressed={valores.tipo === tipo}
+                  >
+                    <i className={`fa-solid ${iconoDe(tipo)} fs-4 d-block mb-1`} />
+                    <span className="small">{tipo}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="form-text">
+              <i className="fa-solid fa-circle-info me-1" style={{ color: colorDe(valores.tipo) }} />
+              {ayudaDe(valores.tipo)}
+            </div>
+          </fieldset>
+        )}
 
         {gestion && (
           <div className="mb-3">

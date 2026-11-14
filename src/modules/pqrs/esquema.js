@@ -88,3 +88,15 @@ export const validarPqrs = (valores, { conSolicitante = false } = {}) => {
 }
 
 export const hayFallos = (fallos) => Object.keys(fallos).length > 0
+
+/**
+ * Nombre que se muestra en el muro público. Cuando el cliente no escribe un
+ * nombre, la solicitud guarda su correo como nombre; publicarlo tal cual sería
+ * exponer el correo de alguien, así que se recorta y se enmascara.
+ */
+export const nombrePublico = (nombre) => {
+  const texto = String(nombre ?? '').trim()
+  if (!texto) return 'Cliente'
+  if (!texto.includes('@')) return texto
+  return `${texto.split('@')[0].slice(0, 3)}***`
+}

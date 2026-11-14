@@ -1,16 +1,14 @@
 import { moneda } from '../../utils/format'
-import { emojiDe, tonoDe } from './esquema'
+import { imagenDe, tieneImagen, tonoDe } from './esquema'
 
 /**
  * Tarjeta de un plato en la carta del cliente.
  *
- * POR QUÉ UNA "FOTO" SIN FOTO
- * Una carta sin imágenes no vende: la versión anterior era una lista de texto
- * con el precio a la derecha. Pero en la API no hay fotos de los platos, y
- * poner una imagen de archivo que no corresponde al plato real engaña al
- * cliente. La salida es un bloque de color con el emoji de la familia del
- * plato: da volumen y apetito, no finge ser una fotografía, y funciona para
- * cualquier plato que el administrador cree después.
+ * LA FOTO
+ * La que el administrador haya subido en la edición del plato. Mientras no
+ * suba ninguna se pinta el logo del Corralejo sobre el fondo oscuro de la
+ * marca: identifica la casa sin fingir ser una fotografía del plato, que es
+ * lo que hacían las imágenes de archivo que había antes aquí.
  */
 export default function TarjetaPlato({ plato, categoria, destacado = false, onAbrir }) {
   const tono = tonoDe(plato.nombre, categoria)
@@ -35,7 +33,13 @@ export default function TarjetaPlato({ plato, categoria, destacado = false, onAb
         }}
       >
         <div className="plato-foto position-relative" style={{ '--plato-tono': tono }}>
-          <span aria-hidden="true">{emojiDe(plato.nombre, categoria)}</span>
+          <img
+            className={`plato-foto-img ${tieneImagen(plato) ? '' : 'plato-foto-respaldo'}`}
+            src={imagenDe(plato)}
+            alt={tieneImagen(plato) ? `Foto de ${plato.nombre}` : ''}
+            aria-hidden={tieneImagen(plato) ? undefined : 'true'}
+            loading="lazy"
+          />
 
           {destacado && (
             <span className="badge bg-brand position-absolute top-0 start-0 m-2">

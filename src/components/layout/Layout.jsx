@@ -8,7 +8,13 @@ import { useAuth } from '../../context/AuthContext'
 import { useAvisos } from '../../context/AvisosContext'
 import LimiteDeError from './LimiteDeError'
 
-/** Cascarón común a los tres paneles: header, menú lateral y área de contenido. */
+/**
+ * Cascarón común a los tres paneles: header, menú lateral y área de contenido.
+ *
+ * `cff-aero` solo se añade para el cliente: es la estética translúcida de
+ * theme.css. El administrador y el empleado trabajan con tablas y formularios
+ * densos, donde el cristal resta legibilidad; el cliente viene a mirar.
+ */
 export default function Layout({ children }) {
   const { rol, cerrarSesion } = useAuth()
   const avisos = useAvisos()
@@ -43,7 +49,7 @@ export default function Layout({ children }) {
   )
 
   return (
-    <>
+    <div className={rol === 'cliente' ? 'cff-aero' : undefined}>
       <header className="app-header d-flex align-items-center px-3 px-lg-4 gap-3">
         <img src={logo} alt="" width="44" height="44" className="object-fit-contain" />
         <h1 className="h5 text-white mb-0 me-auto">
@@ -83,6 +89,6 @@ export default function Layout({ children }) {
           </main>
         </div>
       </div>
-    </>
+    </div>
   )
 }

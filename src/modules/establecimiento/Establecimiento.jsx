@@ -9,7 +9,7 @@ import { esMapaDeGoogle } from '../../utils/seguridad'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
-import { PILARES, PUNTOS_CLAVE, VALORACIONES } from '../../data/contenido'
+import { PILARES, PUNTOS_CLAVE } from '../../data/contenido'
 import {
   DIAS_SEMANA,
   MESES,
@@ -22,7 +22,10 @@ import {
   mesDesplazado,
   partesDe,
 } from './calendario'
+import ListaValoraciones from './ListaValoraciones'
+import MuroComentarios from './MuroComentarios'
 import NarrativaCreativa from './NarrativaCreativa'
+import PodioMasVendidos from './PodioMasVendidos'
 import FormularioFicha from './FormularioFicha'
 import FormularioDiaEspecial from './FormularioDiaEspecial'
 
@@ -231,6 +234,10 @@ export default function Establecimiento({ editable = false }) {
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
       <MensajeError texto={errorDias} onReintentar={recargarDias} />
 
+      {/* Portada: los más vendidos van antes que la información del local.
+          Las estrellas son la calificación de la carta, en solo lectura. */}
+      <PodioMasVendidos />
+
       {!ficha && !cargandoFicha && (
         <div className="card border-0 shadow-sm">
           <Vacio texto="Todavía no hay una ficha del establecimiento." icono="fa-store" />
@@ -415,42 +422,13 @@ export default function Establecimiento({ editable = false }) {
 
       <NarrativaCreativa />
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white">
-          <h2 className="h6 fw-bold mb-0">
-            <i className="fa-solid fa-star text-brand me-2" />
-            Valoraciones
-          </h2>
-        </div>
-        <div className="card-body d-flex flex-wrap gap-4 align-items-center">
-          <div className="text-center">
-            <p className="display-5 fw-bold text-brand mb-0">{VALORACIONES.promedio}</p>
-            <div className="text-warning fs-5" aria-hidden="true">
-              ★★★★★
-            </div>
-            <small className="text-secondary">{VALORACIONES.total}</small>
-          </div>
-          <ul className="list-group list-group-flush flex-grow-1">
-            {VALORACIONES.recientes.map(({ id, nombre, estrellas, cuando }) => (
-              <li
-                className="list-group-item d-flex justify-content-between align-items-center px-0"
-                key={id}
-              >
-                <span>
-                  <span className="fw-semibold text-body">{nombre}</span>{' '}
-                  <span className="text-warning" aria-label={`${estrellas.split('★').length - 1} de 5 estrellas`}>
-                    {estrellas}
-                  </span>
-                </span>
-                <span className="small fw-semibold text-body">
-                  <i className="fa-regular fa-clock me-1 text-brand" />
-                  hace {cuando}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      {/* Valoraciones hechas desde el QR de un ticket. El administrador las ve
+          con el código y el correo detrás, para poder auditarlas. */}
+      <ListaValoraciones detallado={editable} />
+
+      {/* Comentarios de clientes que el administrador aprobó. Solo el cliente
+          puede escribir uno nuevo. */}
+      <MuroComentarios puedeComentar={!editable} />
 
       {modalFicha && (
         <FormularioFicha

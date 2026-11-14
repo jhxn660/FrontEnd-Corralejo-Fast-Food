@@ -10,7 +10,8 @@
 // Añadir una pantalla = añadir una línea aquí. Nada más.
 //
 // El orden importa: la primera entrada de cada rol es donde aterriza al
-// iniciar sesión (rutaPorDefecto). Por eso el cliente empieza en el menú.
+// iniciar sesión (rutaPorDefecto). El cliente empieza en Inicio, que es su
+// portada: local, horarios y valoraciones.
 
 import Establecimiento from '../modules/establecimiento/Establecimiento'
 import Menu from '../modules/menu/Menu'
@@ -21,6 +22,9 @@ import Pedidos from '../modules/pedidos/Pedidos'
 import Ventas from '../modules/ventas/Ventas'
 import PqrsEmpleado from '../modules/pqrs/PqrsEmpleado'
 import PqrsCliente from '../modules/pqrs/PqrsCliente'
+import PqrsModeracion from '../modules/pqrs/PqrsModeracion'
+import InicioCliente from '../modules/establecimiento/InicioCliente'
+import CalificarQr from '../modules/establecimiento/CalificarQr'
 
 export const MENU = {
   admin: [
@@ -59,6 +63,13 @@ export const MENU = {
       icono: 'fa-people-line',
       elemento: <Empleados />,
     },
+    {
+      vista: 'admin-pqrs',
+      ruta: '/admin/pqrs',
+      titulo: 'Moderación de PQRS',
+      icono: 'fa-comments',
+      elemento: <PqrsModeracion />,
+    },
   ],
 
   empleado: [
@@ -95,19 +106,21 @@ export const MENU = {
   ],
 
   cliente: [
+    // Tres accesos en la barra lateral, como los otros dos roles. Antes era
+    // una sola vista con pestañas: dos navegaciones para lo mismo.
+    {
+      vista: 'cliente-inicio',
+      ruta: '/cliente/inicio',
+      titulo: 'Inicio',
+      icono: 'fa-house',
+      elemento: <InicioCliente />,
+    },
     {
       vista: 'cliente-menu',
       ruta: '/cliente/menu',
       titulo: 'Menú',
       icono: 'fa-utensils',
       elemento: <Menu />,
-    },
-    {
-      vista: 'cliente-establecimiento',
-      ruta: '/cliente/establecimiento',
-      titulo: 'Establecimiento',
-      icono: 'fa-store',
-      elemento: <Establecimiento />,
     },
     {
       vista: 'cliente-pqrs',
@@ -118,6 +131,24 @@ export const MENU = {
     },
   ],
 }
+
+/**
+ * RUTAS SIN SESIÓN. La otra mitad de la tabla de acceso.
+ *
+ * `MENU` dice qué ve cada rol; esto dice lo que se ve sin rol ninguno. Están
+ * juntas a propósito: el control de acceso se lee en un archivo (R16), y una
+ * ruta pública que naciera suelta en App.jsx sería justo el agujero que esta
+ * tabla existe para evitar.
+ *
+ * Solo hay una, y abre el QR del tiquete: el visitante que escanea no tiene
+ * cuenta, y pedirle que se registre para puntuar su pedido dejaba fuera a todo
+ * el que compra en el mostrador. Lo que la protege es el propio código del
+ * ticket, que es su comprobante de compra (ver modules/establecimiento/api.js).
+ */
+export const RUTAS_PUBLICAS = [
+  { vista: 'publico-calificar', ruta: '/calificar', elemento: <CalificarQr /> },
+  { vista: 'publico-calificar-qr', ruta: '/calificar/:qr', elemento: <CalificarQr /> },
+]
 
 /** Todas las entradas de todos los roles, para generar el árbol de rutas. */
 export const TODAS_LAS_VISTAS = Object.values(MENU).flat()

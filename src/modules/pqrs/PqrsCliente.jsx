@@ -3,13 +3,11 @@ import { useCallback, useMemo, useState } from 'react'
 import { api } from '../../services/api'
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
-import { useConfirmacion } from '../../hooks/useConfirmacion'
 import { useAvisos } from '../../context/AvisosContext'
 import { useAuth } from '../../context/AuthContext'
 import { fechaCorta } from '../../utils/format'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
-import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
 import PieContacto from '../../components/ui/PieContacto'
 import {
   COLOR_ESTADO,
@@ -23,23 +21,37 @@ import {
 import FormularioPqrs from './FormularioPqrs'
 import DetallePqrs from './DetallePqrs'
 
+/**
+ * PQRS del cliente: CREAR y LEER, nada más.
+ *
+ * El cliente no edita ni elimina sus solicitudes: una PQRS es un registro de lo
+ * que se pidió, y si se pudiera reescribir o borrar después, la respuesta del
+ * local quedaría sin contexto. Por eso esta pantalla no tiene botones de editar
+ * ni de eliminar, y el formulario solo se abre para solicitudes nuevas.
+ *
+ * Es una restricción de interfaz (R17): impedirlo de verdad le corresponde al
+ * back, que debe rechazar PUT y DELETE sobre PQRS con rol cliente.
+ */
 export default function ClientePqrs() {
   // La sesión se toma del contexto: ningún componente la consulta por su cuenta (R5, R8).
   const { usuario } = useAuth()
   const avisos = useAvisos()
 
-  const cargar = useCallback(() => api.list('pqrs'), [])
+  // El filtro por usuario viaja a la API (?usuario=correo): las PQRS de otros
+  // clientes ya no llegan a este navegador. Sin correo no se pide nada.
+  const correo = usuario?.email ?? null
+  const cargar = useCallback(
+    () => (correo ? api.list('pqrs', { usuario: correo }) : Promise.resolve([])),
+    [correo]
+  )
   const { datos: todas, cargando, error, recargar } = useRecurso(cargar, [])
 
-  const [formulario, setFormulario] = useState(null)
+  const [nueva, setNueva] = useState(null) // solicitud en creación
   const [detalle, setDetalle] = useState(null)
 
-  // DEUDA (R17): el recorte por usuario debería hacerlo el servidor. Mientras
-  // la colección viva en json-server, toda la tabla llega al navegador.
-  //
-  // Sin correo no se muestra nada. La versión anterior hacía `!usuario || …`:
-  // si por cualquier motivo la sesión llegaba vacía, el filtro dejaba pasar
-  // las PQRS de TODOS los clientes en vez de ninguna.
+  // Segundo seguro en el cliente: aunque la API ignorara el filtro, aquí solo
+  // pasan las del usuario. DEUDA (R17): json-server no comprueba quién pregunta;
+  // el back real debe filtrar por el token, no por un parámetro.
   const mias = useMemo(
     () =>
       todas
@@ -48,58 +60,33 @@ export default function ClientePqrs() {
     [todas, usuario]
   )
 
-  const enviado = usePeticion(
+  const envio = usePeticion(
     useCallback(
       async (valores) => {
-        const payload = {
-          ...valores,
+        await api.create('pqrs', {
+          tipo: valores.tipo,
           asunto: valores.asunto.trim(),
           texto: valores.texto.trim(),
-          nombre: valores.nombre?.trim() || usuario?.email || 'Cliente',
+          nombre: usuario?.email ?? 'Cliente',
           usuario: usuario?.email ?? null,
-          fecha: valores.fecha ?? new Date().toISOString(),
-        }
-
-        if (valores.id) await api.update('pqrs', valores.id, payload)
-        else await api.create('pqrs', payload)
+          fecha: new Date().toISOString(),
+          // El estado lo decide el local, nunca el cliente.
+          estado: 'Pendiente',
+        })
         await recargar()
       },
       [recargar, usuario]
     )
   )
 
-  const guardar = async (valores) => {
-    const editando = Boolean(valores.id)
-    const { ok, error: fallo } = await enviado.ejecutar(valores)
-
+  const enviar = async (valores) => {
+    const { ok, error: fallo } = await envio.ejecutar(valores)
     if (!ok) {
-      avisos.fallo(editando ? 'No se pudo guardar' : 'No se pudo enviar', fallo)
+      avisos.fallo('No se pudo enviar', fallo)
       return
     }
-
-    setFormulario(null)
-    setDetalle(null)
-    avisos.exito(
-      editando ? 'Solicitud actualizada' : `${valores.tipo} enviada`,
-      editando
-        ? `Guardamos los cambios de "${valores.asunto.trim()}".`
-        : 'La recibimos y te responderemos por este mismo panel.'
-    )
-  }
-
-  // RNF-01: el modal muestra el asunto, para no borrar la solicitud equivocada.
-  const eliminacion = useConfirmacion((solicitud) => api.remove('pqrs', solicitud.id), {
-    alTerminar: () => {
-      recargar()
-      setDetalle(null)
-    },
-  })
-
-  const eliminar = async () => {
-    const asunto = eliminacion.objetivo?.asunto
-    if (await eliminacion.confirmar()) {
-      avisos.error('Solicitud eliminada', `"${asunto}" dejó de estar en seguimiento.`)
-    }
+    setNueva(null)
+    avisos.exito(`${valores.tipo} enviada`, 'La recibimos y te responderemos por este mismo panel.')
   }
 
   const porEstado = (estado) => mias.filter((registro) => registro.estado === estado).length
@@ -120,13 +107,14 @@ export default function ClientePqrs() {
 
       <h2 className="h6 fw-bold text-uppercase text-secondary mb-3">¿Qué quieres contarnos?</h2>
 
+      {/* Cada botón abre el formulario con SU tipo ya fijado. */}
       <div className="row row-cols-2 row-cols-lg-4 g-3 mb-4">
         {NOMBRES_TIPO.map((tipo) => (
           <div className="col" key={tipo}>
             <button
               className="card card-clickable border-0 shadow-sm w-100 h-100 text-center p-3 cinta-superior"
               style={{ '--color-cinta': colorDe(tipo) }}
-              onClick={() => setFormulario(pqrsVacia(tipo))}
+              onClick={() => setNueva(pqrsVacia(tipo))}
             >
               <div
                 className="icon-tile d-flex align-items-center justify-content-center mx-auto mb-2"
@@ -155,21 +143,18 @@ export default function ClientePqrs() {
           )}
         </div>
 
-        {cargando && <Cargando texto="Cargando solicitudes…" />}
+        {cargando && mias.length === 0 && <Cargando texto="Cargando solicitudes…" />}
 
         {!cargando && mias.length === 0 && (
           <Vacio texto="Aún no has enviado ninguna PQRS." icono="fa-inbox">
-            <button
-              className="btn btn-primary"
-              onClick={() => setFormulario(pqrsVacia('Petición'))}
-            >
+            <button className="btn btn-primary" onClick={() => setNueva(pqrsVacia('Petición'))}>
               <i className="fa-solid fa-plus me-2" />
               Enviar la primera
             </button>
           </Vacio>
         )}
 
-        {!cargando && mias.length > 0 && (
+        {mias.length > 0 && (
           <ul className="list-group list-group-flush">
             {mias.map((registro) => (
               <li
@@ -196,34 +181,20 @@ export default function ClientePqrs() {
                   <i className={`fa-solid ${ICONO_ESTADO[registro.estado] ?? 'fa-circle'} me-1`} />
                   {registro.estado}
                 </span>
+                {registro.respuesta && (
+                  <span className="badge bg-success flex-shrink-0">
+                    <i className="fa-solid fa-reply me-1" />
+                    Respondida
+                  </span>
+                )}
 
-                <div className="btn-group btn-group-sm flex-shrink-0">
-                  <button
-                    className="btn btn-outline-secondary"
-                    onClick={() => setDetalle(registro)}
-                    aria-label={`Ver ${registro.asunto}`}
-                  >
-                    <i className="fa-solid fa-eye" />
-                  </button>
-                  {/* Una solicitud resuelta no se edita: cambiarla después de la
-                      respuesta dejaría el historial sin sentido. */}
-                  {registro.estado !== 'Resuelta' && (
-                    <button
-                      className="btn btn-outline-primary"
-                      onClick={() => setFormulario(registro)}
-                      aria-label={`Editar ${registro.asunto}`}
-                    >
-                      <i className="fa-solid fa-pen" />
-                    </button>
-                  )}
-                  <button
-                    className="btn btn-outline-danger"
-                    onClick={() => eliminacion.pedir(registro)}
-                    aria-label={`Eliminar ${registro.asunto}`}
-                  >
-                    <i className="fa-solid fa-trash-can" />
-                  </button>
-                </div>
+                <button
+                  className="btn btn-sm btn-outline-secondary flex-shrink-0"
+                  onClick={() => setDetalle(registro)}
+                >
+                  <i className="fa-solid fa-eye me-2" />
+                  Ver
+                </button>
               </li>
             ))}
           </ul>
@@ -232,38 +203,15 @@ export default function ClientePqrs() {
 
       <PieContacto />
 
-      {detalle && !formulario && (
-        <DetallePqrs
-          pqrs={detalle}
-          onEditar={(registro) => {
-            setDetalle(null)
-            setFormulario(registro)
-          }}
-          onCerrar={() => setDetalle(null)}
-        />
-      )}
+      {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalle(null)} />}
 
-      {formulario && (
+      {nueva && (
         <FormularioPqrs
-          pqrs={formulario}
-          enviando={enviado.enviando}
-          onGuardar={guardar}
-          onCerrar={() => setFormulario(null)}
-        />
-      )}
-
-      {eliminacion.objetivo && (
-        <ConfirmarEliminacion
-          entidad="la solicitud"
-          nombre={eliminacion.objetivo.asunto}
-          consecuencias={[
-            `Tipo: ${eliminacion.objetivo.tipo} · estado ${eliminacion.objetivo.estado}.`,
-            'Perderás el seguimiento de su respuesta.',
-          ]}
-          enviando={eliminacion.enviando}
-          error={eliminacion.error}
-          onConfirmar={eliminar}
-          onCancelar={eliminacion.cancelar}
+          pqrs={nueva}
+          tipoFijo
+          enviando={envio.enviando}
+          onGuardar={enviar}
+          onCerrar={() => setNueva(null)}
         />
       )}
     </>

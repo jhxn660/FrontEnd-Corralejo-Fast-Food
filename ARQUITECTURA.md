@@ -72,6 +72,11 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   y `elemento`, así que añadir una pantalla = crear el componente en su módulo
   + añadir una línea ahí. Nada más: ni el árbol de rutas, ni el menú lateral,
   ni el guardia se tocan.
+- **R16b** Lo que se ve **sin sesión** vive en la misma tabla, en
+  `RUTAS_PUBLICAS`. Hoy solo hay una ruta pública (`/calificar/:qr`, la que
+  codifica el QR del tiquete) y trae su propio cascarón, porque `Layout`
+  dibuja el menú de un rol que ahí no existe. Una ruta pública declarada
+  suelta en `App.jsx` sería justo el agujero que R16 existe para evitar.
 - **R17** Se asume explícitamente que este control es de **interfaz**, no de
   **seguridad**. La seguridad real son las políticas RLS de Supabase. Toda
   pantalla nueva que exponga datos ajenos debe anotarse como deuda hasta que
@@ -191,9 +196,31 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
 - **R71** La carta del administrador (`adminMenu`) es la única fuente de lo
   que se vende: el catálogo de Pedidos, la edición de ventas y la carta del
   cliente salen de `productosVendibles()` en `modules/menu/api.js`.
-- **R72** Los indicadores se calculan desde `sales` (`modules/indicadores/
-  calculos.js`); en db.json solo se guardan la meta anual y las valoraciones.
-  Las ventas con `historico: true` son datos de prueba y se pueden borrar.
+- **R71b** La imagen de un plato se gestiona **solo** en la edición del plato y
+  se lee **siempre** con `imagenDe()`. Ninguna pantalla decide por su cuenta
+  qué foto enseñar: así una imagen nueva aparece a la vez en la carta, en la
+  ficha, en la tabla del administrador, en el catálogo de Pedidos y en los
+  destacados. Sin imagen propia se pinta el logo del Corralejo; no se enlazan
+  fotos de archivo de un servidor ajeno, que fue lo que hubo que retirar.
+- **R72** Los indicadores se calculan desde `sales` y `comentarios`
+  (`modules/indicadores/calculos.js`); en db.json solo se guarda la meta anual.
+  Las colecciones `kpis`, `comparison`, `productRows`, `ranking` y `reviews`
+  —cifras escritas a mano que ninguna venta movía— ya no existen. Las ventas
+  con `historico: true` son datos de prueba y se pueden borrar.
+- **R73** Una valoración **es un comentario con QR**. No hay colección aparte:
+  un registro de `comentarios` con `qr`, `ticket`, `estrellas` y `productos` es
+  una valoración, y uno sin `qr` es un comentario del muro, que no puntúa. De
+  ahí salen las notas por producto (`valoracionesPorProducto`), que es el
+  vínculo entre el muro y los indicadores.
+- **R74** Lo que habilita a puntuar es el **código del tiquete**, no la sesión:
+  quien tiene el QR hizo la compra. Por eso `/calificar` es público, el
+  comentario es opcional —la nota sola ya cuenta— y `usuario` queda en `null`
+  cuando lo deja un visitante. Lo que sigue prohibido es una estrella pulsable
+  sin un QR detrás, que fue lo que obligó a retirar el voto la primera vez.
+- **R75** Se modera el **texto**, no la nota. `visible` decide si un comentario
+  sale en el muro; la puntuación cuenta en los indicadores desde que se
+  registra, y una puntuación sin texto no pasa por el buzón de moderación
+  porque no hay nada que leer en ella.
 
 ---
 
@@ -215,6 +242,9 @@ No se reintroducen, aunque se encuentren en proyectos hermanos:
 | 10 | Diálogo modal para confirmar algo ya hecho | R66 |
 | 11 | `api.list()` sobre un recurso que es un objeto | R70 |
 | 12 | Exportar un componente llamado `Error` | tapa el constructor global |
+| 13 | Estrella pulsable sin un QR que respalde la compra | R74 |
+| 15 | Foto de archivo ajena en lugar de la imagen del plato | R71b |
+| 14 | Colección de cifras fijas que ninguna venta mueve (`reviews`) | R72 |
 
 ## Deuda anotada, no resuelta
 
@@ -224,6 +254,15 @@ No se reintroducen, aunque se encuentren en proyectos hermanos:
   usuario en el navegador: los datos ajenos llegan al equipo del cliente. No se
   corrige en el cliente; se corrige del lado del servidor cuando las
   colecciones migren a Supabase (R17).
+- Las imágenes de los platos se guardan como `data:` URL dentro de `db.json`.
+  Es suficiente para la carta de un restaurante, pero no es almacenamiento de
+  archivos: el back debe guardarlas aparte y devolver una URL. El adaptador ya
+  acepta las dos cosas, porque la UI solo pone el valor en un `src` (R49).
+- El QR se valida en el navegador (`ticketsApi.buscarPorQr`): que la venta
+  exista, que no esté cancelada y que ese código no se haya calificado ya. Con
+  json-server nada impide saltarse los tres pasos y escribir en `comentarios`
+  directamente. El back debe resolver el QR él mismo y rechazar el segundo
+  envío del mismo código (R17, R49).
 - La colección `categoriasMenu` de `server/db.json` quedó sin uso al unificar
   la carta sobre `adminMenu`. Mientras siga ahí, el repositorio incumple R25 en
   los datos (no en el código): deberían borrarse esas entradas.

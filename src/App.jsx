@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
-import { TODAS_LAS_VISTAS, rutaPorDefecto, vistasDe } from './config/navegacion'
+import { RUTAS_PUBLICAS, TODAS_LAS_VISTAS, rutaPorDefecto, vistasDe } from './config/navegacion'
 import { useAuth } from './context/AuthContext'
 import Layout from './components/layout/Layout'
 import AccesoDenegado from './components/layout/AccesoDenegado'
@@ -42,6 +42,13 @@ export default function App() {
       <Route path="/login" element={usuario ? <Navigate to={inicio} replace /> : <Login />} />
       <Route path="/registro" element={usuario ? <Navigate to={inicio} replace /> : <Register />} />
       <Route path="/" element={<Navigate to={inicio} replace />} />
+
+      {/* Sin RutaProtegida y sin Layout: son las rutas que se abren sin
+          sesión, y cada una trae su propio cascarón (RUTAS_PUBLICAS en
+          config/navegacion.jsx). */}
+      {RUTAS_PUBLICAS.map(({ vista, ruta, elemento }) => (
+        <Route key={vista} path={ruta} element={elemento} />
+      ))}
 
       {TODAS_LAS_VISTAS.map(({ vista, ruta, elemento }) => (
         <Route

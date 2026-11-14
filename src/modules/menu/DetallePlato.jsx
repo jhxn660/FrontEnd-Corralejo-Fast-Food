@@ -1,7 +1,7 @@
 import Modal from '../../components/ui/Modal'
 import { moneda } from '../../utils/format'
 import { WHATSAPP_NUMERO } from '../../data/local'
-import { emojiDe, tonoDe } from './esquema'
+import { imagenDe, tieneImagen, tonoDe } from './esquema'
 
 /**
  * Ficha de un plato para el cliente. Es el paso que faltaba entre "veo una
@@ -46,12 +46,13 @@ export default function DetallePlato({ plato, categoria, vitrina = false, onCerr
     >
       <div className="row g-4 align-items-center">
         <div className="col-12 col-sm-5">
-          <div
-            className="plato-foto rounded"
-            style={{ '--plato-tono': tono, fontSize: '5rem' }}
-            aria-hidden="true"
-          >
-            {emojiDe(plato.nombre, categoria)}
+          <div className="plato-foto rounded overflow-hidden" style={{ '--plato-tono': tono }}>
+            <img
+              className={`plato-foto-img ${tieneImagen(plato) ? '' : 'plato-foto-respaldo'}`}
+              src={imagenDe(plato)}
+              alt={tieneImagen(plato) ? `Foto de ${plato.nombre}` : ''}
+              aria-hidden={tieneImagen(plato) ? undefined : 'true'}
+            />
           </div>
         </div>
 

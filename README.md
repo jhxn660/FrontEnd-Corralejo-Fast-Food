@@ -56,9 +56,15 @@ cliente hasta que se les añada.
 
 | Rol | Pantallas | Rutas |
 |---|---|---|
-| `admin` | Establecimiento, Inventario, Menú, Indicadores, Empleados | `/admin/*` |
+| `admin` | Establecimiento, Inventario, Menú, Indicadores, Empleados, Moderación de PQRS | `/admin/*` |
 | `empleado` | Pedidos, Menú, Ventas, PQRS | `/empleado/*` |
-| `cliente` | Menú, Establecimiento, PQRS | `/cliente/*` |
+| `cliente` | Inicio (local, horarios y valoraciones), Menú, PQRS (solo crear y leer) | `/cliente/*` |
+| *(sin sesión)* | Calificar un pedido con el QR del tiquete | `/calificar/:qr` |
+
+La única pantalla sin sesión es la del QR: quien tiene el código del tiquete
+hizo la compra, y eso es lo que le da derecho a puntuar su pedido. Está
+declarada en la misma tabla (`RUTAS_PUBLICAS` en `src/config/navegacion.jsx`),
+no suelta en `App.jsx`.
 
 **Menú** y **Establecimiento** son el mismo componente para los tres roles
 (`src/modules/menu/` y `src/modules/establecimiento/`). La única diferencia es la prop `editable`, que solo
@@ -115,18 +121,18 @@ FrontEnd/
     │
     ├── modules/                Un módulo por dominio del negocio
     │   ├── autenticacion/      Login, Register, FormularioAuth, CampoTexto
-    │   ├── establecimiento/    Establecimiento, calendario, formularios, narrativa
+    │   ├── establecimiento/    Establecimiento, valoraciones por QR, muro, calendario
     │   ├── menu/               Menu (los tres roles), carta, productosVendibles()
     │   ├── pqrs/               PqrsCliente, PqrsEmpleado, esquema.js
     │   ├── pedidos/            Pedidos, CatalogoModal, ConfirmarAccion, gráfica
     │   ├── ventas/             Ventas, EditarVenta, TicketModal, servicio.js
     │   ├── inventario/         Inventario, tarjeta, detalle, formulario, esquema
-    │   ├── indicadores/        Indicadores, calculos.js (desde /sales), meta
+    │   ├── indicadores/        Indicadores, calculos.js (/sales + /comentarios), meta
     │   └── empleados/          Empleados, formulario, esquema
     │
     ├── components/             Piezas sin dominio, reutilizables
     │   ├── layout/             Layout, RutaProtegida, LimiteDeError, NoEncontrado…
-    │   └── ui/                 Modal, Aviso, Estado, Paginacion, PieContacto…
+    │   └── ui/                 Modal, Aviso, Estado, CampoImagen, PieContacto…
     │
     ├── services/               Infraestructura, sin reglas de negocio
     │   ├── api.js              Cliente REST único (list/get/create/update/patch/remove)
@@ -144,6 +150,7 @@ FrontEnd/
     │
     ├── utils/
     │   ├── format.js           Moneda, fechas y horas en formato es-CO
+    │   ├── imagen.js           Valida y reduce los JPG/PNG que sube el admin
     │   └── seguridad.js        Validación de la URL del mapa
     ├── styles/theme.css        ÚNICO CSS propio: marca + ajustes de Bootstrap
     └── assets/                 Logo y fondo del login

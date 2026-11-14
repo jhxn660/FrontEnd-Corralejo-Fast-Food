@@ -66,3 +66,30 @@ export const CONTACTO = [
   { id: 'telefono', icono: 'fa-phone', texto: '+57 311 8370904' },
   { id: 'horario', icono: 'fa-clock', texto: 'Martes a domingo de 2 pm a 10 pm' },
 ]
+
+/**
+ * PUNTOS DE REFERENCIA Y TIEMPOS DE LLEGADA.
+ *
+ * Son el respaldo de `ficha.referencias` y `ficha.tiempos`: si la API ya los
+ * trae, mandan los de la API; si no —y hoy el back todavía no los expone—, se
+ * usan estos. Mismo patrón que `HORARIO_POR_DEFECTO` en establecimiento/horario.js.
+ *
+ * Los puntos salen del entorno real del local (Cl. 32 Sur #23F-14, junto al
+ * Restrepo y Olaya, en Rafael Uribe Uribe). Los tiempos son estimaciones de la
+ * casa, no promesas: la pantalla los presenta como aproximados.
+ *
+ * PENDIENTE: el formulario de la ficha todavía no los edita, así que cambiarlos
+ * hoy es tocar este archivo o la colección `establecimiento`.
+ */
+export const REFERENCIAS_POR_DEFECTO = [
+  { id: 'transmilenio', icono: 'fa-train-subway', texto: 'Cerca de la estación Restrepo de TransMilenio' },
+  { id: 'plaza', icono: 'fa-shop', texto: 'A pocas cuadras de la Plaza de Mercado del Restrepo' },
+  { id: 'estadio', icono: 'fa-futbol', texto: 'En el sector del Estadio Olaya Herrera' },
+  { id: 'alcaldia', icono: 'fa-building-columns', texto: 'Junto a la Alcaldía Local de Rafael Uribe Uribe' },
+]
+
+export const TIEMPOS_POR_DEFECTO = [
+  { id: 'domicilio', icono: 'fa-motorcycle', medio: 'Domicilio en la zona', texto: '25 a 40 minutos' },
+  { id: 'recoger', icono: 'fa-bag-shopping', medio: 'Para recoger en el local', texto: '15 a 20 minutos' },
+  { id: 'caminando', icono: 'fa-person-walking', medio: 'Desde la estación Restrepo', texto: '10 minutos caminando' },
+]

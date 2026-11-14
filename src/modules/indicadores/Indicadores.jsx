@@ -9,7 +9,9 @@ import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import { PALETA_CATEGORIAS } from '../../data/graficas'
 import { indicadoresApi } from './api'
 import {
+  MESES_CORTOS,
   avanceMeta,
+  añosDisponibles,
   claveMes,
   indicadoresPorProducto,
   mesAnterior,
@@ -17,8 +19,10 @@ import {
   nombreMes,
   ranking as calcularRanking,
   resumenMes,
+  valoracionesPorProducto,
   variacion,
   ventasPorDia,
+  ventasPorMesDelAño,
   ventasValidas,
 } from './calculos'
 import FormularioMeta from './FormularioMeta'
@@ -85,6 +89,10 @@ export default function Indicadores() {
   const [mes, setMes] = useState(claveMes())
   const [comparar, setComparar] = useState({ a: claveMes(), b: mesAnterior(claveMes()) })
   const [editandoMeta, setEditandoMeta] = useState(false)
+  const [años, setAños] = useState(() => {
+    const actual = new Date().getFullYear()
+    return { a: String(actual), b: String(actual - 1) }
+  })
 
   // Refresco silencioso: no vuelve a mostrar el spinner, solo cambia cifras.
   useEffect(() => {
@@ -121,6 +129,20 @@ export default function Indicadores() {
   const productos = useMemo(() => indicadoresPorProducto(ventas, mes), [ventas, mes])
   const ranking = useMemo(() => calcularRanking(ventas, año), [ventas, año])
   const meta = useMemo(() => avanceMeta(ventas, año, datos?.meta ?? 0), [ventas, año, datos])
+  const listaAños = useMemo(() => añosDisponibles(ventas), [ventas])
+  // La nota de cada producto sale de los comentarios con QR, no de una tabla
+  // fija: una valoración nueva mueve este panel en la siguiente lectura.
+  const valoraciones = useMemo(
+    () => valoracionesPorProducto(datos?.valoraciones ?? []),
+    [datos]
+  )
+  const historico = useMemo(
+    () => ({
+      a: ventasPorMesDelAño(ventas, años.a),
+      b: ventasPorMesDelAño(ventas, años.b),
+    }),
+    [ventas, años]
+  )
 
   if (cargando && !datos) return <Cargando texto="Cargando indicadores…" />
   if (error && !datos) {
@@ -144,6 +166,16 @@ export default function Indicadores() {
   }
 
   const maxDia = Math.max(1, ...porDia.map((d) => d.total))
+
+  // Comparativa entre años: totales, tope de la gráfica y color de cada serie.
+  const colores = { a: 'var(--cff-naranja)', b: 'var(--cff-carbon-claro)' }
+  const totales = {
+    a: historico.a.reduce((suma, valor) => suma + valor, 0),
+    b: historico.b.reduce((suma, valor) => suma + valor, 0),
+  }
+  const maximo = Math.max(1, ...historico.a, ...historico.b)
+  const metaAnual = datos.meta
+
   const gradiente =
     ranking.length === 0
       ? 'conic-gradient(var(--cff-cat-otros) 0% 100%)'
@@ -185,19 +217,6 @@ export default function Indicadores() {
         titulo="Indicadores de Negocio"
         descripcion="Calculados en vivo con las ventas registradas: cada venta nueva mueve estas cifras."
       >
-        <select
-          className="form-select"
-          style={{ width: 'auto' }}
-          value={mes}
-          onChange={(evento) => setMes(evento.target.value)}
-          aria-label="Mes a analizar"
-        >
-          {meses.map((clave) => (
-            <option key={clave} value={clave}>
-              {nombreMes(clave)}
-            </option>
-          ))}
-        </select>
         <button className="btn btn-outline-primary" onClick={() => setEditandoMeta(true)}>
           <i className="fa-solid fa-bullseye me-2" />
           Editar meta
@@ -209,6 +228,31 @@ export default function Indicadores() {
       </EncabezadoPagina>
 
       <MensajeError texto={error} onReintentar={recargar} />
+
+      {/* Selector de mes fijo bajo la cabecera: acompaña el scroll, así no hay
+          que volver arriba para cambiar el mes mientras se revisa una gráfica. */}
+      <div className="barra-fija d-flex flex-wrap align-items-center gap-2 mb-3">
+        <label className="fw-semibold small mb-0" htmlFor="mes-indicadores">
+          <i className="fa-regular fa-calendar text-brand me-2" />
+          Mes analizado
+        </label>
+        <select
+          id="mes-indicadores"
+          className="form-select form-select-sm text-capitalize"
+          style={{ width: 'auto' }}
+          value={mes}
+          onChange={(evento) => setMes(evento.target.value)}
+        >
+          {meses.map((clave) => (
+            <option key={clave} value={clave}>
+              {nombreMes(clave)}
+            </option>
+          ))}
+        </select>
+        <span className="ms-auto small">
+          <strong>{moneda(delMes.total)}</strong> en {numero(delMes.cantidad)} venta(s)
+        </span>
+      </div>
 
       <div className="row g-3 mb-3">
         {METRICAS.map(({ clave, etiqueta, formato }) => (
@@ -312,6 +356,104 @@ export default function Indicadores() {
             </div>
           </Panel>
         </div>
+      </div>
+
+      <div className="mb-3">
+        <Panel
+          titulo="Comparativa histórica entre años"
+          icono="fa-chart-simple"
+          acciones={
+            <div className="d-flex flex-wrap align-items-center gap-2 small">
+              {['a', 'b'].map((lado) => (
+                <select
+                  key={lado}
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={años[lado]}
+                  onChange={(evento) => setAños({ ...años, [lado]: evento.target.value })}
+                  aria-label={lado === 'a' ? 'Primer año' : 'Segundo año'}
+                >
+                  {listaAños.map((opcion) => (
+                    <option key={opcion}>{opcion}</option>
+                  ))}
+                </select>
+              ))}
+            </div>
+          }
+        >
+                {/* Cada año frente a la misma meta anual. */}
+                <div className="row g-3 mb-4">
+                  {['a', 'b'].map((lado) => {
+                    const avance =
+                      metaAnual > 0
+                        ? Math.min(100, Math.round((totales[lado] / metaAnual) * 1000) / 10)
+                        : 0
+                    return (
+                      <div className="col-12 col-md-6" key={lado}>
+                        <div className="border rounded p-3 h-100">
+                          <div className="d-flex justify-content-between align-items-baseline">
+                            <span className="fw-bold">
+                              <span
+                                className="d-inline-block rounded-circle me-2"
+                                style={{ width: 11, height: 11, background: colores[lado] }}
+                              />
+                              {años[lado]}
+                            </span>
+                            <strong>{moneda(totales[lado])}</strong>
+                          </div>
+                          <div className="progress my-2" style={{ height: 10 }}>
+                            <div
+                              className="progress-bar"
+                              style={{ width: `${avance}%`, background: colores[lado] }}
+                            />
+                          </div>
+                          <small>
+                            {avance}% de la meta de {moneda(metaAnual)}
+                          </small>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <p className="small mb-2">
+                  {años.a} frente a {años.b}:{' '}
+                  <Variacion valor={variacion(totales.a, totales.b)} />
+                </p>
+
+                <div
+                  className="d-flex align-items-end gap-2"
+                  style={{ height: 190 }}
+                  role="img"
+                  aria-label={`Ingresos por mes de ${años.a} y ${años.b}`}
+                >
+                  {MESES_CORTOS.map((mesCorto, indice) => (
+                    <div
+                      key={mesCorto}
+                      className="flex-fill d-flex flex-column align-items-center h-100"
+                    >
+                      <div
+                        className="d-flex align-items-end gap-1 w-100"
+                        style={{ flex: '1 1 0', minHeight: 0 }}
+                      >
+                        {['a', 'b'].map((lado) => (
+                          <div
+                            key={lado}
+                            className="flex-fill rounded-top"
+                            title={`${mesCorto} ${años[lado]}: ${moneda(historico[lado][indice])}`}
+                            style={{
+                              height: `${(historico[lado][indice] / maximo) * 100}%`,
+                              minHeight: historico[lado][indice] > 0 ? 3 : 0,
+                              background: colores[lado],
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <small className="text-secondary">{mesCorto}</small>
+                    </div>
+                  ))}
+                </div>
+        </Panel>
       </div>
 
       <div className="mb-3">
@@ -441,18 +583,23 @@ export default function Indicadores() {
 
         <div className="col-12 col-xl-5">
           <Panel titulo="Productos mejor valorados" icono="fa-star">
-            {datos.valoraciones.length === 0 ? (
-              <Vacio texto="Aún no hay productos valorados." icono="fa-star" />
+            {valoraciones.length === 0 ? (
+              <Vacio
+                texto="Aún no hay productos valorados. Las notas llegan de los QR de los tiquetes."
+                icono="fa-star"
+              />
             ) : (
               <ul className="list-group list-group-flush">
-                {datos.valoraciones.map((valoracion) => (
+                {valoraciones.map((valoracion) => (
                   <li
                     className="list-group-item bg-transparent d-flex justify-content-between align-items-center gap-3 px-0"
-                    key={valoracion.id}
+                    key={valoracion.nombre}
                   >
                     <div className="min-width-0">
                       <p className="mb-0 fw-semibold text-truncate">{valoracion.nombre}</p>
-                      <p className="small mb-0">{valoracion.reseñas} reseñas</p>
+                      <p className="small mb-0">
+                        {valoracion.reseñas} {valoracion.reseñas === 1 ? 'reseña' : 'reseñas'}
+                      </p>
                     </div>
                     <div className="text-end flex-shrink-0">
                       <div className="text-warning" aria-hidden="true">

@@ -1,4 +1,5 @@
 import { api } from '../../services/api'
+import { config } from '../../services/config'
 import { fechaISO } from '../../utils/format'
 
 // Pedidos deja aquí el id de la venta recién generada y Ventas la resalta al
@@ -24,9 +25,21 @@ export const generarCodigoQR = (numeroVenta, usados = new Set()) => {
   return codigo
 }
 
+/**
+ * Enlace que abre la pantalla de valoración de esa venta.
+ *
+ * Es lo que el QR codifica, y no el código a secas: un QR con el texto
+ * "QR-V12-8F3A91C2D4" dentro no hace nada al escanearlo —la cámara enseña esas
+ * letras y ahí se acaba—, mientras que este abre el formulario con el ticket
+ * ya cargado y sin pedir cuenta (R74). El código impreso debajo se queda para
+ * quien prefiera escribirlo a mano en /calificar.
+ */
+export const enlaceCalificar = (venta) =>
+  venta?.qrCode ? `${config.appUrl}/calificar/${venta.qrCode}` : ''
+
 export const urlQR = (venta, tamano) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=${tamano}x${tamano}&data=${encodeURIComponent(
-    venta?.qrCode || venta?.ticketId || ''
+    enlaceCalificar(venta) || venta?.ticketId || ''
   )}`
 
 /** Minutos que le quedan a una venta para poder modificarse. */

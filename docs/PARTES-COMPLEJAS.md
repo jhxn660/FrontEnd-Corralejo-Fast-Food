@@ -80,10 +80,23 @@ llegaba vacío). Regla R70.
   genera las rutas (`App.jsx`), el menú lateral (`Layout.jsx`) y el guardia
   (`RutaProtegida.jsx`). Añadir una pantalla = añadir una línea ahí.
 - **El orden importa:** la primera entrada de cada rol es donde aterriza al
-  iniciar sesión. Por eso el cliente empieza en Menú.
+  iniciar sesión. El cliente empieza en Establecimiento, que es su portada.
 - **Una misma pantalla para varios roles** se declara varias veces con props
   distintas: `<Menu editable />` (admin), `<Menu vitrina />` (empleado),
   `<Menu />` (cliente).
+- **El cliente tiene tres entradas** (Inicio, Menú, PQRS), igual que los otros
+  roles. Antes era una sola vista con pestañas (`?vista=`): con la barra
+  lateral de vuelta eran dos navegaciones para lo mismo. `InicioCliente.jsx`
+  compone las secciones de solo lectura: ubicación, horarios y valoraciones.
+- **La estética translúcida del cliente** es la clase `cff-aero`, que añade
+  `Layout` solo cuando el rol es cliente. No alcanza al administrador ni al
+  empleado: ahí las tablas densas pierden legibilidad con el cristal. Los
+  campos y las tablas se quedan opacos y las tarjetas oscuras no se aclaran,
+  para no romper el contraste del texto.
+- **Lo que se ve sin sesión también está en esa tabla**, en `RUTAS_PUBLICAS`:
+  hoy solo `/calificar/:qr`, la pantalla que abre el QR del tiquete. No pasa
+  por `RutaProtegida` ni por `Layout` —no hay rol cuyo menú dibujar— así que
+  `CalificarQr.jsx` trae su propio cascarón.
 - **Esto es control de interfaz, no seguridad (R17).** Esconde botones y
   rutas, pero cualquiera con el token —o sin él, con json-server— puede llamar
   a la API directamente. La seguridad real llegará con las políticas RLS de
@@ -174,6 +187,38 @@ adminMenu ── menu/api.js: aCategoriaUi() ── useMenu ──┬─ Gestion
   diciendo el nombre antiguo y en la gráfica de Pedidos caen en "Otros". Es
   una limitación conocida de json-server; el back real usará `productoId`.
 
+### 7.1 La imagen de un plato
+
+- **Se gestiona en un solo sitio:** la edición de un plato
+  (`menu/FormularioPlato.jsx`), con `ui/CampoImagen.jsx`. Se acepta JPG y PNG,
+  arrastrando el archivo, pulsando la zona o con el teclado: el arrastre solo
+  no sirve en un móvil.
+- **Todo lo que la pinta pasa por `imagenDe(plato)`** (`menu/esquema.js`): la
+  carta del cliente, la ficha del plato, la tabla del administrador, el
+  catálogo de Pedidos, el podio de más vendidos y la lista top. Por eso una
+  imagen nueva aparece en los seis sitios a la vez; no hay ningún listado con
+  su propia regla.
+- **Sin imagen propia se pinta el logo del Corralejo**, no un hueco ni una foto
+  de archivo. El archivo del logo es blanco sobre transparente, así que las
+  reglas `img.plato-foto-respaldo` e `img.miniatura-respaldo` de `theme.css` le
+  ponen el fondo oscuro de la marca; van con `img.` delante para ganarle en
+  especificidad a `.podio-foto`, que fija otro `object-fit` más abajo en el
+  archivo.
+- **Se reduce antes de guardar** (`utils/imagen.js`): 800 px de ancho y JPEG de
+  calidad 0,72. La imagen viaja dentro del registro del plato, así que una foto
+  de teléfono sin reducir serían megabytes de base64 en `db.json` que el
+  navegador descargaría con la carta. Se aceptan PNG de entrada pero se guarda
+  JPEG, y el lienzo se pinta de blanco antes de dibujar porque el JPEG no tiene
+  canal alfa.
+- **El tipo se comprueba por `file.type`, no por la extensión:** el `accept`
+  del input es una sugerencia y el arrastre no lo respeta.
+- **Quitar la imagen borra el campo**, no lo deja en null: `aCategoriaApi` lo
+  omite cuando está vacío, así que el registro queda como si nunca la hubiera
+  tenido.
+- **El alta de platos no pide imagen.** `FormularioCategoria` crea los platos
+  sin foto —nacen con el logo— y conserva la de los que ya la tienen, porque
+  propaga el plato completo.
+
 ## 8. De pedido a venta
 
 ```
@@ -205,9 +250,9 @@ Puntos delicados:
   navegador (`minutosRestantes`). Es manipulable: es una ayuda, no una regla de
   seguridad.
 
-## 9. Indicadores calculados desde las ventas
+## 9. Indicadores calculados desde las ventas y los comentarios
 
-- Todo sale de `/sales`. Los cálculos están en
+- El dinero sale de `/sales` y las notas de `/comentarios`. Los cálculos están en
   `modules/indicadores/calculos.js` como **funciones puras**: reciben ventas y
   devuelven cifras, sin React ni red (R53). Se pueden probar en Node.
 - **Las ventas con estado "Cancelado" no cuentan** (`ventasValidas`).
@@ -218,6 +263,43 @@ Puntos delicados:
 - **Ventas de prueba:** `db.json` incluye 352 ventas con `historico: true`
   para que haya meses que comparar. Para empezar con datos reales, bórralas
   filtrando ese campo.
+
+### El QR, el comentario y la nota de cada producto
+
+La cadena completa, de un extremo al otro:
+
+```
+QR del tiquete  ->  venta (/sales?qrCode=)  ->  comentario con qr, estrellas
+                                                y los productos del ticket
+                                                      |
+                                                      v
+                                          valoracionesPorProducto()
+                                                      |
+                                                      v
+                                     panel "Productos mejor valorados"
+```
+
+- **Una valoración es un comentario con QR** (R73). La colección
+  `calificaciones` desapareció: un registro de `comentarios` con `qr`,
+  `ticket`, `estrellas` y `productos` es una valoración; uno sin `qr` es un
+  comentario del muro y no puntúa. La tabla de las tres formas del registro
+  está en `modules/establecimiento/api.js`.
+- **La nota es del pedido, no del plato.** El cliente puntúa el ticket
+  completo, así que esa nota cuenta una vez para cada producto que iba en él.
+  Por eso `reseñas` es el número de tickets en los que apareció el producto, no
+  el de clientes distintos.
+- **No hace falta cuenta, ni escribir** (R74). Lo que respalda la nota es el
+  código del tiquete. El texto es opcional; cuando lo hay, pasa por la
+  moderación del muro como cualquier comentario.
+- **Se modera el texto, no la nota** (R75). La puntuación cuenta en los
+  indicadores desde que se registra; `visible` solo decide si el texto se lee
+  en el muro. Una puntuación sin texto no entra en el buzón de Moderación.
+- **Un QR, una valoración.** Es lo único que impide votar en bucle con el mismo
+  código, y hoy se comprueba en el navegador (sección 14).
+- **Valoraciones de prueba:** las 30 valoraciones con `mock: true` de `db.json`
+  cuelgan de ventas reales. Si las borras, el panel de productos valorados
+  queda vacío hasta que alguien califique un pedido, que es el comportamiento
+  correcto.
 
 ## 10. Dinero y fechas
 
@@ -286,4 +368,23 @@ estos hooks y el código actual de las pantallas se borrará.
   ticket sale a un tercero. Se resuelve generándolo en el navegador con una
   librería.
 - **Productos identificados por nombre** en pedidos y ventas (sección 7).
+- **Podio de más vendidos:** el ranking se calcula en el navegador descargando
+  `/sales` (`establecimiento/api.js`); el back real debe dar un endpoint propio.
+- **Las imágenes de los platos viven dentro de `db.json`** como `data:` URL
+  (sección 7.1). Funciona para la carta de un restaurante, pero no es
+  almacenamiento de archivos: el back real debe guardarlas aparte y devolver
+  una URL.
+- **PQRS privadas y muro de comentarios:** el cliente pide solo sus PQRS
+  (`?usuario=correo`) y solo puede crearlas y leerlas; el admin las responde
+  (campo `respuesta`) o elimina. El muro público usa la colección
+  `comentarios`, con `visible` controlado por el admin. Todo esto es de
+  interfaz: el back debe filtrar por el token y rechazar lo no permitido.
+- **Valoración por QR:** las tres comprobaciones (la venta existe, no está
+  cancelada, ese QR no se calificó antes) se hacen en el navegador, y la ruta
+  `/calificar` es pública por diseño (R74). Con json-server cualquiera puede
+  escribir en `comentarios` sin pasar por ellas: el back tiene que resolver el
+  QR él mismo y rechazar el segundo envío del mismo código.
+- **Texto sin moderar en el navegador:** `valoracionesApi.listar()` recorta el
+  texto de los comentarios que aún no están aprobados, pero lo recorta *después*
+  de recibirlo. La lista pública debe salir ya recortada del servidor.
 - **Pedido → venta no es atómico** (sección 8).

@@ -23,3 +23,12 @@ export const hora12 = (date = new Date()) => {
   const h = date.getHours()
   return `${h % 12 || 12}:${String(date.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
+
+/** "Carlos Ramírez" → "CR". Para avatares con iniciales. */
+export const inicialesDe = (nombre = '') =>
+  String(nombre)
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toUpperCase() ?? '')
+    .join('') || '?'

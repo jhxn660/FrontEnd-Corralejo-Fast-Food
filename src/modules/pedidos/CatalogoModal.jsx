@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { moneda } from '../../utils/format'
 import Modal from '../../components/ui/Modal'
 import { Vacio } from '../../components/ui/Estado'
-import { emojiDe, tonoDe } from '../menu/esquema'
+import { imagenDe, tieneImagen, tonoDe } from '../menu/esquema'
 
 const TODAS = '__todas__'
 
@@ -187,9 +187,17 @@ export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
               >
                 <div className="card-body p-3">
                   <div className="d-flex gap-2 align-items-start mb-2">
-                    <span className="fs-3 flex-shrink-0" aria-hidden="true">
-                      {emojiDe(producto.nombre, producto.categoria)}
-                    </span>
+                    {/* La misma imagen que el administrador subió para el
+                        plato; sin ella, el logo (`imagenDe`). */}
+                    <img
+                      className={`miniatura-plato ${
+                        tieneImagen(producto) ? '' : 'miniatura-respaldo'
+                      }`}
+                      src={imagenDe(producto)}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                    />
                     <div className="flex-grow-1 min-width-0">
                       <p className="fw-semibold mb-0">
                         {producto.nombre}

@@ -4,21 +4,36 @@ import { http } from '../../services/http'
 //
 // Los indicadores ya no se leen de colecciones fijas (`kpis`, `comparison`,
 // `productRows`, `ranking`): se calculan en calculos.js a partir de `/sales`.
-// De la API solo se pide la materia prima —las ventas—, la meta anual, que es
-// una decisión del negocio y no un cálculo, y las valoraciones.
+// De la API solo se pide la materia prima —las ventas y los comentarios—, más
+// la meta anual, que es una decisión del negocio y no un cálculo.
+//
+// `/comentarios` y no `/reviews`: la tabla de productos valorados salía de una
+// colección fija de cinco filas escritas a mano. Ahora sale de los comentarios
+// que llevan un QR, que son las valoraciones reales de los clientes
+// (`valoracionesPorProducto` en calculos.js).
 const RUTAS = {
   ventas: '/sales',
   meta: '/goal',
-  valoraciones: '/reviews',
+  valoraciones: '/comentarios',
 }
 
 const META_POR_DEFECTO = 180000000
 
+/**
+ * De un comentario solo viaja lo que la media necesita: la nota y los
+ * productos del ticket. El texto se queda fuera a propósito —los indicadores
+ * no lo enseñan, y un comentario sin moderar no tiene por qué llegar hasta
+ * aquí— y `qr` se conserva porque es lo que distingue una valoración de un
+ * comentario del muro.
+ */
 const aValoracionUi = (cruda) => ({
   id: cruda.id,
-  nombre: cruda.name ?? '—',
-  reseñas: Number(cruda.count) || 0,
-  puntuacion: Number(cruda.score) || 0,
+  qr: cruda.qr ?? null,
+  estrellas: Number(cruda.estrellas) || 0,
+  productos: (cruda.productos ?? []).map((item) => ({
+    producto: item.producto,
+    cantidad: Number(item.cantidad) || 0,
+  })),
 })
 
 /** Solo lo que los cálculos necesitan, con números de verdad. */

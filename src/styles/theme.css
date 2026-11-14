@@ -562,6 +562,22 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 .calendar-day.cerrado { background: #c1272d; color: #fff; border-color: #8c1420; }
 .calendar-day.evento { background: var(--cff-naranja); color: #fff; border-color: var(--cff-naranja-oscuro); }
 
+/* Dos cierres distintos, dos marcas distintas: "los lunes no abrimos" es la
+   norma de la casa y va en rojo sobre fondo normal; un día especial cerrado
+   (Nochebuena) es la excepción y va en rojo sólido, para que salte a la vista
+   al recorrer el mes. */
+.calendar-day.cierre-semanal:not(.cerrado) { color: #c1272d; border-color: #eec0c3; }
+
+/* El día elegido. El anillo se compone con cualquier fondo, así que un día
+   especial seleccionado conserva su color en vez de perderlo. */
+.calendar-day.is-seleccionado { box-shadow: 0 0 0 3px var(--cff-carbon-claro); }
+
+.calendar-day.is-seleccionado:not(.cerrado):not(.evento) {
+  background: var(--cff-carbon-claro);
+  border-color: var(--cff-carbon);
+  color: #fff;
+}
+
 /* El cliente y el empleado consultan el calendario, no lo editan. */
 .calendar-day.is-readonly { cursor: default; }
 
@@ -607,13 +623,98 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   border-bottom: 1px solid var(--cff-borde);
 }
 
+/* La imagen del plato llena el hueco de la foto; el logo de respaldo NO, que
+   recortado no se reconoce: se deja entero con aire alrededor. El archivo del
+   logo es blanco sobre transparente, así que el respaldo tapa el degradado
+   claro de `.plato-foto` con el fondo oscuro de la marca o no se vería nada
+   (misma razón que `.ticket-logo`). */
+.plato-foto-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* `img.` y no `.` a secas: estas reglas tienen que ganarle a `.podio-foto` y a
+   `.plato-foto-img`, que también fijan object-fit y van más abajo en el
+   archivo. Con la misma especificidad ganaría la última y el logo saldría
+   recortado. El relleno va en porcentaje para servir igual a una miniatura de
+   2,75 rem y a la foto del podio. */
+img.plato-foto-respaldo,
+img.miniatura-respaldo {
+  object-fit: contain;
+  background-color: var(--cff-carbon);
+  padding: 8%;
+}
+
+/* Miniatura de la tabla del administrador y del catálogo de Pedidos. */
+.miniatura-plato {
+  width: 2.75rem;
+  height: 2.75rem;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  flex-shrink: 0;
+}
+
+
+/* ---------- Zona de arrastrar y soltar una imagen ---------- */
+
+.zona-imagen {
+  border: 2px dashed var(--cff-borde);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+/* El resalte al arrastrar encima es la única señal de que se puede soltar ahí:
+   sin él, el puntero con el archivo no dice si la zona lo acepta. */
+.zona-imagen-activa {
+  border-color: var(--cff-naranja);
+  background-color: rgb(255 138 0 / 8%);
+}
+
+.zona-imagen-boton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.zona-imagen-boton:disabled { cursor: default; }
+
+.zona-imagen-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zona-imagen-foto-respaldo {
+  object-fit: contain;
+  padding: 1.5rem;
+  background-color: var(--cff-carbon);
+}
+
+.zona-imagen-velo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: rgb(255 255 255 / 75%);
+  font-weight: 600;
+}
+
 .plato-precio {
   font-weight: 800;
   font-size: 1.1rem;
   color: var(--cff-naranja-oscuro);
 }
 
-/* Cinta de categoría pegajosa en la carta larga del cliente. */
+/* Cinta de anclas de la carta: se queda pegada bajo el header para que los
+   atajos sigan a mano mientras se recorre el catálogo completo. */
 .carta-ancla {
   position: sticky;
   top: var(--cff-header);
@@ -786,3 +887,151 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 .card ::-webkit-scrollbar-thumb { border-color: var(--cff-superficie); }
 
 html:hover { scrollbar-color: #aab0bc transparent; }
+
+/* Barra que se queda pegada bajo la cabecera al hacer scroll (selector de mes
+   de Indicadores). El fondo opaco evita que el contenido se lea por debajo. */
+.barra-fija {
+  position: sticky;
+  top: var(--cff-header);
+  z-index: 20;
+  background: var(--cff-fondo);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--cff-borde);
+}
+
+/* ---------- Podio de más vendidos ---------- */
+
+.podio-foto {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+/* El Top 1 se agranda un poco solo cuando las tres tarjetas van en fila; en
+   móvil se apilan y un escalado las montaría unas sobre otras. */
+@media (min-width: 768px) {
+  .podio-primero {
+    transform: scale(1.07);
+    z-index: 1;
+    box-shadow: var(--cff-sombra-3);
+  }
+}
+
+/* El botón de votar. Solo aparece en la pantalla de calificar un pedido por
+   QR, donde el ticket demuestra la compra; en los listados las estrellas son
+   texto. */
+.estrella {
+  border: 0;
+  background: none;
+  padding: 0 .15rem;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: #c3c8d2;
+  cursor: pointer;
+  transition: transform .1s ease, color .1s ease;
+}
+
+.estrella.activa { color: #f5a623; }
+.estrella:hover:not(:disabled) { transform: scale(1.15); }
+.estrella:focus-visible { outline: 2px solid var(--cff-naranja); border-radius: .25rem; }
+.estrella:disabled { cursor: default; opacity: .7; }
+
+/* ---------- Estética Frutiger Aero (solo rol cliente) ---------- */
+
+/* La añade Layout con la clase `cff-aero` cuando el rol es cliente, así que
+   ninguna de estas reglas alcanza las pantallas del administrador ni del
+   empleado: ahí hay tablas y formularios densos donde el cristal resta
+   legibilidad.
+
+   El cristal se monta sobre la paleta de la casa —naranja y carbón— con dos
+   velos frescos muy suaves para el aire de Frutiger Aero, no sobre los azules
+   y verdes saturados del estilo original, que no son de la marca.
+
+   CONTRASTE: la superficie se queda en blanco al 72 % sobre un fondo claro, de
+   modo que la tinta (#16181d) y el gris de apoyo (#596070) mantienen su ratio.
+   El texto nunca se vuelve translúcido. */
+.cff-aero {
+  --cff-cristal: rgb(255 255 255 / 72%);
+  --cff-cristal-borde: rgb(255 255 255 / 70%);
+  --cff-brillo: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgb(255 255 255 / 0%) 55%);
+
+  min-height: 100vh;
+  background-image:
+    radial-gradient(900px 500px at 8% 0%, rgb(255 178 77 / 28%) 0%, transparent 62%),
+    radial-gradient(760px 460px at 100% 12%, rgb(67 97 238 / 12%) 0%, transparent 60%),
+    radial-gradient(700px 520px at 50% 100%, rgb(42 157 143 / 14%) 0%, transparent 62%);
+  background-attachment: fixed;
+}
+
+.cff-aero .card {
+  background-color: var(--cff-cristal);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-radius: var(--bs-border-radius-lg);
+  border: 1px solid var(--cff-cristal-borde);
+  box-shadow: var(--cff-sombra-1), inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+/* El brillo superior es un pseudoelemento y no un degradado del fondo para no
+   pisar el color de las tarjetas que ya traen uno (`.bg-carbon`, `.bg-brand`). */
+.cff-aero .card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 45%;
+  border-radius: inherit;
+  background: var(--cff-brillo);
+  pointer-events: none;
+}
+
+.cff-aero .card { position: relative; }
+
+/* Las tarjetas oscuras siguen oscuras: su texto es blanco y aclararlas lo
+   dejaría ilegible. Solo reciben el redondeo y un brillo más discreto. */
+.cff-aero .card.bg-carbon {
+  background-color: var(--cff-carbon) !important;
+  backdrop-filter: none;
+  border-color: rgb(255 255 255 / 12%);
+}
+
+.cff-aero .card.bg-carbon::before { height: 55%; opacity: 0.12; }
+
+/* Cabeceras y pies de tarjeta: transparentes para que se vea el cristal. El
+   `bg-white` de las cabeceras taparía el efecto. */
+.cff-aero .card > .card-header,
+.cff-aero .card > .card-footer {
+  background-color: transparent !important;
+  border-color: rgb(22 24 29 / 8%);
+}
+
+.cff-aero .app-sidebar-inner,
+.cff-aero .carta-ancla {
+  background-color: var(--cff-cristal);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.cff-aero .app-sidebar-inner {
+  border: 1px solid var(--cff-cristal-borde);
+  box-shadow: var(--cff-sombra-1), inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+.cff-aero .carta-ancla {
+  border-radius: var(--bs-border-radius);
+  padding: 0.75rem;
+}
+
+/* Los campos y las tablas se quedan opacos: leer y escribir sobre un fondo que
+   se mueve detrás del cristal cansa, y el borde del foco necesita un contraste
+   fijo. */
+.cff-aero .form-control,
+.cff-aero .form-select,
+.cff-aero .table {
+  background-color: var(--cff-superficie);
+}
+
+/* Sin backdrop-filter (navegadores antiguos) el cristal se vería como un velo
+   plano y el texto perdería contraste: se sube la opacidad. */
+@supports not (backdrop-filter: blur(1px)) {
+  .cff-aero {
+    --cff-cristal: rgb(255 255 255 / 94%);
+  }
+}

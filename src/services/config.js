@@ -8,6 +8,11 @@ const leer = (clave, porDefecto) => {
 
 export const config = {
   apiUrl: leer('VITE_API_URL', 'http://localhost:3000').replace(/\/+$/, ''),
+  // Dirección pública de la aplicación. Es lo que se codifica en el QR del
+  // tiquete, así que en producción debe apuntar al dominio real: el QR se
+  // imprime en papel y se escanea desde un teléfono que no sabe nada de
+  // localhost. Por defecto, el origen desde el que se está sirviendo.
+  appUrl: leer('VITE_APP_URL', globalThis.location?.origin ?? '').replace(/\/+$/, ''),
   supabaseUrl: leer('VITE_SUPABASE_URL'),
   supabaseKey: leer('VITE_SUPABASE_PUBLISHABLE_KEY'),
   // Un timeout explícito evita peticiones colgadas cuando la API no responde:
