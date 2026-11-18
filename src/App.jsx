@@ -1,0 +1,75 @@
+import { Suspense } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
+
+import { RUTAS_PUBLICAS, TODAS_LAS_VISTAS, rutaPorDefecto, vistasDe } from './config/navegacion'
+import { useAuth } from './context/AuthContext'
+import Layout from './components/layout/Layout'
+import AccesoDenegado from './components/layout/AccesoDenegado'
+import NoEncontrado from './components/layout/NoEncontrado'
+import RutaProtegida from './components/layout/RutaProtegida'
+import { Cargando } from './components/ui/Estado'
+import Login from './modules/autenticacion/Login'
+import Register from './modules/autenticacion/Register'
+
+const pantallaCargando = (
+  <div className="min-vh-100 d-flex align-items-center justify-content-center">
+    <Cargando texto="Cargando Corralejo Fast Food…" />
+  </div>
+)
+
+/**
+ * Árbol de rutas. No decide qué ve cada rol: eso está en
+ * config/navegacion.jsx, y aquí solo se recorre.
+ */
+export default function App() {
+  const { usuario, rol, cargando, cerrarSesion } = useAuth()
+
+  if (cargando) return pantallaCargando
+
+  // Defensa: un rol sin menú no tiene a dónde aterrizar.
+  if (usuario && vistasDe(rol).length === 0) {
+    return (
+      <AccesoDenegado
+        mensaje="No pudimos verificar tu rol de usuario."
+        onCerrarSesion={cerrarSesion}
+      />
+    )
+  }
+
+  // Sin sesión el rol es 'usuario': se aterriza en el panel del visitante, no
+  // en el login. Login y registro siguen a un clic desde la cabecera.
+  const inicio = rutaPorDefecto(rol)
+
+  // Las pantallas llegan bajo demanda (config/navegacion.jsx). Dentro de los
+  // paneles las espera el <Suspense> de Layout; este cubre las rutas públicas.
+  return (
+    <Suspense fallback={pantallaCargando}>
+      <Routes>
+        <Route path="/login" element={usuario ? <Navigate to={inicio} replace /> : <Login />} />
+        <Route path="/registro" element={usuario ? <Navigate to={inicio} replace /> : <Register />} />
+        <Route path="/" element={<Navigate to={inicio} replace />} />
+
+        {/* Sin RutaProtegida y sin Layout: son las rutas que se abren sin
+            sesión, y cada una trae su propio cascarón (RUTAS_PUBLICAS en
+            config/navegacion.jsx). */}
+        {RUTAS_PUBLICAS.map(({ vista, ruta, elemento }) => (
+          <Route key={vista} path={ruta} element={elemento} />
+        ))}
+
+        {TODAS_LAS_VISTAS.map(({ vista, ruta, elemento }) => (
+          <Route
+            key={vista}
+            path={ruta}
+            element={
+              <RutaProtegida vista={vista}>
+                <Layout>{elemento}</Layout>
+              </RutaProtegida>
+            }
+          />
+        ))}
+
+        <Route path="*" element={<NoEncontrado />} />
+      </Routes>
+    </Suspense>
+  )
+}
