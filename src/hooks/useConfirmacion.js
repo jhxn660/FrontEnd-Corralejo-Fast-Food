@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react'
  * el mismo trío: registro señalado, enviando y error.
  *
  * Uso:
- *   const eliminacion = useConfirmacion((insumo) => api.remove('insumos', insumo.id))
+ *   const eliminacion = useConfirmacion((insumo) => insumosApi.eliminar(insumo.id))
  *   <button onClick={() => eliminacion.pedir(insumo)}>Eliminar</button>
  *   {eliminacion.objetivo && <ConfirmarEliminacion {...} />}
  *

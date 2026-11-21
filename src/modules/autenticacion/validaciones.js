@@ -2,24 +2,34 @@
 //
 // Son validaciones de EXPERIENCIA, no de seguridad: todo lo que hay aquí se
 // puede saltar con la consola abierta. Su trabajo es que el usuario sepa qué
-// le falta antes de enviar, no proteger la cuenta. Supabase aplica su propia
-// política en el `signUp` y rechaza lo que no la cumpla.
+// le falta antes de enviar, no proteger la cuenta. El backend aplica la misma
+// política al crear la cuenta (users.services.js) y rechaza lo que no la cumpla.
 
 const MINIMO_PASSWORD = 8
+const MAXIMO_PASSWORD = 60
 
 // Una regla por requisito, en vez de un único regex ilegible con lookaheads:
-// así el formulario puede decir exactamente cuál falta.
+// así el formulario puede decir exactamente cuál falta. Mayúscula, minúscula y
+// símbolo son los que acepta el backend: letras sin tilde y estos símbolos.
 export const REGLAS_PASSWORD = [
-  { id: 'longitud', texto: `Al menos ${MINIMO_PASSWORD} caracteres`, prueba: /.{8,}/ },
-  { id: 'mayuscula', texto: 'Una letra mayúscula', prueba: /[A-ZÁÉÍÓÚÑ]/ },
+  {
+    id: 'longitud',
+    texto: `Entre ${MINIMO_PASSWORD} y ${MAXIMO_PASSWORD} caracteres, sin espacios`,
+    prueba: /^\S{8,60}$/,
+  },
+  { id: 'mayuscula', texto: 'Una letra mayúscula', prueba: /[A-Z]/ },
+  { id: 'minuscula', texto: 'Una letra minúscula', prueba: /[a-z]/ },
   { id: 'numero', texto: 'Un número', prueba: /\d/ },
-  { id: 'especial', texto: 'Un carácter especial', prueba: /[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/ },
+  {
+    id: 'especial',
+    texto: 'Un símbolo (! @ # $ % & * . - _ …)',
+    prueba: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/,
+  },
 ]
 
 // Deliberadamente permisivo: validar correos con un regex exhaustivo rechaza
-// direcciones válidas. Lo único que importa es detectar el error de dedo; el
-// correo se verifica de verdad enviando el mensaje de confirmación.
-const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+// direcciones válidas. Es el mismo formato que exige el modelo User del backend.
+const FORMATO_EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
 const reglasIncumplidas = (password) =>
   REGLAS_PASSWORD.filter((regla) => !regla.prueba.test(password ?? ''))
@@ -58,7 +68,22 @@ export const validarLogin = ({ email, password }) => ({
   password: password ? null : 'Escribe tu contraseña.',
 })
 
-export const validarRegistro = ({ email, password, confirmacion }) => ({
+// Mismo formato que exige el modelo User del backend: celular colombiano, con o sin +57.
+const FORMATO_TELEFONO = /^(?:\+57)?3[0-9]{9}$/
+
+/** Nombre y teléfono son opcionales: vacíos no dan error; con valor se validan. */
+const validarNombre = (nombre) =>
+  (nombre ?? '').trim().length > 100 ? 'Máximo 100 caracteres.' : null
+
+const validarTelefono = (telefono) => {
+  const valor = (telefono ?? '').replace(/\s+/g, '')
+  if (!valor) return null
+  return FORMATO_TELEFONO.test(valor) ? null : 'Celular colombiano: 3XXXXXXXXX, con o sin +57.'
+}
+
+export const validarRegistro = ({ nombre, telefono, email, password, confirmacion }) => ({
+  nombre: validarNombre(nombre),
+  telefono: validarTelefono(telefono),
   email: validarEmail(email),
   password: validarPassword(password),
   confirmacion: validarConfirmacion(password, confirmacion),
@@ -67,25 +92,27 @@ export const validarRegistro = ({ email, password, confirmacion }) => ({
 export const hayErrores = (errores) => Object.values(errores).some(Boolean)
 
 /**
- * Traduce el error de Supabase al registrarse a un mensaje para la persona.
+ * Traduce el error del backend al registrarse a un mensaje para la persona.
  *
- * Dos motivos para no mostrar `error.message` tal cual:
- * - Llega en inglés ("User already registered").
- * - Ese mensaje concreto confirma que el correo YA tiene cuenta: es la misma
- *   enumeración de usuarios que R63 evita en el login. Por eso "ya existe" cae
- *   en el mensaje genérico, que es el mismo para cualquier fallo desconocido y
- *   no permite distinguir un caso del otro.
+ * El "correo ya registrado" NO se muestra tal cual: confirmaría que ese correo
+ * tiene cuenta, que es la misma enumeración de usuarios que R63 evita en el
+ * login. Cae en el mensaje genérico, igual que cualquier fallo desconocido.
  */
 export const mensajeErrorRegistro = (error) => {
-  const texto = String(error?.message ?? '').toLowerCase()
+  // Error de axios: sin `response` no hubo respuesta del servidor.
+  if (!error?.response) return 'No se pudo conectar con el servidor. Inténtalo de nuevo.'
 
-  if (error?.status === 429 || texto.includes('rate limit')) {
+  // El backend responde { msg } o, en validaciones, { campo: mensaje }.
+  const cuerpo = error.response.data ?? {}
+  const texto = String(cuerpo.msg ?? Object.values(cuerpo).find((v) => typeof v === 'string') ?? '').toLowerCase()
+
+  if (error.response.status === 429) {
     return 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.'
   }
-  if (texto.includes('password')) {
+  if (texto.includes('contraseña')) {
     return 'La contraseña no cumple la política de seguridad del servidor.'
   }
-  if (texto.includes('email') && texto.includes('invalid')) {
+  if (texto.includes('correo') && texto.includes('formato')) {
     return 'Revisa el formato del correo electrónico.'
   }
   return 'No pudimos crear la cuenta. Si ya tienes una con ese correo, inicia sesión; si no, inténtalo de nuevo en unos minutos.'

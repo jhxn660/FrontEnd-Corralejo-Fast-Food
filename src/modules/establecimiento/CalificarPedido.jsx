@@ -140,7 +140,8 @@ export default function CalificarPedido({ codigo }) {
         {estado === 'listo' && ticket && (
           <form onSubmit={registrar}>
             <span className="badge bg-secondary mb-3">
-              Ticket {ticket.ticket} · {ticket.fecha} · {ticket.hora}
+              Ticket {ticket.ticket}
+              {ticket.fecha ? ` · ${ticket.fecha} · ${ticket.hora}` : ''}
             </span>
 
             <label className="form-label fw-semibold d-block">
@@ -179,6 +180,9 @@ export default function CalificarPedido({ codigo }) {
             </div>
 
             {/* Lo comprado, en pequeño: son los productos que reciben la nota. */}
+            {/* El detalle de la compra solo se conoce si el backend lo entrega; sin él se
+                califica igual: el backend valida el QR al registrar la valoración. */}
+            {!ticket.sinDetalle && (
             <div className="border rounded p-3 mb-3 bg-body-tertiary">
               <p className="small fw-semibold text-uppercase text-secondary mb-2">
                 <i className="fa-solid fa-basket-shopping me-2" />
@@ -204,6 +208,7 @@ export default function CalificarPedido({ codigo }) {
                 {ticket.entrega} · Total {moneda(ticket.total)}
               </p>
             </div>
+            )}
 
             <div className="d-flex justify-content-end">
               <button className="btn btn-primary" type="submit" disabled={enviando}>

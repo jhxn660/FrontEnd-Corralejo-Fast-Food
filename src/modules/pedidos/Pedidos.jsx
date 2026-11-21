@@ -10,6 +10,8 @@ import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import CatalogoModal from './CatalogoModal'
 import ConfirmarAccion from './ConfirmarAccion'
 import GraficaCategorias from './GraficaCategorias'
+import { crearSimulador } from './disponibilidad'
+import { describirFaltante } from '../inventario/recetas'
 import {
   calcularVentasPorCategoria,
   cambiarEstado as cambiarEstadoDePedido,
@@ -23,15 +25,20 @@ import {
   siguienteNumero,
 } from './servicio'
 
+// Etiquetas con los nombres de estado del backend (ver ESTADO_UI en servicio.js)
 const ESTADOS = {
-  pendiente: { etiqueta: 'Pendiente', color: 'warning', icono: 'fa-hourglass-start' },
-  preparacion: { etiqueta: 'En preparación', color: 'info', icono: 'fa-fire-burner' },
-  resuelto: { etiqueta: 'Resuelto', color: 'success', icono: 'fa-circle-check' },
+  pendiente: { etiqueta: 'En preparación', color: 'warning', icono: 'fa-hourglass-start' },
+  preparacion: { etiqueta: 'Listo', color: 'info', icono: 'fa-fire-burner' },
+  resuelto: { etiqueta: 'Finalizado', color: 'success', icono: 'fa-circle-check' },
 }
 
 // Mientras `datos` sea este mismo objeto no ha llegado ninguna respuesta: es lo
 // que distingue la primera carga de las recargas tras cada cambio.
-const INICIAL = { pedidos: [], catalogo: [] }
+const INICIAL = { pedidos: [], catalogo: [], disponibilidad: null, errorInventario: '' }
+
+// Mismo arreglo vacío en cada render: un `[]` nuevo rompería los useMemo que
+// dependen de las líneas del pedido.
+const SIN_ITEMS = []
 
 /**
  * Pantalla de Gestión de Pedidos.
@@ -48,11 +55,11 @@ export default function Pedidos() {
   const { usuario } = useAuth()
   // Quien factura queda en la venta: la ven así Admin y Owner en Gestión de
   // Ventas y sale en el ticket.
-  const responsable = usuario?.user_metadata?.nombre || usuario?.email || ''
+  const responsable = usuario?.name || usuario?.email || ''
 
   const { datos, cargando, error, setError, recargar } = useRecurso(cargarPedidos, INICIAL)
 
-  const { pedidos, catalogo } = datos
+  const { pedidos, catalogo, disponibilidad, errorInventario } = datos
   const [activoId, setActivoId] = useState(null)
   const [procesando, setProcesando] = useState(false)
   const [catalogoAbierto, setCatalogoAbierto] = useState(false)
@@ -69,10 +76,19 @@ export default function Pedidos() {
 
   const activo = pedidos.find((pedido) => pedido.id === activoId) ?? visibles[0] ?? pedidos[0]
   const resuelto = activo?.estado === 'resuelto'
-  const items = activo?.items ?? []
+  const items = activo?.items ?? SIN_ITEMS
   const unidades = items.reduce((suma, item) => suma + (Number(item.qty) || 0), 0)
   const total = items.reduce((suma, item) => suma + item.price * item.qty, 0)
   const reparto = useMemo(() => calcularVentasPorCategoria(pedidos, catalogo), [pedidos, catalogo])
+
+  // Inventario: qué cabe todavía y qué falta para facturar ESTE pedido. Se
+  // recalcula cada vez que llega disponibilidad nueva (otra caja facturó,
+  // alguien repuso stock o cambió una receta).
+  const simulador = useMemo(() => crearSimulador(disponibilidad), [disponibilidad])
+  const faltantes = useMemo(
+    () => (activo && !resuelto ? simulador.faltantes(items) : []),
+    [simulador, activo, resuelto, items]
+  )
 
   const porEstado = useMemo(
     () =>
@@ -244,6 +260,16 @@ export default function Pedidos() {
 
       <MensajeError texto={error} onReintentar={recargar} />
 
+      {errorInventario && (
+        <div className="alert alert-warning small d-flex gap-2 align-items-start" role="status">
+          <i className="fa-solid fa-plug-circle-xmark mt-1" />
+          <span>
+            Sin datos de inventario: no se muestran las unidades disponibles y no se podrá
+            facturar. {errorInventario}
+          </span>
+        </div>
+      )}
+
       <div className="row g-3">
         <div className="col-12 col-xl-aureo-menor">
           {/* Sin h-100: la tarjeta mide lo que su lista. Con h-100 se estiraba
@@ -293,7 +319,7 @@ export default function Pedidos() {
             ) : (
               <ul
                 className="list-group list-group-flush overflow-auto"
-                style={{ maxHeight: 'calc(100vh - 16rem)' }}
+                style={{ maxHeight: 'calc(var(--vh-pantalla) - 16rem)' }}
               >
                 {visibles.map((pedido) => {
                   const estado = ESTADOS[pedido.estado] ?? {}
@@ -439,7 +465,11 @@ export default function Pedidos() {
                                   </span>
                                   <button
                                     className="btn btn-outline-secondary"
-                                    disabled={resuelto || procesando}
+                                    disabled={
+                                      resuelto ||
+                                      procesando ||
+                                      simulador.cuantasMas(item.name, items) === 0
+                                    }
                                     onClick={() => cambiarCantidad(item.name, 1)}
                                     aria-label={`Añadir una unidad de ${item.name}`}
                                   >
@@ -468,6 +498,20 @@ export default function Pedidos() {
                     </table>
                   </div>
 
+                  {faltantes.length > 0 && (
+                    <div className="alert alert-danger small" role="alert">
+                      <strong className="d-block mb-1">
+                        <i className="fa-solid fa-triangle-exclamation me-2" />
+                        No alcanza el inventario para facturar este pedido
+                      </strong>
+                      <ul className="mb-0 ps-3">
+                        {faltantes.map((faltante) => (
+                          <li key={faltante.insumo_id}>{describirFaltante(faltante)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   <div className="modal-resumen d-flex justify-content-between align-items-center mb-3">
                     <strong className="text-uppercase small">Total del pedido</strong>
                     <span className="h4 fw-bold text-brand mb-0">{moneda(total)}</span>
@@ -485,7 +529,7 @@ export default function Pedidos() {
                     {!resuelto && (
                       <button
                         className="btn btn-primary"
-                        disabled={procesando || items.length === 0}
+                        disabled={procesando || items.length === 0 || faltantes.length > 0}
                         onClick={() => finalizarPedido(activo)}
                       >
                         <i className="fa-solid fa-receipt me-2" />
@@ -513,6 +557,8 @@ export default function Pedidos() {
       {catalogoAbierto && activo && (
         <CatalogoModal
           categorias={catalogo}
+          simulador={simulador}
+          itemsPedido={items}
           onAgregar={agregarDelCatalogo}
           onCerrar={() => setCatalogoAbierto(false)}
         />

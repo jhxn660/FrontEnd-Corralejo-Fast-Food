@@ -20,7 +20,7 @@ const INICIAL = { id: null, mision: '', vision: '', historias: [] }
  *
  * Tres vistas en el mismo modal: el resumen, la lectura de una historia (con
  * Anterior/Siguiente y "Volver") y, solo con PERMISO.EDITAR_INFORMACION, la
- * edición. Los textos salen de json-server (informacionApi); de
+ * edición. Los textos salen de la API (informacionApi); de
  * data/contenido.js solo llegan el título y el icono de cada pilar.
  */
 export default function InformacionCasa({ onCerrar }) {

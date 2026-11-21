@@ -12,6 +12,7 @@ import CartaCliente from './CartaCliente'
 import GestionCategorias from './GestionCategorias'
 import FormularioCategoria from './FormularioCategoria'
 import FormularioPlato from './FormularioPlato'
+import EditorRecetas from './EditorRecetas'
 
 const ORDENES = {
   '': 'Orden de la carta',
@@ -49,6 +50,7 @@ export default function Menu({ editable = false, vitrina = false }) {
   const avisos = useAvisos()
   const [formulario, setFormulario] = useState(null) // { modo, categoria }
   const [platoEnEdicion, setPlatoEnEdicion] = useState(null) // { categoriaId, categoria, plato }
+  const [recetasAbiertas, setRecetasAbiertas] = useState(false)
 
   /** La categoría completa, sin el recorte de la búsqueda ni el orden por precio. */
   const original = (id) => todas.find((categoria) => categoria.id === id)
@@ -168,6 +170,14 @@ export default function Menu({ editable = false, vitrina = false }) {
             <i className="fa-solid fa-star me-2" />
             Nuevo combo
           </button>
+          <button
+            className="btn btn-outline-primary"
+            onClick={() => setRecetasAbiertas(true)}
+            disabled={todas.length === 0}
+          >
+            <i className="fa-solid fa-flask me-2" />
+            Recetas
+          </button>
         </>
       )}
 
@@ -265,6 +275,12 @@ export default function Menu({ editable = false, vitrina = false }) {
             onEliminar={eliminacion.pedir}
           />
         ) : <CartaCliente categorias={categorias} vitrina={vitrina} busqueda={busqueda} />)}
+
+      {/* Las recetas se editan sobre la carta completa (`todas`), sin el
+          recorte de la búsqueda: cualquier plato se puede elegir. */}
+      {editable && recetasAbiertas && (
+        <EditorRecetas categorias={todas} onCerrar={() => setRecetasAbiertas(false)} />
+      )}
 
       {formulario && (
         <FormularioCategoria

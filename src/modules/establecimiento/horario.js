@@ -9,7 +9,7 @@
 //    { dia: 'Martes', abre: '14:00', cierra: '21:30' }, … ]
 // Siete entradas, SIEMPRE de lunes a domingo y en ese orden. `abre`/`cierra` en
 // formato de 24 horas "HH:MM"; `null` en cualquiera de los dos significa que
-// ese día no se abre. El horario vive solo en json-server: un día que la ficha
+// ese día no se abre. El horario vive solo en la API: un día que la ficha
 // no traiga se trata como cerrado, no se inventa en el navegador.
 
 import { partesDe } from './calendario'

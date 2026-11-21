@@ -1,75 +1,122 @@
 import { http } from '../../services/http'
-import { idUnico } from '../../utils/id'
 
-// La carta vive en la colección `adminMenu` de json-server: cada categoría
-// lleva sus platos anidados en `items`. La ruta se declara aquí y en ningún
-// otro sitio (R48).
-const RUTA = '/adminMenu'
+// LA CARTA en el backend son DOS recursos (R48):
+//   - /categories: { _id, name, type: 'Producto' | 'Insumo', description, icono, status }
+//   - /products:   { _id, nombre, description, price, precioCombo, calificacion, imagen,
+//                    receta, isActive, category: { _id, name } }
+// La pantalla, en cambio, trabaja con categorías que llevan sus platos dentro. Este archivo
+// es el ÚNICO que conoce las dos formas y traduce entre ellas: la UI nunca ve `_id`,
+// `price` ni `isActive`.
 
-/**
- * ADAPTADOR json-server ↔ UI. La colección guarda `categoria` e `items`; la UI
- * trabaja con `nombre`, `productos`, `disponible` y precios numéricos. La
- * diferencia se absorbe en estas dos funciones y la pantalla nunca ve la forma
- * cruda ni un precio con formato.
- */
-const aNumero = (precio) =>
-  typeof precio === 'number' ? precio : Number(String(precio ?? '').replace(/\D/g, '')) || 0
+const RUTAS = {
+  categorias: '/categories',
+  productos: '/products',
+  // Solo productos activos, sin token: es lo que ve la carta de clientes y visitantes.
+  productosPublicos: '/products/public',
+}
 
-const aCategoriaUi = (cruda) => ({
-  id: cruda.id,
-  nombre: cruda.nombre ?? cruda.categoria ?? '',
-  descripcion: cruda.descripcion ?? '',
-  icono: cruda.icono ?? 'fa-solid fa-utensils',
-  estado: cruda.estado ?? 'Disponible',
-  disponible: (cruda.estado ?? 'Disponible') !== 'Inhabilitado',
-  productos: (cruda.items ?? cruda.productos ?? []).map((item, i) => ({
-    // Id propio y persistido: con uno posicional, editar un plato mientras
-    // otro rol añadía o quitaba otro de la misma categoría guardaba los
-    // cambios sobre el plato equivocado.
-    id: item.id ?? `${cruda.id}-${i}`,
-    nombre: item.nombre,
-    precio: aNumero(item.precio),
-    // Precio con papa francesa y gaseosa 250 ml. null = el plato no tiene combo.
-    precioCombo: item.precioCombo ? aNumero(item.precioCombo) : null,
-    descripcion: item.descripcion ?? '',
-    calificacion: item.calificacion ?? null,
-    // Imagen subida por el administrador, guardada como `data:` URL en el
-    // propio registro. null = sin imagen propia, se pinta el logo (`imagenDe`
-    // en esquema.js).
-    imagen: item.imagen ?? null,
-    estado: item.estado ?? 'Disponible',
-  })),
+// Las categorías de insumos viven en la misma colección; la carta solo usa las de productos.
+const TIPO_PRODUCTO = 'Producto'
+
+// Un id de MongoDB son 24 caracteres hexadecimales. Un plato nuevo en pantalla todavía no
+// tiene uno: así se distingue "crear" de "actualizar" al guardar la categoría.
+const esIdDelBackend = (id) => /^[a-f\d]{24}$/i.test(String(id ?? ''))
+
+const aNumero = (valor) => Number(valor) || 0
+
+/* ───────────────────────── Backend → pantalla ───────────────────────── */
+
+/** Receta del backend [{ supply, cantidad }] → la de la pantalla [{ insumo_id, cantidad_requerida }]. */
+export const recetaDesdeApi = (receta = []) =>
+  receta.map((linea) => ({ insumo_id: String(linea.supply), cantidad_requerida: linea.cantidad }))
+
+const aPlatoUi = (producto) => ({
+  id: producto._id,
+  nombre: producto.nombre,
+  precio: aNumero(producto.price),
+  // Precio con papa francesa y gaseosa 250 ml. null = el plato no tiene combo.
+  precioCombo: producto.precioCombo > 0 ? producto.precioCombo : null,
+  descripcion: producto.description ?? '',
+  calificacion: producto.calificacion || null,
+  // null = sin imagen propia: se pinta el logo (`imagenDe` en esquema.js).
+  imagen: producto.imagen ?? null,
+  receta: recetaDesdeApi(producto.receta),
+  estado: producto.isActive === false ? 'Inhabilitado' : 'Disponible',
 })
 
-/** Vuelta a la forma de la colección; se descartan los campos derivados. */
+const aCategoriaUi = (categoria, productos) => ({
+  id: categoria._id,
+  nombre: categoria.name,
+  descripcion: categoria.description ?? '',
+  icono: categoria.icono ?? 'fa-solid fa-utensils',
+  estado: categoria.status === false ? 'Inhabilitado' : 'Disponible',
+  disponible: categoria.status !== false,
+  productos: productos
+    .filter((producto) => String(producto.category?._id ?? producto.category) === String(categoria._id))
+    .map(aPlatoUi),
+})
+
+/* ───────────────────────── Pantalla → backend ───────────────────────── */
+
 const aCategoriaApi = (ui) => ({
-  ...(ui.id ? { id: ui.id } : {}),
-  categoria: ui.nombre,
-  descripcion: ui.descripcion,
+  name: ui.nombre,
+  type: TIPO_PRODUCTO,
+  description: ui.descripcion,
   icono: ui.icono,
-  estado: ui.estado,
-  items: ui.productos.map(
-    ({ id, nombre, precio, precioCombo, descripcion, calificacion, imagen, estado }) => ({
-      id: id ?? idUnico(),
-      nombre,
-      precio,
-      ...(Number(precioCombo) > 0 ? { precioCombo: Number(precioCombo) } : {}),
-      ...(descripcion ? { descripcion } : {}),
-      ...(calificacion ? { calificacion } : {}),
-      // El campo se omite cuando no hay imagen, no se guarda en null: así
-      // quitarla deja el registro como si nunca hubiera tenido una.
-      ...(imagen ? { imagen } : {}),
-      estado,
-    })
-  ),
 })
 
+// La receta NO viaja al guardar la categoría: se edita aparte (guardarReceta), así cambiar un
+// precio nunca borra la receta de un plato.
+const aProductoApi = (plato, categoriaId) => ({
+  nombre: plato.nombre,
+  description: plato.descripcion ?? '',
+  price: aNumero(plato.precio),
+  precioCombo: Number(plato.precioCombo) > 0 ? Number(plato.precioCombo) : null,
+  calificacion: aNumero(plato.calificacion),
+  imagen: plato.imagen ?? null,
+  category: categoriaId,
+})
+
+const activo = (plato) => plato.estado !== 'Inhabilitado'
+
 /**
- * Lo que se puede vender: un producto por plato y, si tiene combo, otro más
- * con " (combo)" en el nombre. Es la ÚNICA fuente del catálogo de Pedidos y de
- * la edición de ventas, así que un plato nuevo, un precio cambiado o una
- * categoría oculta por el administrador se reflejan allí sin tocar nada más.
- * Los platos agotados y las categorías ocultas no se venden.
+ * Guarda los platos de una categoría comparando lo que hay en pantalla con lo que hay en el
+ * backend: los nuevos se crean, los existentes se actualizan y los que ya no están se borran.
+ * Si el estado (Disponible / Inhabilitado) cambió, se usa la ruta propia de estado.
+ */
+async function sincronizarPlatos(categoriaId, platosUi) {
+  const todos = await http.get(RUTAS.productos)
+  const actuales = todos.filter(
+    (producto) => String(producto.category?._id ?? producto.category) === String(categoriaId)
+  )
+  const idsEnPantalla = new Set(platosUi.map((plato) => String(plato.id)))
+
+  for (const plato of platosUi) {
+    const cuerpo = aProductoApi(plato, categoriaId)
+    const existente = actuales.find((producto) => String(producto._id) === String(plato.id))
+
+    if (!esIdDelBackend(plato.id) || !existente) {
+      const creado = await http.post(RUTAS.productos, cuerpo)
+      if (!activo(plato)) await http.patch(`${RUTAS.productos}/${creado._id}/status`, { isActive: false })
+      continue
+    }
+
+    await http.patch(`${RUTAS.productos}/${plato.id}`, cuerpo)
+    if ((existente.isActive !== false) !== activo(plato)) {
+      await http.patch(`${RUTAS.productos}/${plato.id}/status`, { isActive: activo(plato) })
+    }
+  }
+
+  // Lo que estaba en el backend y ya no está en pantalla, se quitó de la carta
+  const quitados = actuales.filter((producto) => !idsEnPantalla.has(String(producto._id)))
+  for (const producto of quitados) await http.delete(`${RUTAS.productos}/${producto._id}`)
+}
+
+/**
+ * Lo que se puede vender: un producto por plato y, si tiene combo, otro más con " (combo)"
+ * en el nombre. Es la ÚNICA fuente del catálogo de Pedidos y de la edición de ventas.
+ * Cada producto lleva `productoId` (el _id del plato en el backend) y `combo`, que es lo que
+ * el backend necesita para armar el pedido con los precios del catálogo.
  */
 export const productosVendibles = (categorias) =>
   categorias
@@ -79,10 +126,12 @@ export const productosVendibles = (categorias) =>
       nombre: categoria.nombre,
       icono: categoria.icono,
       productos: categoria.productos
-        .filter((plato) => plato.estado !== 'Inhabilitado')
+        .filter(activo)
         .flatMap((plato) => [
           {
             id: plato.id,
+            productoId: plato.id,
+            combo: false,
             nombre: plato.nombre,
             precio: plato.precio,
             descripcion: plato.descripcion,
@@ -92,13 +141,13 @@ export const productosVendibles = (categorias) =>
             ? [
                 {
                   id: `${plato.id}-combo`,
+                  productoId: plato.id,
+                  combo: true,
                   nombre: `${plato.nombre} (combo)`,
                   precio: plato.precioCombo,
                   descripcion: 'Con papa francesa y gaseosa 250 ml.',
-                  // El combo es el mismo plato con acompañamiento: se queda
-                  // con su imagen.
+                  // El combo es el mismo plato con acompañamiento: se queda con su imagen.
                   imagen: plato.imagen,
-                  combo: true,
                 },
               ]
             : []),
@@ -107,18 +156,45 @@ export const productosVendibles = (categorias) =>
     .filter((categoria) => categoria.productos.length > 0)
 
 export const menuApi = {
-  // `soloDisponibles` filtra en json-server (?estado=Disponible): las
-  // categorías ocultas no llegan al navegador del cliente.
+  /**
+   * `soloDisponibles` (carta de clientes, visitantes y catálogo de Pedidos): usa la ruta
+   * pública, que ya excluye los platos inhabilitados, y oculta las categorías inhabilitadas.
+   * Sin él (Gestión de Menú del administrador) se pide todo, incluido lo inhabilitado.
+   */
   listarCategorias: async ({ soloDisponibles = false, senal } = {}) => {
-    const { datos, total } = await http.lista(RUTA, {
-      query: soloDisponibles ? { estado: 'Disponible' } : undefined,
-      senal,
-    })
-    return { categorias: datos.map(aCategoriaUi), total }
+    const [categorias, productos] = await Promise.all([
+      http.get(RUTAS.categorias, { senal }),
+      http.get(soloDisponibles ? RUTAS.productosPublicos : RUTAS.productos, { senal }),
+    ])
+
+    const deProductos = categorias
+      .filter((categoria) => categoria.type === TIPO_PRODUCTO)
+      .filter((categoria) => !soloDisponibles || categoria.status !== false)
+      .map((categoria) => aCategoriaUi(categoria, productos))
+
+    return { categorias: deProductos, total: deProductos.length }
   },
 
-  crearCategoria: (ui) => http.post(RUTA, aCategoriaApi(ui)),
-  actualizarCategoria: (id, ui) => http.put(`${RUTA}/${id}`, aCategoriaApi(ui)),
-  cambiarEstadoCategoria: (id, estado) => http.patch(`${RUTA}/${id}`, { estado }),
-  eliminarCategoria: (id) => http.delete(`${RUTA}/${id}`),
+  crearCategoria: async (ui) => {
+    const creada = await http.post(RUTAS.categorias, { ...aCategoriaApi(ui), status: true })
+    await sincronizarPlatos(creada._id, ui.productos ?? [])
+    return creada
+  },
+
+  actualizarCategoria: async (id, ui) => {
+    const actualizada = await http.patch(`${RUTAS.categorias}/${id}`, aCategoriaApi(ui))
+    await sincronizarPlatos(id, ui.productos ?? [])
+    return actualizada
+  },
+
+  cambiarEstadoCategoria: (id, estado) =>
+    http.patch(`${RUTAS.categorias}/${id}`, { status: estado !== 'Inhabilitado' }),
+
+  /** El backend no borra en cascada: primero se quitan los platos, luego la categoría. */
+  eliminarCategoria: async (id) => {
+    const todos = await http.get(RUTAS.productos)
+    const suyos = todos.filter((producto) => String(producto.category?._id ?? producto.category) === String(id))
+    for (const producto of suyos) await http.delete(`${RUTAS.productos}/${producto._id}`)
+    return http.delete(`${RUTAS.categorias}/${id}`)
+  },
 }

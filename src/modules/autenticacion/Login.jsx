@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { supabase } from '../../services/supabase'
+import { useAuth } from '../../context/AuthContext'
 import { useAvisos } from '../../context/AvisosContext'
 import FormularioAuth from './FormularioAuth'
 import CampoTexto from './CampoTexto'
@@ -11,6 +11,7 @@ const CREDENCIALES_VACIAS = { email: '', password: '' }
 
 export default function Login() {
   const avisos = useAvisos()
+  const { iniciarSesion: entrar } = useAuth()
   const [credenciales, setCredenciales] = useState(CREDENCIALES_VACIAS)
   const [errores, setErrores] = useState({})
   const [autenticando, setAutenticando] = useState(false)
@@ -32,24 +33,23 @@ export default function Login() {
     }
 
     setAutenticando(true)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: credenciales.email.trim(),
-      password: credenciales.password,
-    })
-    setAutenticando(false)
-
-    if (error || !data.user) {
+    try {
+      // AuthContext guarda token y usuario; App redirige al panel del rol.
+      await entrar({ email: credenciales.email.trim(), password: credenciales.password })
+      avisos.exito('¡Bienvenido!', 'Sesión iniciada en Corralejo Fast Food.')
+    } catch (err) {
       // Mensaje genérico a propósito (R63): distinguir "correo inexistente" de
       // "contraseña incorrecta" revela qué correos están registrados.
-      avisos.error('No pudimos iniciar sesión', 'El correo o la contraseña no son correctos.')
-      return
+      const estado = err.response?.status
+      avisos.error(
+        'No pudimos iniciar sesión',
+        estado === 401 || estado === 400
+          ? 'El correo o la contraseña no son correctos.'
+          : 'No se pudo conectar con el servidor. Inténtalo de nuevo.'
+      )
+    } finally {
+      setAutenticando(false)
     }
-
-    // No hace falta avisar al padre: AuthContext se entera por su suscripción
-    // a onAuthStateChange y App redirige al panel del rol. El aviso no bloquea
-    // esa redirección: el diálogo modal que había antes obligaba a esperar a su
-    // temporizador antes de entrar al panel.
-    avisos.exito('¡Bienvenido!', 'Sesión iniciada en Corralejo Fast Food.')
   }
 
   return (

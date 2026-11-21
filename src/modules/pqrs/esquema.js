@@ -30,18 +30,21 @@ const TIPOS = {
 
 export const NOMBRES_TIPO = Object.keys(TIPOS)
 
-export const ESTADOS = ['Pendiente', 'En revisión', 'Resuelta']
+// Los mismos estados que acepta el backend (modelo PQRS).
+export const ESTADOS = ['Pendiente', 'En proceso', 'Resuelto', 'Cerrado']
 
 export const COLOR_ESTADO = {
   Pendiente: 'warning',
-  'En revisión': 'info',
-  Resuelta: 'success',
+  'En proceso': 'info',
+  Resuelto: 'success',
+  Cerrado: 'secondary',
 }
 
 export const ICONO_ESTADO = {
   Pendiente: 'fa-hourglass-half',
-  'En revisión': 'fa-magnifying-glass',
-  Resuelta: 'fa-circle-check',
+  'En proceso': 'fa-magnifying-glass',
+  Resuelto: 'fa-circle-check',
+  Cerrado: 'fa-lock',
 }
 
 export const iconoDe = (tipo) => TIPOS[tipo]?.icono ?? TIPOS.Petición.icono
@@ -60,7 +63,7 @@ const LARGO_MINIMO_TEXTO = 15
 export const LARGO_MAXIMO_TEXTO = 1000
 
 /**
- * Validación de experiencia, no de seguridad: json-server no valida nada (R61).
+ * Validación de experiencia, no de seguridad: la API no valida nada (R61).
  * Se ejecuta antes de la llamada de red para no gastar un viaje y para poder
  * señalar el campo exacto que falta.
  *

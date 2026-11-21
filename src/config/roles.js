@@ -8,15 +8,16 @@
 //   cliente  → panel del cliente registrado (incluye PQRS).
 //   usuario  → visitante SIN sesión: lo del cliente salvo lo que exige cuenta (PQRS).
 //
-// El rol de una sesión sale de user_metadata.rol en Supabase. 'usuario' no se
-// guarda en ningún sitio: es la ausencia de sesión.
+// El rol de una sesión es el `role` del usuario que devuelve el backend
+// (Owner, Administrador, Empleado, Cliente). 'usuario' no se guarda en ningún
+// sitio: es la ausencia de sesión.
 
 export const ROL = Object.freeze({
-  OWNER: 'owner',
-  ADMIN: 'admin',
-  EMPLEADO: 'empleado',
-  CLIENTE: 'cliente',
-  USUARIO: 'usuario',
+  OWNER: 'Owner',
+  ADMIN: 'Administrador',
+  EMPLEADO: 'Empleado',
+  CLIENTE: 'Cliente',
+  USUARIO: 'Usuario',
 })
 
 /** Roles que solo se obtienen con una sesión iniciada. */
@@ -97,12 +98,21 @@ export const TITULO_PANEL = {
 /** Roles con la estética translúcida del cliente (ver Layout). */
 export const ROLES_VITRINA = Object.freeze([ROL.CLIENTE, ROL.USUARIO])
 
+/** Nombre del rol en el backend (enum `role` del modelo User) → rol de la app. */
+const DESDE_BACKEND = Object.freeze({
+  owner: ROL.OWNER,
+  administrador: ROL.ADMIN,
+  empleado: ROL.EMPLEADO,
+  cliente: ROL.CLIENTE,
+})
+
 /**
  * Rol de una sesión iniciada. Cualquier valor desconocido cae en el de menor
  * privilegio CON cuenta (R2). 'usuario' no se acepta aquí: quien tiene sesión
  * nunca es un visitante.
  */
 export const normalizarRol = (valor) => {
-  const rol = String(valor ?? '').toLowerCase().trim()
+  const texto = String(valor ?? '').toLowerCase().trim()
+  const rol = DESDE_BACKEND[texto] ?? texto
   return ROLES_CON_SESION.includes(rol) ? rol : ROL.CLIENTE
 }

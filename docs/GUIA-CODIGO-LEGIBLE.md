@@ -26,7 +26,7 @@ Antes de crear un archivo, contesta: **¿de qué parte del negocio es?**
 | El cascarón de la app (header, menú, errores) | `src/components/layout/` | `Layout.jsx` |
 | Un hook que sirve a varios dominios | `src/hooks/` | `useRecurso.js` |
 | Textos largos y listas fijas de interfaz | `src/data/` | `contenido.js` |
-| Datos del negocio o de prueba (registros, cifras, contacto) | `server/db.json` (json-server), nunca en `src/` | colección `establecimiento` |
+| Datos del negocio o de prueba (registros, cifras, contacto) | La base de datos del backend (API), nunca en `src/` | colección `establecimiento` |
 | Formato de dinero, fechas | `src/utils/` | `format.js` |
 | Colores y estilos | `src/styles/theme.css` (único CSS) | — |
 

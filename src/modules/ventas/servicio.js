@@ -1,40 +1,65 @@
 // LÓGICA DE NEGOCIO DEL MÓDULO DE VENTAS.
 //
-// Las pantallas (Ventas.jsx, Pedidos.jsx) no saben cómo se numera una venta,
-// cómo se arma su QR ni qué pasa con el pedido cuando la venta cambia: llaman
-// a las funciones de este archivo. Hay dos tipos:
-// - PURAS (construirVenta, minutosRestantes, cumpleRango…): reciben datos y
-//   devuelven datos; no tocan la red.
-// - DE PERSISTENCIA (cargarVentas, guardarVentaEditada, eliminarVentasDePedido):
-//   leen y escriben en json-server a través de services/api.js.
+// Las pantallas (Ventas.jsx, Pedidos.jsx) no saben cómo llega una venta del backend ni qué
+// pasa al corregirla: llaman a las funciones de este archivo. Hay dos tipos:
+// - PURAS (aVentaUi, minutosRestantes, cumpleRango…): reciben datos y devuelven datos.
+// - DE PERSISTENCIA (cargarVentas, guardarVentaEditada, eliminarVentasDePedido): hablan con
+//   /api/sales a través de services/http.js.
+//
+// Lo que ahora hace el BACKEND (y ya no el navegador): numerar la venta y el tiquete, generar
+// el código QR, calcular el total con los precios del catálogo y descontar los insumos.
 
-import { api } from '../../services/api'
+import { http } from '../../services/http'
 import { config } from '../../services/config'
-import { fechaISO } from '../../utils/format'
-import { idUnico } from '../../utils/id'
+import { fechaISO, hora12 } from '../../utils/format'
+import { menuApi, productosVendibles } from '../menu/api'
 
+const RUTA = '/sales'
+const RUTA_PEDIDOS = '/orders'
 const MINUTOS_MODIFICACION = 75
 
-/** Extrae el número de un código tipo "#V-12" o "#T-0007". */
-const numeroDeCodigo = (codigo) =>
-  parseInt(String(codigo ?? '').replace(/\D/g, ''), 10) || 0
+/**
+ * Venta del backend → forma que usan las pantallas (tabla, detalle y tiquete).
+ * Backend: { _id, saleId: 12, ticketId: 7, qr, fecha, cliente, totalPagado,
+ *            empleadoResponsable, orderId: { _id, orderNumber } | null, estadoPedido,
+ *            direccionEntrega, detalles: [{ producto, cantidad, precio_unitario, subtotal }] }
+ */
+export const aVentaUi = (venta) => {
+  const fecha = new Date(venta.fecha ?? venta.createdAt)
+  const dia = fechaISO(fecha)
+  const [, mes, numeroDia] = dia.split('-')
+  // `orderId` llega con el pedido completo (populate) o como un id suelto
+  const pedido = venta.orderId && typeof venta.orderId === 'object' ? venta.orderId : null
 
-/** Código QR único por venta, p. ej. QR-V12-8F3A91C2D4. */
-const generarCodigoQR = (numeroVenta, usados = new Set()) => {
-  let codigo
-  do {
-    codigo = `QR-V${numeroVenta}-${idUnico().replace(/-/g, '').slice(0, 10).toUpperCase()}`
-  } while (usados.has(codigo))
-  return codigo
+  return {
+    id: venta._id,
+    saleId: `#V-${venta.saleId}`,
+    date: dia,
+    dateFormatted: `${numeroDia}/${mes}`,
+    time: hora12(new Date(venta.createdAt ?? venta.fecha)),
+    client: venta.cliente ?? 'Consumidor Final',
+    total: Number(venta.totalPagado) || 0,
+    ticketId: `#T-${String(venta.ticketId ?? '').padStart(4, '0')}`,
+    qrCode: venta.qr ?? '',
+    employeeId: venta.empleadoResponsable ?? '',
+    orderId: pedido ? `#P-${pedido.orderNumber}` : '',
+    pedidoId: pedido?._id ?? (venta.orderId ? String(venta.orderId) : null),
+    status: venta.estadoPedido === 'Cancelado' ? 'Cancelado' : 'Entregado',
+    deliveryAddress: venta.direccionEntrega ?? 'Local',
+    createdAt: venta.createdAt,
+    items: (venta.detalles ?? []).map((detalle, indice) => ({
+      id: indice + 1,
+      product: detalle.producto,
+      quantity: detalle.cantidad,
+      unitPrice: detalle.precio_unitario,
+      price: detalle.subtotal ?? detalle.cantidad * detalle.precio_unitario,
+    })),
+  }
 }
 
 /**
- * Enlace que abre la pantalla de valoración de esa venta.
- *
- * Es lo que el QR codifica, y no el código a secas: un QR con el texto
- * "QR-V12-8F3A91C2D4" dentro no hace nada al escanearlo —la cámara enseña esas
- * letras y ahí se acaba—, mientras que este abre el formulario con el ticket
- * ya cargado y sin pedir cuenta (R74).
+ * Enlace que abre la pantalla de valoración de esa venta. Es lo que el QR codifica, y no el
+ * código a secas: el enlace abre el formulario con el tiquete ya cargado y sin pedir cuenta.
  */
 const enlaceCalificar = (venta) =>
   venta?.qrCode ? `${config.appUrl}/calificar/${venta.qrCode}` : ''
@@ -51,52 +76,9 @@ export const minutosRestantes = (venta, ahora = Date.now()) => {
   return Math.max(0, MINUTOS_MODIFICACION - transcurridos)
 }
 
-/** Precio unitario tolerante con ventas antiguas, que solo guardaban el total de la línea. */
+/** Precio unitario tolerante con líneas que solo traen el total. */
 export const precioUnitario = (item) =>
   item.unitPrice ?? (item.quantity ? item.price / item.quantity : item.price)
-
-/**
- * Construye la venta a partir del pedido, respetando sus productos, fecha y
- * hora. `responsable` es quien la factura (nombre o correo de la sesión): antes
- * todas las ventas quedaban a nombre de un empleado fijo, fuera quien fuera.
- */
-export const construirVenta = (pedido, ventasExistentes, numeroPedido, responsable) => {
-  const ahora = new Date()
-  const numeroVenta = Math.max(0, ...ventasExistentes.map((s) => numeroDeCodigo(s.saleId))) + 1
-  const numeroTicket = Math.max(0, ...ventasExistentes.map((s) => numeroDeCodigo(s.ticketId))) + 1
-
-  const fecha = pedido.fecha || fechaISO(ahora)
-  const [, mes, dia] = fecha.split('-')
-
-  const items = pedido.items.map((item, i) => ({
-    id: i + 1,
-    product: item.name,
-    quantity: Number(item.qty) || 0,
-    unitPrice: Number(item.price) || 0,
-    price: (Number(item.price) || 0) * (Number(item.qty) || 0),
-  }))
-
-  return {
-    saleId: `#V-${numeroVenta}`,
-    date: fecha,
-    dateFormatted: `${dia}/${mes}`,
-    time: pedido.hora || '',
-    client: pedido.client || 'Consumidor Final',
-    total: items.reduce((suma, item) => suma + item.price, 0),
-    ticketId: `#T-${String(numeroTicket).padStart(4, '0')}`,
-    qrCode: generarCodigoQR(
-      numeroVenta,
-      new Set(ventasExistentes.map((s) => s.qrCode).filter(Boolean))
-    ),
-    employeeId: responsable || 'Sin asignar',
-    orderId: `#P-${numeroPedido}`,
-    pedidoId: pedido.id,
-    status: 'Entregado',
-    deliveryAddress: pedido.deliveryAddress || 'Local / Mostrador',
-    createdAt: ahora.toISOString(),
-    items,
-  }
-}
 
 /** Compara el total contra un filtro tipo ">20000", "<5000" o "20000". */
 export const cumpleRango = (total, rango) => {
@@ -111,87 +93,68 @@ export const cumpleRango = (total, rango) => {
   return total >= valor
 }
 
-/**
- * Lista de ventas para la pantalla, ya saneada y ordenada.
- *
- * Las ventas dependen de los pedidos: si el pedido ya no existe, la venta es
- * huérfana y se borra. Las ventas antiguas sin qrCode reciben uno y se guarda.
- */
+/** Todas las ventas, de la más reciente a la más antigua. */
 export async function cargarVentas() {
-  const ventas = await api.list('sales')
-
-  let vigentes = ventas
-  try {
-    const pedidos = await api.list('pedidos')
-    const idsPedidos = new Set(pedidos.map((p) => String(p.id)))
-    // Una lista de pedidos VACÍA casi nunca significa que todas las ventas
-    // sean huérfanas: suele ser una base reiniciada o una respuesta a medias.
-    // Sin esta guarda, abrir la pantalla borraba todas las ventas de golpe.
-    const huerfanas =
-      pedidos.length === 0
-        ? []
-        : ventas.filter((s) => s.pedidoId != null && !idsPedidos.has(String(s.pedidoId)))
-    await Promise.all(huerfanas.map((s) => api.remove('sales', s.id).catch(() => null)))
-    const idsHuerfanas = new Set(huerfanas.map((s) => s.id))
-    vigentes = ventas.filter((s) => !idsHuerfanas.has(s.id))
-  } catch {
-    // Si /pedidos no responde se muestran todas las ventas sin tocar nada.
-  }
-
-  const usados = new Set(vigentes.map((s) => s.qrCode).filter(Boolean))
-  const conQR = await Promise.all(
-    vigentes.map(async (venta) => {
-      if (venta.qrCode) return venta
-      const qrCode = generarCodigoQR(numeroDeCodigo(venta.saleId), usados)
-      usados.add(qrCode)
-      return api.patch('sales', venta.id, { qrCode }).catch(() => ({ ...venta, qrCode }))
-    })
-  )
-
-  // De la más reciente a la más antigua por fecha real, no por número: el
-  // número no garantiza el orden cuando hay ventas de otro periodo.
+  const ventas = (await http.get(RUTA)).map(aVentaUi)
   const momento = (venta) => Date.parse(venta.createdAt ?? venta.date) || 0
-  return conQR.sort(
-    (a, b) => momento(b) - momento(a) || numeroDeCodigo(b.saleId) - numeroDeCodigo(a.saleId)
-  )
+  return ventas.sort((a, b) => momento(b) - momento(a))
 }
 
+// "producto×cantidad" de cada línea: si la firma cambió, cambiaron los productos de la venta
+const firma = (items) =>
+  items.map((item) => `${item.product}×${item.quantity}`).sort().join('|')
+
 /**
- * Guarda la venta editada y, si viene de un pedido, deja el pedido con las
- * mismas líneas: la gráfica de Pedidos y los indicadores no deben contar cosas
- * distintas.
+ * Guarda una venta corregida.
+ *
+ * - Si solo cambiaron el cliente o la dirección: PATCH de esos campos.
+ * - Si cambiaron los PRODUCTOS: el backend no permite editar las líneas de una venta (el total
+ *   y el inventario ya se calcularon con ellas). El camino que ofrece es:
+ *     1. eliminar la venta   → el backend devuelve los insumos al stock y reabre el pedido;
+ *     2. corregir el pedido  → PUT /orders/:id/items con las líneas nuevas;
+ *     3. registrar la venta  → POST /sales, que vuelve a descontar y calcular el total.
+ *   La venta corregida recibe número, tiquete y QR nuevos.
  */
 export async function guardarVentaEditada(venta) {
-  const actualizada = await api.update('sales', venta.id, venta)
-  if (venta.pedidoId) {
-    try {
-      const pedido = await api.get('pedidos', venta.pedidoId)
-      await api.update('pedidos', pedido.id, {
-        ...pedido,
-        items: venta.items.map((item) => ({
-          name: item.product,
-          price: item.unitPrice,
-          qty: item.quantity,
-        })),
-      })
-    } catch {
-      // El pedido pudo borrarse; la venta ya quedó guardada.
-    }
+  const original = aVentaUi(await http.get(`${RUTA}/${venta.id}`))
+  const campos = { cliente: venta.client, direccionEntrega: venta.deliveryAddress }
+
+  if (firma(original.items) === firma(venta.items)) {
+    return aVentaUi(await http.patch(`${RUTA}/${venta.id}`, campos))
   }
-  return actualizada
+
+  if (!original.pedidoId) {
+    throw new Error('Esta venta no viene de un pedido: sus productos no se pueden cambiar.')
+  }
+
+  // Del nombre de cada línea al producto del backend (con "(combo)" cuando lo es)
+  const { categorias } = await menuApi.listarCategorias({ soloDisponibles: true })
+  const porNombre = new Map(
+    productosVendibles(categorias)
+      .flatMap((categoria) => categoria.productos)
+      .map((producto) => [producto.nombre, producto])
+  )
+  const items = venta.items.map((item) => {
+    const producto = porNombre.get(item.product)
+    if (!producto) throw new Error(`"${item.product}" ya no está en la carta.`)
+    return { productId: producto.productoId, quantity: Number(item.quantity), combo: producto.combo }
+  })
+
+  await http.delete(`${RUTA}/${venta.id}`)
+  await http.put(`${RUTA_PEDIDOS}/${original.pedidoId}/items`, { items })
+  return aVentaUi(await http.post(RUTA, { orderId: original.pedidoId, ...campos }))
 }
 
 /**
- * Una venta solo existe mientras su pedido esté resuelto: al cancelar, eliminar
- * o reabrir el pedido hay que borrarla. Devuelve cuántas se eliminaron.
+ * Elimina la venta de un pedido (al reabrirlo o eliminarlo). El backend devuelve sus insumos
+ * al stock y deja el pedido en "Listo". Devuelve cuántas se eliminaron.
  */
-export const eliminarVentasDePedido = async (pedido, numeroPedido) => {
-  const ventas = await api.list('sales')
-  const codigo = `#P-${numeroPedido}`
-  const asociadas = ventas.filter((s) => s.pedidoId === pedido.id || s.orderId === codigo)
+export const eliminarVentasDePedido = async (pedido) => {
+  const ventas = (await http.get(RUTA)).map(aVentaUi)
+  const asociadas = ventas.filter((venta) => String(venta.pedidoId) === String(pedido.id))
 
   for (const venta of asociadas) {
-    await api.remove('sales', venta.id).catch(() => null) // 404 = ya no existe
+    await http.delete(`${RUTA}/${venta.id}`)
   }
   return asociadas.length
 }

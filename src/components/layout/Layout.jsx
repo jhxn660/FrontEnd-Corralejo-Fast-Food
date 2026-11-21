@@ -82,7 +82,7 @@ export default function Layout({ children }) {
   // Capa 2 del control de acceso (R14): solo se dibuja el menú del rol activo.
   const navegacion = (
     <ul className="nav nav-panel flex-column gap-1">
-      {opciones.map(({ vista, ruta, titulo, icono, modulo }) => (
+      {opciones.map(({ vista, ruta, etiqueta, icono, modulo }) => (
         <Fragment key={vista}>
           <li className="nav-item">
             <NavLink
@@ -91,7 +91,7 @@ export default function Layout({ children }) {
               onClick={() => setMenuAbierto(false)}
             >
               <i className={`fa-solid ${icono} me-2`} />
-              {titulo}
+              {etiqueta}
             </NavLink>
           </li>
           {!informacionAlFinal && modulo === informacionTras && botonInformacion}

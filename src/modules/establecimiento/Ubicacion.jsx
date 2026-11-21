@@ -15,7 +15,7 @@ import { useFicha } from './useFicha'
  * cambiarlo desde aquí ni escribiendo la URL a mano (R44).
  *
  * Los puntos de referencia y los tiempos salen de la ficha (`referencias` y
- * `tiempos` en json-server); si la ficha no los trae, su tarjeta no se pinta.
+ * `tiempos` en la API); si la ficha no los trae, su tarjeta no se pinta.
  */
 export default function Ubicacion() {
   const { datos: ficha, cargando, error, recargar } = useFicha()

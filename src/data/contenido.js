@@ -2,7 +2,7 @@
 // posicionales (R24).
 //
 // Lo que el negocio edita —misión, visión y narrativa— NO está aquí: vive en la
-// colección `informacion` de json-server (establecimiento/api.js). De esos dos
+// colección `informacion` de la API (establecimiento/api.js). De esos dos
 // pilares solo se declara la presentación.
 export const PILARES = [
   { id: 'mision', titulo: 'Nuestra misión', icono: 'fa-thumbtack' },

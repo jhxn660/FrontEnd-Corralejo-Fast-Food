@@ -34,8 +34,8 @@ const ESTADOS_FILTRO = { todos: 'Todos', activos: 'Activos', inactivos: 'Inactiv
  * comprobar el rol aquí: Administrador → ELIMINAR_ADMINS (solo Owner);
  * Empleado → ELIMINAR_EMPLEADOS (Owner y, de momento, Admin).
  *
- * Datos: `usuariosApi` (api.js). La ficha se guarda en json-server
- * (colección `usuarios`) y el alta crea además la cuenta de acceso en Supabase.
+ * Datos: `usuariosApi` (api.js). Las cuentas viven en el backend
+ * (/api/users), con la contraseña cifrada.
  */
 export default function GestionUsuarios() {
   const { usuario, puede } = useAuth()

@@ -1,93 +1,222 @@
 import { http } from '../../services/http'
 import { menuApi } from '../menu/api'
-import { estrellasDe, valoracionDe } from './valoracion'
 
-// Colecciones de json-server del módulo. Viven aquí y en ningún otro sitio
+// Rutas del backend que usa el módulo Establecimiento. Viven aquí y en ningún otro sitio
 // (R48): ni los hooks ni las pantallas escriben una ruta.
 const RUTAS = {
-  ficha: '/establecimiento',
-  dias: '/diasEspeciales',
+  // Ficha del local: dirección, teléfono, ciudad y mapa (un documento)
+  ubicaciones: '/ubicaciones',
+  // Horario de atención: un documento por día de la semana
+  horarios: '/horarios',
+  // Misión, visión y narrativa: un documento por sección (campo `categoria`)
+  informacion: '/establecimiento',
   ventas: '/sales',
-  comentarios: '/comentarios',
-  meGusta: '/meGusta',
-  informacion: '/informacion',
+  comentarios: '/comments',
+  comentariosPublicos: '/comments/public',
 }
 
+/* ───────────────────────── Ficha y horarios ───────────────────────── */
+
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+const aHorarioUi = (horario) => ({
+  id: horario._id,
+  dia: horario.dia,
+  horaApertura: horario.horaApertura,
+  horaCierre: horario.horaCierre,
+  estaAbierto: horario.estaAbierto !== false,
+  estadoNota: horario.estadoNota ?? '',
+})
+
 /**
- * Contenido institucional (botón "Información" / "Gestión de Información"):
- * misión, visión y las historias de la narrativa. Un solo documento en la
- * colección `informacion`; lo editan Admin y Owner (PERMISO.EDITAR_INFORMACION).
+ * Horario del backend → `horarioSemanal` de la ficha, el formato que entienden el calendario
+ * y el aviso "abierto / cerrado ahora" (ver horario.js): siete días, de lunes a domingo.
+ * Un día sin registro o marcado como cerrado queda con abre/cierra en null.
+ */
+const aHorarioSemanal = (horarios) =>
+  DIAS.map((dia) => {
+    const registro = horarios.find((horario) => horario.dia === dia)
+    const abierto = registro && registro.estaAbierto !== false
+    return {
+      dia,
+      abre: abierto ? registro.horaApertura : null,
+      cierra: abierto ? registro.horaCierre : null,
+      nota: registro?.estadoNota ?? '',
+    }
+  })
+
+/** Texto corto del horario para la ficha ("Martes: 14:00 – 21:30 · …"). */
+const horarioEnTexto = (semana) =>
+  semana
+    .filter((dia) => dia.abre)
+    .map((dia) => `${dia.dia}: ${dia.abre} – ${dia.cierra}`)
+    .join(' · ')
+
+/**
+ * Ubicación del backend + horarios → ficha que pintan las pantallas.
+ * El backend no tiene WhatsApp aparte: se usa el teléfono del local.
+ */
+const aFichaUi = (ubicacion, horarios) => {
+  const horarioSemanal = aHorarioSemanal(horarios)
+  return {
+    id: ubicacion._id,
+    nombre: ubicacion.titulo,
+    descripcion: ubicacion.descripcion ?? '',
+    ciudad: ubicacion.ciudad ?? '',
+    direccion: ubicacion.direccion ?? '',
+    telefono: ubicacion.telefono ?? '',
+    whatsapp: ubicacion.telefono ?? '',
+    mapa: ubicacion.enlaceMapa ?? '',
+    horario: horarioEnTexto(horarioSemanal),
+    horarioSemanal,
+    referencias: ubicacion.referencia
+      ? [{ id: 'referencia', icono: 'fa-location-dot', texto: ubicacion.referencia }]
+      : [],
+    tiempos: [],
+  }
+}
+
+// El modelo Ubicacion exige título, descripción, dirección y teléfono.
+const aUbicacionApi = (ficha) => ({
+  titulo: ficha.nombre,
+  descripcion: ficha.descripcion || ficha.nombre,
+  direccion: ficha.direccion,
+  telefono: ficha.telefono,
+  ciudad: ficha.ciudad ?? '',
+  enlaceMapa: ficha.mapa ?? '',
+})
+
+export const establecimientoApi = {
+  /** La ficha del local, o null si todavía no hay ninguna ubicación registrada. */
+  ficha: async ({ senal } = {}) => {
+    const [ubicaciones, horarios] = await Promise.all([
+      http.get(RUTAS.ubicaciones, { senal }),
+      http.get(RUTAS.horarios, { senal }),
+    ])
+    return ubicaciones[0] ? aFichaUi(ubicaciones[0], horarios) : null
+  },
+
+  /** Sin id la crea (primera vez); con id la actualiza. */
+  actualizarFicha: (id, ficha) =>
+    id
+      ? http.patch(`${RUTAS.ubicaciones}/${id}`, aUbicacionApi(ficha))
+      : http.post(RUTAS.ubicaciones, aUbicacionApi(ficha)),
+
+  listarHorarios: async ({ senal } = {}) => (await http.get(RUTAS.horarios, { senal })).map(aHorarioUi),
+
+  /** Sin id lo crea; con id lo actualiza. */
+  guardarHorario: ({ id, ...horario }) =>
+    id ? http.patch(`${RUTAS.horarios}/${id}`, horario) : http.post(RUTAS.horarios, horario),
+
+  eliminarHorario: (id) => http.delete(`${RUTAS.horarios}/${id}`),
+}
+
+/* ───────────────────────── Misión, visión y narrativa ───────────────────────── */
+
+// Secciones que acepta el backend (enum `categoria` del modelo Establecimiento)
+const MISION = 'Misión'
+const VISION = 'Visión'
+const NARRATIVA = 'Narrativa Creativa'
+const SECCIONES_HISTORIA = ['El Origen', 'El Secreto del Banquete', 'La Comunidad Gastronómica', 'El Lema de la Casa']
+
+// El backend no guarda iconos: cada sección tiene el suyo aquí.
+const ICONO_HISTORIA = {
+  'El Origen': 'fa-dungeon',
+  'El Secreto del Banquete': 'fa-utensils',
+  'La Comunidad Gastronómica': 'fa-people-group',
+  'El Lema de la Casa': 'fa-quote-left',
+  [NARRATIVA]: 'fa-book-open',
+}
+
+const aHistoriaUi = (seccion) => ({
+  id: seccion._id,
+  titulo: seccion.titulo,
+  icono: ICONO_HISTORIA[seccion.categoria] ?? ICONO_HISTORIA[NARRATIVA],
+  resumen: seccion.subtitulo ?? '',
+  texto: seccion.contenido ?? '',
+})
+
+/** Una historia nueva usa su título como sección si coincide con una del backend. */
+const seccionDe = (historia) => (SECCIONES_HISTORIA.includes(historia.titulo) ? historia.titulo : NARRATIVA)
+
+/**
+ * Contenido institucional (botón "Información"): misión, visión y las historias.
+ * En el backend cada una es un documento de /api/establecimiento.
  */
 export const informacionApi = {
   obtener: async ({ senal } = {}) => {
-    const { datos } = await http.lista(RUTAS.informacion, { senal })
-    const doc = datos[0]
+    const secciones = await http.get(RUTAS.informacion, { senal })
+    const de = (categoria) => secciones.find((seccion) => seccion.categoria === categoria)
     return {
-      id: doc?.id ?? null,
-      mision: doc?.mision ?? '',
-      vision: doc?.vision ?? '',
-      historias: Array.isArray(doc?.historias) ? doc.historias : [],
+      // Sin id: la pantalla trata la información como un solo bloque
+      id: 'informacion',
+      mision: de(MISION)?.contenido ?? '',
+      vision: de(VISION)?.contenido ?? '',
+      historias: secciones
+        .filter((seccion) => seccion.categoria !== MISION && seccion.categoria !== VISION)
+        .map(aHistoriaUi),
     }
   },
 
-  /** Sin documento previo lo crea; con él, lo reemplaza. */
-  guardar: ({ id, ...datos }) =>
-    id ? http.put(`${RUTAS.informacion}/${id}`, { id, ...datos }) : http.post(RUTAS.informacion, datos),
+  /**
+   * Guarda misión, visión e historias comparando con lo que hay en el backend: lo que existe
+   * se actualiza, lo nuevo se crea y las historias que ya no están se borran.
+   */
+  guardar: async ({ mision, vision, historias = [] }) => {
+    const secciones = await http.get(RUTAS.informacion)
+
+    const guardarSeccion = async (categoria, titulo, contenido) => {
+      if (!contenido?.trim()) return
+      const existente = secciones.find((seccion) => seccion.categoria === categoria)
+      if (existente) await http.patch(`${RUTAS.informacion}/${existente._id}`, { contenido })
+      else await http.post(RUTAS.informacion, { titulo, contenido, categoria })
+    }
+    await guardarSeccion(MISION, 'Misión', mision)
+    await guardarSeccion(VISION, 'Visión', vision)
+
+    const actuales = secciones.filter((seccion) => seccion.categoria !== MISION && seccion.categoria !== VISION)
+    for (const historia of historias) {
+      const cuerpo = { titulo: historia.titulo, subtitulo: historia.resumen, contenido: historia.texto }
+      const existente = actuales.find((seccion) => String(seccion._id) === String(historia.id))
+      if (existente) await http.patch(`${RUTAS.informacion}/${existente._id}`, cuerpo)
+      else await http.post(RUTAS.informacion, { ...cuerpo, categoria: seccionDe(historia) })
+    }
+
+    const quedan = new Set(historias.map((historia) => String(historia.id)))
+    for (const seccion of actuales.filter((s) => !quedan.has(String(s._id)))) {
+      await http.delete(`${RUTAS.informacion}/${seccion._id}`)
+    }
+  },
 }
+
+/* ───────────────────────── Destacados de la portada ───────────────────────── */
 
 // En pedidos y ventas el combo es un producto aparte ("X (combo)"). Para el
 // más vendido del día cuentan juntos: es el mismo plato.
 const SUFIJO_COMBO = ' (combo)'
 const nombreBase = (producto) => String(producto ?? '').replace(SUFIJO_COMBO, '')
 
-/** Ficha del local y días especiales del calendario de atención. */
-export const establecimientoApi = {
-  ficha: async ({ senal } = {}) => {
-    const { datos } = await http.lista(RUTAS.ficha, { senal })
-    return datos[0] ?? null
-  },
-
-  actualizarFicha: (id, ficha) => http.put(`${RUTAS.ficha}/${id}`, ficha),
-
-  listarDiasEspeciales: async ({ senal } = {}) => {
-    const { datos } = await http.lista(RUTAS.dias, { senal })
-    return datos
-  },
-
-  crearDiaEspecial: (dia) => http.post(RUTAS.dias, dia),
-  actualizarDiaEspecial: (id, dia) => http.put(`${RUTAS.dias}/${id}`, dia),
-  eliminarDiaEspecial: (id) => http.delete(`${RUTAS.dias}/${id}`),
-}
-
 export const destacadosApi = {
   /**
-   * El plato que más se vendió UN día concreto, para la tarjeta del día que se
-   * selecciona en el calendario.
-   *
-   * El filtro va al servidor (`?date=`) a propósito: sin él habría que bajar
-   * las 361 ventas cada vez que el cliente toca un día del calendario, y el
-   * calendario invita a tocar muchos. Devuelve null si ese día no hubo ventas,
-   * que es lo normal en un día futuro o en uno que el local no abrió.
+   * El plato que más se vendió UN día concreto. El filtro va al servidor (?from=día&to=día):
+   * sin él habría que bajar todas las ventas. Para clientes y visitantes el backend solo manda
+   * fecha, estado y productos vendidos. Devuelve null si ese día no hubo ventas.
    */
   masVendidoDelDia: async (iso, { senal } = {}) => {
     if (!iso) return null
 
-    // La carta viaja con las ventas del día porque el nombre del producto, que
-    // es lo único que guarda la venta, no dice nada de su imagen: hay que
-    // buscarla en el plato. Son diez categorías, mucho menos que las 361
-    // ventas que el filtro `?date=` evita descargar.
-    const [{ datos }, { categorias }] = await Promise.all([
-      http.lista(RUTAS.ventas, { query: { date: iso }, senal }),
-      menuApi.listarCategorias({ senal }),
+    const [ventas, { categorias }] = await Promise.all([
+      http.get(RUTAS.ventas, { query: { from: iso, to: iso }, senal }),
+      menuApi.listarCategorias({ soloDisponibles: true, senal }),
     ])
 
     const unidades = new Map()
-    datos
-      .filter((venta) => venta.status !== 'Cancelado')
+    ventas
+      .filter((venta) => venta.estadoPedido !== 'Cancelado')
       .forEach((venta) =>
-        (venta.items ?? []).forEach((item) => {
-          const nombre = nombreBase(item.product)
-          unidades.set(nombre, (unidades.get(nombre) ?? 0) + (Number(item.quantity) || 0))
+        (venta.detalles ?? []).forEach((detalle) => {
+          const nombre = nombreBase(detalle.producto)
+          unidades.set(nombre, (unidades.get(nombre) ?? 0) + (Number(detalle.cantidad) || 0))
         })
       )
 
@@ -101,20 +230,15 @@ export const destacadosApi = {
     return {
       nombre: mejor[0],
       cantidad: mejor[1],
-      ventas: datos.length,
+      ventas: ventas.length,
       // null si ese plato ya no está en la carta: se pinta el logo.
       imagen: plato?.imagen ?? null,
     }
   },
 
   /**
-   * La «Lista top»: los tres platos mejor calificados de la carta.
-   *
-   * Ordena por calificación (la que mantiene el administrador en la carta), no
-   * por unidades vendidas: un plato barato se vende mucho sin ser el mejor.
-   *
-   * El desempate es por precio ascendente: entre dos platos de cinco estrellas,
-   * primero el que menos cuesta.
+   * La «Lista top»: los tres platos mejor calificados de la carta. Desempate por precio
+   * ascendente: entre dos platos de cinco estrellas, primero el que menos cuesta.
    */
   mejorValorados: async ({ senal } = {}) => {
     const { categorias } = await menuApi.listarCategorias({ soloDisponibles: true, senal })
@@ -140,180 +264,76 @@ export const destacadosApi = {
   },
 }
 
-/**
- * «Me gusta» de los comentarios: un registro por persona y comentario.
- *
- * Por qué un registro y no un contador en el comentario: un número suelto lo
- * sube cualquiera tantas veces como quiera, y ya retiramos una calificación por
- * no poder comprobar quién la daba. Con un registro por persona, el segundo
- * clic quita el suyo en vez de inflar la cuenta.
- *
- * DEUDA (R17): el recuento se arma aquí descargando todos los registros, porque
- * json-server no agrega ni sabe quién pregunta.
- */
-export const meGustaApi = {
-  listar: async ({ senal } = {}) => {
-    const { datos } = await http.lista(RUTAS.meGusta, { senal })
-    return datos
-  },
-
-  dar: ({ comentario, usuario }) =>
-    http.post(RUTAS.meGusta, { comentario, usuario, fecha: new Date().toISOString() }),
-
-  quitar: (id) => http.delete(`${RUTAS.meGusta}/${id}`),
-
-  /** Al borrar un comentario se van con él sus «me gusta»: sin dueño no cuentan. */
-  quitarDeComentario: async (comentario) => {
-    const { datos } = await http.lista(RUTAS.meGusta, { query: { comentario } })
-    await Promise.all(datos.map((voto) => http.delete(`${RUTAS.meGusta}/${voto.id}`).catch(() => null)))
-  },
-}
+/* ───────────────────────── Opiniones, QR y "me gusta" ───────────────────────── */
 
 /**
  * CALIFICAR UN PEDIDO A PARTIR DEL QR DEL TICKET.
- *
- * El QR identifica la venta, la venta dice qué se compró, y la valoración se
- * guarda contra esos productos. Solo se puede puntuar lo que aparece en el
- * ticket: el código ES la prueba de compra, y por eso no hace falta sesión.
- *
- * Las dos puertas están en `buscarPorQr`: que la venta exista y no esté
- * cancelada, y que ese QR no se haya calificado ya (una valoración por ticket,
- * que es lo que impide votar en bucle con el mismo código).
- *
- * NO comprueba de quién es la venta. Es deliberado: un visitante sin cuenta
- * tiene el ticket en la mano y puede puntuar con él, mientras que exigir que
- * la venta estuviera a su nombre dejaba fuera a todo el que compra en el
- * mostrador sin registrarse.
- *
- * DEUDA (R17): las tres comprobaciones se hacen en el navegador; json-server
- * no impide escribir en `comentarios` saltándoselas.
+ * El backend no expone la venta a quien no es del personal, así que aquí solo se prepara el
+ * código. Las comprobaciones (que el QR exista y que no se haya calificado ya) las hace el
+ * backend al registrar la valoración, y su mensaje es el que ve la persona.
  */
 export const ticketsApi = {
-  buscarPorQr: async (qr, { senal } = {}) => {
+  buscarPorQr: async (qr) => {
     const codigo = String(qr ?? '').trim().toUpperCase()
     if (!codigo) throw new Error('Escribe el código del ticket.')
-
-    const { datos } = await http.lista(RUTAS.ventas, {
-      query: { qrCode: codigo },
-      senal,
-    })
-    const venta = datos[0]
-
-    if (!venta) throw new Error(`El código ${codigo} no corresponde a ninguna compra.`)
-    if (venta.status === 'Cancelado') throw new Error('Ese pedido fue cancelado.')
-
-    const { datos: previas } = await http.lista(RUTAS.comentarios, {
-      query: { qr: codigo },
-      senal,
-    })
-    if (previas.length > 0) throw new Error('Este pedido ya fue calificado.')
-
-    return {
-      qr: codigo,
-      ticket: venta.ticketId,
-      fecha: venta.date,
-      hora: venta.time,
-      total: venta.total,
-      entrega: venta.deliveryAddress,
-      productos: (venta.items ?? []).map((item) => ({
-        producto: item.product,
-        cantidad: Number(item.quantity) || 0,
-        precio: Number(item.unitPrice) || 0,
-      })),
-    }
+    return { qr: codigo, ticket: codigo, productos: [], sinDetalle: true }
   },
 }
 
 /**
- * OPINIONES: COMENTARIOS Y VALORACIONES EN UNA SOLA COLECCIÓN.
- *
- * No hay colección aparte. Una valoración ES un registro de `comentarios` que
- * además lleva `qr`, `ticket`, `valoracion` (1-10), `estrellas` (= valoracion
- * / 2, ver valoracion.js) y los `productos` del pedido. De ahí los indicadores
- * sacan la nota de cada producto (`indicadores/calculos.js`).
- *
- * | registro                        | qr | valoracion | texto | se ve en Opiniones          |
- * |---------------------------------|----|------------|-------|-----------------------------|
- * | puntuación sola (sin escribir)  | sí | 1-10       | ''    | sí (sin descripción)        |
- * | puntuación con comentario       | sí | 1-10       | sí    | sí; el texto tras aprobarse |
- * | comentario del muro, sin ticket | no | 0          | sí    | solo cuando se aprueba      |
- *
- * `usuario` queda en null cuando lo deja un visitante sin cuenta. La nota no
- * pierde valor por eso: lo que la respalda es el QR, no el correo.
+ * Valoración desde el QR del ticket (CalificarPedido). `valoracion`: entero 1-10.
+ * Los comentarios SOLO se crean así: el QR es la prueba de compra. Si hay sesión, el token
+ * viaja solo y el backend asocia el comentario al cliente.
  */
 export const valoracionesApi = {
-  /** Desde el QR del ticket (CalificarPedido). `valoracion`: entero 1-10. */
-  registrar: ({ ticket, valoracion, texto, correo }) =>
-    http.post(
-      RUTAS.comentarios,
-      {
-        qr: ticket.qr,
-        ticket: ticket.ticket,
-        usuario: correo ?? null,
-        nombre: correo ?? null,
-        valoracion,
-        estrellas: estrellasDe(valoracion),
-        texto: texto ?? '',
-        productos: ticket.productos,
-        fecha: new Date().toISOString(),
-        // Lo que se modera es el TEXTO, no la nota: una puntuación sin
-        // comentario no tiene nada que aprobar y ya cuenta en los indicadores.
-        visible: false,
-      }
-    ),
+  registrar: ({ ticket, valoracion, texto }) =>
+    http.post(RUTAS.comentarios, { codigo: ticket.qr, comentario: texto ?? '', valoracion }),
 }
+
+/** Comentario del backend → tarjeta de "Lo que dicen nuestros clientes". */
+const aOpinionUi = (comentario) => ({
+  id: comentario._id,
+  // Nombre público del autor; null = lo dejó un visitante sin cuenta
+  usuario: comentario.usuario?.name ?? null,
+  nombre: comentario.usuario?.name ?? null,
+  valoracion: comentario.valoracion ?? (comentario.calificacion ? comentario.calificacion * 2 : 0),
+  texto: comentario.comentario ?? '',
+  fecha: comentario.createdAt,
+  likes: comentario.likes ?? 0,
+  meGusta: Boolean(comentario.meGusta),
+  moderando: false,
+})
 
 export const opinionesApi = {
   /**
-   * La lista unificada de OpinionesClientes, de la más reciente a la más antigua.
-   *
-   * Entra todo registro con QR (la nota cuenta desde que se registra) y todo
-   * comentario del muro ya aprobado. El texto pendiente de aprobación se
-   * recorta: de una opinión ajena sin moderar solo se enseña la nota.
-   *
-   * `conDetalle` (PERMISO.VER_DETALLE_OPINIONES: Admin y Owner) conserva los
-   * productos calificados, el ticket y el QR. Sin él se quitan del registro, no
-   * solo de la pantalla: Visitante y Cliente reciben la opinión general.
-   *
-   * DEUDA (R17): el recorte es del navegador, así que el texto sin moderar y
-   * los productos igual viajan hasta aquí (json-server no filtra por rol).
+   * Comentarios visibles, del más reciente al más antiguo. `conDetalle` (Admin y Owner)
+   * añade el código QR, el ticket y los productos de la venta, que solo da la ruta del personal.
    */
   listar: async ({ conDetalle = false, senal } = {}) => {
-    const { datos } = await http.lista(RUTAS.comentarios, { senal })
-    return datos
-      .filter((registro) => {
-        const aprobadoConTexto =
-          registro.visible === true && String(registro.texto ?? '').trim() !== ''
-        return Boolean(registro.qr) || aprobadoConTexto
-      })
-      .map(({ productos, qr, ticket, ...registro }) => ({
-        ...registro,
-        ...(conDetalle ? { productos: productos ?? [], qr, ticket } : {}),
-        valoracion: valoracionDe(registro),
-        texto: registro.visible === true ? (registro.texto ?? '') : '',
-        moderando: registro.visible !== true && Boolean(registro.texto),
-      }))
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+    const publicos = (await http.get(RUTAS.comentariosPublicos, { senal })).map(aOpinionUi)
+    if (!conDetalle) return publicos
+
+    const completos = await http.get(RUTAS.comentarios, { senal })
+    const detalleDe = new Map(completos.map((comentario) => [String(comentario._id), comentario]))
+    return publicos.map((opinion) => {
+      const completo = detalleDe.get(String(opinion.id))
+      return {
+        ...opinion,
+        qr: completo?.codigo ?? null,
+        ticket: completo?.venta?.ticketId ? `#T-${String(completo.venta.ticketId).padStart(4, '0')}` : '',
+        productos: (completo?.venta?.detalles ?? []).map((detalle) => ({
+          producto: detalle.producto,
+          cantidad: detalle.cantidad,
+        })),
+      }
+    })
   },
 }
 
 /**
- * Comentario del muro, sin ticket detrás: no puntúa (ver la tabla de arriba).
- * Nace oculto (`visible: false`) y se publica cuando el administrador lo
- * aprueba en Moderación de PQRS.
+ * «Me gusta»: un contador dentro del comentario. El mismo botón lo da o lo quita; el backend
+ * sabe quién lo pulsa por el token. Pueden darlo Cliente, Administrador y Owner.
  */
-export const comentariosApi = {
-  publicar: ({ texto, nombre, usuario }) =>
-    http.post(RUTAS.comentarios, {
-      qr: null,
-      ticket: null,
-      texto,
-      nombre,
-      usuario,
-      valoracion: 0,
-      estrellas: 0,
-      productos: [],
-      fecha: new Date().toISOString(),
-      visible: false, // lo decide el administrador, nunca el cliente
-    }),
+export const meGustaApi = {
+  alternar: (comentarioId) => http.patch(`${RUTAS.comentarios}/${comentarioId}/like`),
 }

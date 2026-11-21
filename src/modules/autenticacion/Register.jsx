@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { supabase } from '../../services/supabase'
 import { useAvisos } from '../../context/AvisosContext'
+import { authApi } from '../../api/auth'
 import FormularioAuth from './FormularioAuth'
 import CampoTexto from './CampoTexto'
 import ReglasPassword from './ReglasPassword'
@@ -13,7 +13,8 @@ import {
   validarRegistro,
 } from './validaciones'
 
-const FORMULARIO_VACIO = { email: '', password: '', confirmacion: '' }
+// nombre y telefono son opcionales: si quedan vacíos no se envían
+const FORMULARIO_VACIO = { nombre: '', telefono: '', email: '', password: '', confirmacion: '' }
 
 export default function Register() {
   const navegar = useNavigate()
@@ -38,20 +39,26 @@ export default function Register() {
     }
 
     setRegistrando(true)
-    // Toda cuenta nueva arranca como cliente (R3); elevarla es una acción
-    // administrativa en Supabase. El rol viaja en el JWT: es el mismo sitio
-    // del que lo lee la aplicación (R1, R4).
-    const { error } = await supabase.auth.signUp({
-      email: formulario.email.trim(),
+    // Toda cuenta nueva arranca como cliente (R3): el backend fuerza ese rol en
+    // el registro público, envíe lo que envíe el formulario.
+    // Nombre y teléfono son opcionales: el backend exige `name`, así que sin nombre se usa
+    // la parte del correo antes de la @; un teléfono vacío no se envía.
+    const email = formulario.email.trim()
+    const telefono = formulario.telefono.replace(/\s+/g, '')
+    const payload = {
+      name: formulario.nombre.trim() || email.split('@')[0],
+      email,
       password: formulario.password,
-      options: { data: { rol: 'cliente' } },
-    })
-    setRegistrando(false)
-
-    if (error) {
-      avisos.error('No se pudo crear la cuenta', mensajeErrorRegistro(error))
+      ...(telefono && { phone: telefono }),
+    }
+    try {
+      await authApi.register(payload)
+    } catch (err) {
+      setRegistrando(false)
+      avisos.error('No se pudo crear la cuenta', mensajeErrorRegistro(err))
       return
     }
+    setRegistrando(false)
 
     avisos.exito('¡Cuenta creada!', 'Ya puedes iniciar sesión con tu correo.')
     // Antes había que pulsar "Ir a iniciar sesión" en un diálogo modal; el
@@ -80,6 +87,25 @@ export default function Register() {
         </>
       }
     >
+      <CampoTexto
+        id="nombre"
+        etiqueta="Nombre (opcional)"
+        autoComplete="name"
+        placeholder="Pepito Pérez"
+        value={formulario.nombre}
+        error={errores.nombre}
+        onChange={actualizar('nombre')}
+      />
+      <CampoTexto
+        id="telefono"
+        etiqueta="Teléfono (opcional)"
+        type="tel"
+        autoComplete="tel"
+        placeholder="3001234567"
+        value={formulario.telefono}
+        error={errores.telefono}
+        onChange={actualizar('telefono')}
+      />
       <CampoTexto
         id="email"
         etiqueta="Correo electrónico"

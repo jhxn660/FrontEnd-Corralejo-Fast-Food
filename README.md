@@ -6,9 +6,9 @@ Aplicación web (SPA) de gestión para el restaurante Corralejo Fast Food:
 pedidos, ventas con ticket y QR, carta, inventario, empleados, indicadores,
 PQRS y la portada pública del local, con un panel distinto según el rol.
 
-Es un proyecto **independiente**: la sesión la da Supabase y todos los datos
-del negocio viven en una API REST **local** servida con json-server
-(`server/db.json`). No se conecta a ningún otro servidor.
+La sesión (JWT) y los datos del negocio los da la API REST del
+proyecto **Backend-Corralejo-Fast-Food** (Express + MongoDB), en la dirección de
+`VITE_API_URL`. Este repositorio ya no trae una API ni datos propios.
 
 | Tecnología | Uso |
 |---|---|
@@ -16,8 +16,7 @@ del negocio viven en una API REST **local** servida con json-server
 | **Vite 6** | Servidor de desarrollo y empaquetado. |
 | **react-router-dom 7** | Una URL por pantalla y guardias de acceso. |
 | **Bootstrap 5** (solo CSS) + **Font Awesome 6** | Estilos e iconos, instalados por npm. |
-| **Supabase Auth** | Inicio de sesión, registro y rol del usuario. |
-| **json-server** *(dev)* | API REST local sobre `server/db.json`. |
+| **Sesión propia (JWT del backend)** | Inicio de sesión, registro y rol del usuario (`/api/auth`). |
 | **ESLint 9** *(dev)* | Análisis estático (`npm run lint`). |
 
 Documentación de detalle:
@@ -46,7 +45,6 @@ pantalla que ven dos roles vive en un solo sitio y no hace falta una carpeta
 FrontEnd/
 ├── ARQUITECTURA.md             Contrato de arquitectura
 ├── docs/                       Guía para juniors y partes complejas
-├── server/db.json              Base de datos de json-server (único sitio de datos de prueba)
 ├── public/favicon.svg
 ├── index.html
 └── src/
@@ -70,8 +68,7 @@ FrontEnd/
     │   ├── ventas/             Ventas, EditarVenta, TicketModal, servicio.js
     │   ├── inventario/         Inventario, tarjeta, detalle, formulario, esquema
     │   ├── indicadores/        Indicadores, calculos.js (/sales + /comentarios), meta
-    │   ├── empleados/          Empleados, formulario, esquema
-    │   ├── usuarios/           Gestión de Usuarios del Owner (json-server + Supabase)
+    │   ├── usuarios/           Gestión de Usuarios: administradores y empleados (/api/users)
     │   └── visitante/          Portada del visitante sin sesión
     │
     ├── components/             Piezas sin dominio, reutilizables
@@ -80,15 +77,15 @@ FrontEnd/
     │
     ├── services/               Infraestructura, sin reglas de negocio
     │   ├── config.js           Único lector de import.meta.env
-    │   ├── http.js             fetch a json-server: timeout, cancelación, errores
+    │   ├── http.js             fetch a la API (VITE_API_URL): timeout, cancelación, errores
     │   ├── errores.js          ErrorApi
     │   ├── api.js              Acceso genérico (list/obtener/get/create/update/patch/remove)
     │   ├── sincronizacion.js   Aviso de cambios entre pantallas, pestañas y roles
-    │   └── supabase.js         Cliente de Supabase (sesión y altas de personal)
+    │   └── sesion.js           Token y usuario de la sesión (localStorage + aviso entre pestañas)
     │
     ├── hooks/
     │   ├── useRecurso.js       Leer: {datos, cargando, error, recargar}, sincronizado
-    │   ├── useSincronizar.js   Refresco silencioso cuando algo cambia en json-server
+    │   ├── useSincronizar.js   Refresco silencioso cuando algo cambia en la API
     │   ├── usePeticion.js      Escribir: {ejecutar, enviando, error}
     │   └── useConfirmacion.js  Borrar con confirmación
     │
@@ -129,30 +126,27 @@ generan de esa tabla.
 
 ## 3. Instalación y configuración
 
-Requisitos: **Node.js 20 o superior** y un proyecto de Supabase (gratuito) para
-la autenticación.
+Requisitos: **Node.js 20 o superior** y el backend (`Backend-Corralejo-Fast-Food`), que da
+la sesión y los datos.
 
 ```bash
 npm install
 cp .env.example .env     # en Windows (PowerShell): Copy-Item .env.example .env
 ```
 
-Completa en `.env` las credenciales de Supabase. Sin ellas la aplicación se
-detiene al arrancar con un mensaje explícito.
+Revisa en `.env` que `VITE_API_URL` apunte al backend (con `/api` al final).
 
 ### Variables de entorno
 
 | Variable | Para qué sirve |
 |---|---|
-| `VITE_SUPABASE_URL` | URL del proyecto de Supabase |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Clave pública de Supabase |
-| `VITE_API_URL` | Base de la API REST (json-server). Por defecto `http://localhost:3000` |
+| `VITE_API_URL` | Base de la API REST del backend, con `/api`. Por defecto `http://localhost:3000/api` |
 | `VITE_APP_URL` | Dirección pública de la app: es lo que codifica el QR del ticket. Por defecto, el origen actual |
 | `VITE_API_TIMEOUT_MS` | Tiempo máximo de espera de la API. Por defecto 15000 |
 | `VITE_SYNC_MS` | Cada cuánto se refresca la pantalla visible (cambios hechos desde otro dispositivo). Por defecto 10000; 0 lo desactiva |
 
-Solo `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` son obligatorias. El
-único archivo que lee variables de entorno es `src/services/config.js`.
+Ninguna es obligatoria: todas tienen un valor por defecto para desarrollo. El único
+archivo que lee variables de entorno es `src/services/config.js`.
 
 ---
 
@@ -161,69 +155,68 @@ Solo `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` son obligatorias. El
 En desarrollo hacen falta **dos terminales**:
 
 ```bash
-npm run api    # terminal 1: API REST local en http://localhost:3000  (json-server)
-npm run dev    # terminal 2: aplicación en http://localhost:5173
+# terminal 1, en Backend-Corralejo-Fast-Food: API en http://localhost:3000
+npm run dev
+# terminal 2, en esta carpeta: aplicación en http://localhost:5173
+npm run dev
 ```
 
-Si la aplicación muestra "No se pudo conectar con la API", es que falta `npm run api`.
+Si la aplicación muestra "No se pudo conectar con la API", es que el backend no
+está en marcha o `VITE_API_URL` no apunta a él.
 
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | **Desarrollo.** Servidor de Vite con recarga en caliente. |
-| `npm run api` | API REST local: json-server sobre `server/db.json`, puerto 3000. |
 | `npm run build` | **Producción.** Genera la aplicación optimizada en `dist/`. |
 | `npm run preview` | Sirve `dist/` en local para revisar el resultado del build. |
 | `npm run lint` | Revisa el código con ESLint. Debe terminar sin avisos. |
 
 Para producción se publica el contenido de `dist/` en un servidor de archivos
 estáticos, con `VITE_APP_URL` apuntando al dominio real (es lo que codifica el
-QR del ticket). json-server es una herramienta de desarrollo: ver
-[Deuda técnica conocida](#deuda-técnica-conocida).
+QR del ticket) y `VITE_API_URL` apuntando al backend publicado.
 
 ---
 
-## 5. Guía rápida: mapa de rutas, vistas y servicios locales
+## 5. Guía rápida: mapa de rutas, vistas y servicios
 
 Cada ruta se declara una sola vez, en `src/config/navegacion.jsx`. La columna
-"Servicio" es el archivo que habla con json-server; "Colecciones" son las claves
-de `server/db.json` que lee o escribe.
+"Servicio" es el archivo que habla con la API; "Colecciones" son los recursos
+que ese servicio pide hoy (`/<colección>`).
 
-| Ruta | Pantalla (`src/modules/…`) | Rol | Servicio local | Colecciones |
+| Ruta | Pantalla (`src/modules/…`) | Rol | Servicio | Rutas del backend (`/api/…`) |
 |---|---|---|---|---|
-| `/login` · `/registro` | `autenticacion/Login` · `Register` | sin sesión | `services/supabase.js` | *(Supabase Auth)* |
-| `/visitante/inicio` · `/cliente/inicio` | `visitante/InicioVisitante` · `establecimiento/InicioCliente` | visitante · cliente | `establecimiento/api.js` | `establecimiento`, `diasEspeciales`, `comentarios`, `meGusta`, `sales`, `adminMenu` |
-| `/visitante/menu` · `/cliente/menu` · `/empleado/menu` | `menu/Menu` (consulta) | visitante · cliente · empleado | `menu/api.js` + `useMenu` | `adminMenu` |
-| `/calificar` · `/calificar/:qr` | `establecimiento/CalificarQr` | público (QR del ticket) | `establecimiento/api.js` | `sales`, `comentarios`, `meGusta` |
-| `/cliente/pqrs` | `pqrs/PqrsCliente` | cliente | `services/api.js` | `pqrs` |
-| `/empleado/pedidos` | `pedidos/Pedidos` | empleado, admin, owner | `pedidos/servicio.js` | `pedidos`, `sales`, `adminMenu` |
-| `/empleado/ventas` | `ventas/Ventas` | empleado, admin, owner | `ventas/servicio.js` | `sales`, `pedidos`, `adminMenu`, `establecimiento` (ticket) |
-| `/empleado/pqrs` | `pqrs/PqrsEmpleado` | empleado | `services/api.js` | `pqrs` |
-| `/admin/establecimiento` | `establecimiento/Establecimiento` (editable) | admin, owner | `establecimiento/api.js` | `establecimiento`, `diasEspeciales`, `comentarios`, `meGusta` |
-| `/admin/inventario` | `inventario/Inventario` | admin, owner | `services/api.js` | `insumos` |
-| `/admin/menu` | `menu/Menu` (editable) | admin, owner | `menu/api.js` + `useMenu` | `adminMenu` |
-| `/admin/empleados` | `empleados/Empleados` | admin, owner | `services/api.js` | `employees` |
-| `/admin/indicadores` | `indicadores/Indicadores` | admin, owner | `indicadores/api.js` + `calculos.js` | `sales`, `comentarios`, `goal` |
-| `/admin/pqrs` | `pqrs/PqrsModeracion` | admin, owner | `services/api.js` | `pqrs`, `comentarios`, `meGusta` |
-| `/owner/usuarios` | `usuarios/GestionUsuarios` | owner | `usuarios/api.js` | `usuarios` + Supabase Auth |
-| *(botón "Información" del menú)* | `establecimiento/InformacionCasa` (modal) | todos | `establecimiento/api.js` | `informacion` |
+| `/login` · `/registro` | `autenticacion/Login` · `Register` | sin sesión | `autenticacion/api.js` | `auth/login`, `auth/register` |
+| `/visitante/inicio` · `/cliente/inicio` | `visitante/InicioVisitante` · `establecimiento/InicioCliente` | visitante · cliente | `establecimiento/api.js` | `ubicaciones`, `horarios`, `comments/public`, `sales` (reducido), `categories`, `products/public` |
+| `/visitante/menu` · `/cliente/menu` · `/empleado/menu` | `menu/Menu` (consulta) | visitante · cliente · empleado | `menu/api.js` + `useMenu` | `categories`, `products/public` |
+| `/calificar` · `/calificar/:qr` | `establecimiento/CalificarQr` | público (QR del ticket) | `establecimiento/api.js` | `comments` (POST con el código QR) |
+| `/cliente/pqrs` | `pqrs/PqrsCliente` | cliente | `pqrs/api.js` | `pqrs` (solo las suyas) |
+| `/empleado/pedidos` | `pedidos/Pedidos` | empleado, admin, owner | `pedidos/servicio.js` | `orders`, `sales`, `supplies/availability` |
+| `/empleado/ventas` | `ventas/Ventas` | empleado, admin, owner | `ventas/servicio.js` | `sales`, `orders` |
+| `/empleado/pqrs` | `pqrs/PqrsEmpleado` (solo consulta) | empleado | `pqrs/api.js` | `pqrs` (todas) |
+| `/admin/establecimiento` | `establecimiento/Establecimiento` (editable) | admin, owner | `establecimiento/api.js` | `ubicaciones`, `horarios`, `comments` |
+| `/admin/inventario` | `inventario/Inventario` | admin, owner | `inventario/api.js` | `supplies`, `categories` (tipo Insumo) |
+| `/admin/menu` | `menu/Menu` (editable) | admin, owner | `menu/api.js` + `useMenu` | `categories`, `products` (incluye la receta) |
+| `/admin/usuarios` · `/owner/usuarios` | `usuarios/GestionUsuarios` | admin, owner | `usuarios/api.js` | `users` |
+| `/admin/indicadores` | `indicadores/Indicadores` | admin, owner | `indicadores/api.js` + `calculos.js` | `sales`, `comments`, `indicators/goal` |
+| `/admin/pqrs` | `pqrs/PqrsModeracion` | admin, owner | `pqrs/api.js` | `pqrs`, `comments` |
+| *(botón "Información" del menú)* | `establecimiento/InformacionCasa` (modal) | todos | `establecimiento/api.js` | `establecimiento` |
 
-Toda petición sigue el mismo camino: **pantalla → servicio del módulo →
-`services/api.js` / `services/http.js` → json-server**. El recorrido completo
+Toda petición sigue el mismo camino: **pantalla → servicio o `api.js` del módulo →
+`services/http.js` → backend (`VITE_API_URL`)**. El recorrido completo
 está en [ARQUITECTURA.md](ARQUITECTURA.md#03-flujo-de-datos-de-punta-a-punta).
 
 ---
 
 ## Roles
 
-El rol se escribe en `user_metadata.rol` al registrarse y se lee del mismo
-sitio. Valores aceptados con sesión: `owner`, `admin`, `empleado` y `cliente`.
-Cualquier otro valor se trata como `cliente`. Sin sesión el rol es `usuario`
+El rol es el campo `role` del usuario en el backend: `Owner`, `Administrador`,
+`Empleado` o `Cliente`. El frontend lo traduce a `owner`, `admin`, `empleado` y
+`cliente` (`normalizarRol` en `src/config/roles.js`). Sin sesión el rol es `usuario`
 (visitante).
 
-Toda cuenta nueva nace como `cliente`. Para elevar a `empleado`, `admin` u
-`owner`, ejecuta en el SQL Editor de Supabase:
-`update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data,'{}'::jsonb) || '{"rol":"admin"}' where email = '…';`
-El usuario debe cerrar sesión y volver a entrar para que el rol nuevo llegue en su token.
+Toda cuenta del registro público nace como `Cliente`. Las cuentas de Administrador y
+Empleado se crean en **Gestión de Usuarios**. El primer Owner hay que crearlo
+directamente en la base de datos del backend (no hay registro público para ese rol).
 
 **Jerarquía** (`src/config/roles.js`): `owner` hereda todo lo de `admin`, y
 `admin` todo lo de `empleado`. El visitante (`usuario`) tiene lo del cliente
@@ -231,8 +224,8 @@ salvo lo que exige cuenta (PQRS, escribir en el muro, "me gusta").
 
 | Rol | Pantallas | Rutas |
 |---|---|---|
-| `owner` | **Gestión de Usuarios** (cuentas de Administrador y Empleado: ficha en json-server, acceso en Supabase) + todo lo del admin | `/owner/usuarios` + las del admin |
-| `admin` | Establecimiento, Inventario, Menú, Indicadores, Empleados, Moderación de PQRS **+ Pedidos y Ventas** (heredados) | `/admin/*`, `/empleado/pedidos`, `/empleado/ventas` |
+| `owner` | Todo lo del admin; su Gestión de Usuarios vive en `/owner/usuarios` y además puede eliminar administradores | `/owner/usuarios` + las del admin |
+| `admin` | Establecimiento, Inventario, Menú, Gestión de Usuarios, Indicadores, Moderación de PQRS **+ Pedidos y Ventas** (heredados) | `/admin/*`, `/empleado/pedidos`, `/empleado/ventas` |
 | `empleado` | Pedidos, Menú, Ventas, PQRS | `/empleado/*` |
 | `cliente` | Inicio (local, horarios y valoraciones), Menú, PQRS (solo crear y leer) | `/cliente/*` |
 | `usuario` *(sin sesión)* | Inicio, Menú. Sin PQRS | `/visitante/*` |
@@ -294,33 +287,31 @@ ni se renderiza ni se puede navegar hacia ella, ni escribiendo la URL a mano.
 ```
 src/services/
 ├── config.js          único lector de import.meta.env
-├── http.js            fetch a json-server: timeout, cancelación, errores normalizados
+├── http.js            fetch a la API: timeout, cancelación, errores normalizados
 ├── errores.js         ErrorApi { mensaje, estado, codigo }
-├── api.js             acceso genérico a las colecciones de json-server
+├── api.js             acceso genérico a los recursos de la API
 ├── sincronizacion.js  anuncia cada escritura (misma pestaña + BroadcastChannel)
-└── supabase.js        sesión y alta de cuentas de personal
+└── sesion.js          token y usuario de la sesión
 src/hooks/
 ├── useRecurso.js      lecturas, refrescadas en silencio al sincronizar
 ├── useSincronizar.js  escritura ajena, foco de la pestaña o sondeo → refrescar
 └── usePeticion.js     escrituras: { ejecutar, enviando, error }
 src/modules/<dominio>/
-├── api.js             rutas de json-server + adaptador colección ↔ UI
+├── api.js             rutas de la API + adaptador recurso ↔ UI
 ├── servicio.js        reglas de negocio que tocan varias colecciones (pedidos, ventas)
 └── use<Dominio>.js
 ```
 
-- `http.js` es el cliente de json-server (`VITE_API_URL`): timeout y errores
-  normalizados. No envía cabecera de sesión: json-server no autentica.
-- La persistencia es **solo json-server y Supabase**: json-server guarda los
-  datos del negocio y Supabase la sesión y las cuentas de acceso. No hay
-  adaptadores ni rutas hacia otro backend.
+- `http.js` es el único cliente de la API (`VITE_API_URL`): timeout y errores
+  normalizados. Todavía no envía cabecera de sesión: el token del backend
+  (`X-Token`) se añadirá al conectar el login con `/api/auth`.
+- La persistencia es **solo el backend**: datos del negocio, cuentas y sesión (JWT).
 - **Sincronización entre roles**: cada escritura se anuncia y las pantallas
   montadas —de cualquier rol, en esta u otra pestaña— recargan en silencio.
   Desde otro dispositivo los cambios llegan con el sondeo (`VITE_SYNC_MS`) o
   al volver a la pestaña.
-- **`.env` es obligatorio**: sin credenciales de Supabase la aplicación falla
-  al arrancar con un mensaje explícito, en lugar de romperse dentro de la
-  librería.
+- `http.js` envía el token en la cabecera `X-Token`, quita el envoltorio `{ msg, data }`
+  de las respuestas y cierra la sesión si el backend responde 401.
 
 ---
 
@@ -333,7 +324,7 @@ src/modules/<dominio>/
 | Sesión | `AuthContext` |
 | Avisos de 3 s | `AvisosContext` |
 
-No hay un store global de datos: cada pantalla carga lo suyo de json-server con
+No hay un store global de datos: cada pantalla carga lo suyo de la API con
 `useRecurso` (o el hook de su módulo), recarga después de guardar y se refresca
 sola cuando otro rol cambia algo (`services/sincronizacion.js`).
 
@@ -410,28 +401,21 @@ Lo que ya ocurrió se confirma con avisos de 3 segundos (`AvisosContext` +
 | 25 | Los detalles abiertos (venta, insumo, PQRS) guardaban una copia y no veían los cambios de otros roles | Se guarda el id y el registro se busca en los datos sincronizados |
 | 26 | Toda venta quedaba a nombre de un empleado fijo (`#E-007`) | `employeeId` = quien factura |
 | 27 | Borrar un comentario dejaba sus «me gusta» huérfanos | Se borran con él |
+| 28 | El frontend dependía de json-server (`server/db.json`) y de un Express de inventario propio (`server/api`, puerto 3002) | Se retiraron `server/`, el script `npm run api`, `json-server`, `express` y `VITE_INVENTARIO_URL`; un único cliente `http` apunta al backend |
 
 ---
 
 ## Deuda técnica conocida
 
-- **El rol se valida solo en el cliente.** Cualquiera con la consola abierta
-  puede alterar el estado de React y ver otro panel. Para que el control sea
-  real hacen falta políticas RLS en Supabase.
-- **`PqrsCliente` pide `?usuario=correo`**, pero json-server no comprueba
-  quién pregunta: cualquiera puede pedir las PQRS de otro.
-- **json-server es solo para desarrollo.** No valida, no autentica y no tiene
-  transacciones. Al pasar a producción, estas colecciones deberían migrar a
-  Supabase, con lo que `services/api.js` quedaría como única pieza a reescribir.
-- **Pedido → venta no es atómico**: son varias escrituras sueltas y json-server
-  no tiene transacciones.
-- **json-server puede perder una escritura cuando llegan varias seguidas.** La
-  versión 1.0 beta vigila `db.json` y lo relee al cambiar; si la relectura cae
-  entre dos escrituras, la segunda se pierde (al facturar: la venta se crea y
-  el pedido no queda resuelto; volver a pulsar «Finalizar» lo corrige sin
-  duplicar la venta). Se evita arrancando la API sin esa vigilancia:
-  PowerShell `$env:NODE_ENV='production'; npm run api` · bash
-  `NODE_ENV=production npm run api`.
+- **Los menús por rol son de interfaz.** Esconder una pantalla no protege nada: lo
+  que protege los datos es el backend, que comprueba el token y el rol en cada ruta.
+- **Campos de la ficha de insumo que el backend no guarda:** stock mínimo,
+  vencimiento, peso por unidad, calorías y proveedor. El formulario los muestra pero
+  llegan vacíos al recargar.
+- **Ventas:** el backend no guarda descuento ni notas; corregir los productos de una
+  venta la registra de nuevo (número, tiquete y QR nuevos).
+- **Calificar por QR:** el visitante no ve los productos del tiquete antes de calificar
+  (el backend no expone la venta sin sesión); el backend valida el QR al guardar.
 - **La imagen del QR del ticket la genera un servicio externo**
   (`api.qrserver.com`, en `ventas/servicio.js`): ese servicio ve cada código y
   el ticket no muestra el QR sin conexión a internet.
@@ -442,8 +426,8 @@ Lo que ya ocurrió se confirma con avisos de 3 segundos (`AvisosContext` +
 
 | Pantalla | Colecciones | admin | empleado / cliente |
 |---|---|---|---|
-| Menú | `adminMenu` | crear, editar, eliminar, habilitar/inhabilitar | consultar, buscar y ordenar por precio |
-| Establecimiento | `establecimiento`, `diasEspeciales` | editar la ficha; añadir, editar y eliminar días especiales | consultar ficha, mapa, calendario y narrativa |
+| Menú | `categories`, `products` | crear, editar, eliminar, habilitar/inhabilitar | consultar, buscar y ordenar por precio |
+| Establecimiento | `ubicaciones`, `horarios` | editar la ficha; añadir, editar y eliminar el horario de cada día | consultar ficha, mapa, calendario y narrativa |
 
 Cada una vive en su módulo (`src/modules/menu/`, `src/modules/establecimiento/`)
 y se declara dos o tres veces en la tabla de navegación, una por rol. La ficha del local y los días

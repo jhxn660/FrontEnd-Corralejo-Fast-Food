@@ -2,7 +2,7 @@
 //
 // POR QUÉ SE REDUCE ANTES DE GUARDAR
 // La imagen viaja dentro del registro del plato, así que una foto de teléfono
-// de 4 MB se convertiría en unos 5,5 MB de texto base64 en `db.json`, y el
+// de 4 MB se convertiría en unos 5,5 MB de texto base64 en la base de datos, y el
 // navegador tendría que descargarla entera cada vez que alguien abre la carta.
 // Reducirla a 800 px de ancho la deja en unas decenas de kilobytes, que a
 // tamaño de tarjeta se ve igual.

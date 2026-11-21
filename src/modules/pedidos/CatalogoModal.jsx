@@ -21,8 +21,13 @@ const TODAS = '__todas__'
  * UN CLIC SUMA UNA UNIDAD
  * Toda la tarjeta es el botón de añadir: cada clic suma una. El botón "−"
  * resta sin propagar el clic, para que quitar no vuelva a sumar.
+ *
+ * NO SE AÑADE LO QUE NO SE PUEDE PREPARAR
+ * Cada producto con receta muestra cuántas unidades MÁS caben con el stock de
+ * insumos, descontando lo que ya lleva el pedido y lo elegido aquí: dos platos
+ * que comparten pan se limitan entre sí. En 0, la tarjeta deja de sumar.
  */
-export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
+export default function CatalogoModal({ categorias, simulador, itemsPedido = [], onAgregar, onCerrar }) {
   const [pestana, setPestana] = useState(TODAS)
   const [busqueda, setBusqueda] = useState('')
   const [seleccion, setSeleccion] = useState({}) // { [id]: { name, price, qty } }
@@ -42,14 +47,31 @@ export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
       )
   }, [categorias, pestana, busqueda])
 
-  const cambiarCantidad = (producto, delta) =>
+  const lineasEnCurso = useMemo(
+    () => [...itemsPedido, ...Object.values(seleccion)],
+    [itemsPedido, seleccion]
+  )
+
+  /** Unidades que aún caben de un producto; null = sin receta (sin límite). */
+  const quedan = (producto) => simulador.cuantasMas(producto.nombre, lineasEnCurso)
+
+  const cambiarCantidad = (producto, delta) => {
+    if (delta > 0 && quedan(producto) === 0) return
     setSeleccion((previo) => {
       const cantidad = Math.max(0, Math.min(99, (previo[producto.id]?.qty ?? 0) + delta))
       const copia = { ...previo }
       if (cantidad === 0) delete copia[producto.id]
-      else copia[producto.id] = { name: producto.nombre, price: producto.precio, qty: cantidad }
+      // productoId y combo viajan con la línea: el backend arma el pedido con ellos
+      else copia[producto.id] = {
+        name: producto.nombre,
+        price: producto.precio,
+        qty: cantidad,
+        productoId: producto.productoId,
+        combo: producto.combo,
+      }
       return copia
     })
+  }
 
   const elegidos = Object.values(seleccion)
   const unidades = elegidos.reduce((suma, item) => suma + item.qty, 0)
@@ -166,17 +188,27 @@ export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
       <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-2">
         {productos.map((producto) => {
           const cantidad = seleccion[producto.id]?.qty ?? 0
+          const restantes = quedan(producto)
+          const sinStock = restantes === 0
+          // Agotado de verdad: no cabe ninguna y no hay ninguna elegida ni en el pedido.
+          const agotado = sinStock && cantidad === 0
+          const limitante = sinStock ? simulador.limitante(producto.nombre) : null
 
           return (
             <div className="col" key={producto.id}>
               <div
-                className={`card h-100 card-clickable sin-seleccion ${cantidad > 0 ? 'border-2' : ''}`}
+                className={`card h-100 sin-seleccion ${agotado ? 'opacity-50' : 'card-clickable'} ${
+                  cantidad > 0 ? 'border-2' : ''
+                }`}
                 style={cantidad > 0 ? { borderColor: 'var(--cff-naranja)' } : undefined}
                 role="button"
-                tabIndex={0}
-                aria-label={`Añadir una unidad de ${producto.nombre}${
-                  cantidad > 0 ? `, llevas ${cantidad}` : ''
-                }`}
+                tabIndex={agotado ? -1 : 0}
+                aria-disabled={sinStock}
+                aria-label={
+                  sinStock
+                    ? `${producto.nombre}: sin insumos para preparar más${cantidad > 0 ? `, llevas ${cantidad}` : ''}`
+                    : `Añadir una unidad de ${producto.nombre}${cantidad > 0 ? `, llevas ${cantidad}` : ''}`
+                }
                 onClick={() => cambiarCantidad(producto, 1)}
                 onKeyDown={(evento) => {
                   if (evento.key === 'Enter' || evento.key === ' ') {
@@ -212,6 +244,23 @@ export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
                     )}
                   </div>
 
+                  {restantes !== null && (
+                    <p className="small mb-2">
+                      {sinStock ? (
+                        <span className="badge bg-danger" title={limitante ? `Falta: ${limitante.nombre}` : undefined}>
+                          <i className="fa-solid fa-ban me-1" />
+                          {agotado ? 'Agotado' : 'Sin stock para más'}
+                          {limitante && ` · ${limitante.nombre}`}
+                        </span>
+                      ) : (
+                        <span className={`badge ${restantes <= 5 ? 'bg-warning text-dark' : 'bg-success'}`}>
+                          <i className="fa-solid fa-box-open me-1" />
+                          {restantes} disponible{restantes === 1 ? '' : 's'}
+                        </span>
+                      )}
+                    </p>
+                  )}
+
                   <div className="d-flex align-items-center justify-content-between gap-2">
                     <span className="fw-bold text-brand">{moneda(producto.precio)}</span>
                     {cantidad > 0 ? (
@@ -227,10 +276,12 @@ export default function CatalogoModal({ categorias, onAgregar, onCerrar }) {
                         Quitar
                       </button>
                     ) : (
-                      <small className="text-secondary">
-                        <i className="fa-solid fa-hand-pointer me-1" />
-                        Toca para añadir
-                      </small>
+                      !agotado && (
+                        <small className="text-secondary">
+                          <i className="fa-solid fa-hand-pointer me-1" />
+                          Toca para añadir
+                        </small>
+                      )
                     )}
                   </div>
                 </div>

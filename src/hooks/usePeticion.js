@@ -6,7 +6,7 @@ import { useCallback, useRef, useState } from 'react'
  *
  * Dos cosas que no son obvias:
  * - `enviando` bloquea el doble envío. Sin él, dos clics seguidos en "Guardar"
- *   crean dos registros, y con json-server no hay restricción que lo impida.
+ *   crean dos registros, y con la API no hay restricción que lo impida.
  * - `ejecutar` devuelve { ok, datos, error } en vez de lanzar, para que la
  *   pantalla escriba `if (ok) cerrar()` sin un try/catch en cada handler. El
  *   error ya quedó en el estado del hook.

@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { api } from '../../services/api'
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
 import { useConfirmacion } from '../../hooks/useConfirmacion'
@@ -12,7 +11,7 @@ import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
 import Estrellas from '../../components/ui/Estrellas'
 import { COLOR_ESTADO, colorDe, iconoDe, nombrePublico } from './esquema'
 import { estrellasDe, valoracionDe } from '../establecimiento/valoracion'
-import { meGustaApi } from '../establecimiento/api'
+import { moderacionApi, pqrsApi } from './api'
 import DetallePqrs from './DetallePqrs'
 import ResponderPqrs from './ResponderPqrs'
 
@@ -38,7 +37,7 @@ import ResponderPqrs from './ResponderPqrs'
  */
 export default function PqrsModeracion() {
   const cargar = useCallback(async () => {
-    const [pqrs, comentarios] = await Promise.all([api.list('pqrs'), api.list('comentarios')])
+    const [pqrs, comentarios] = await Promise.all([pqrsApi.listar(), moderacionApi.listarComentarios()])
     const porFecha = (a, b) => new Date(b.fecha) - new Date(a.fecha)
     return {
       pqrs: pqrs.sort(porFecha),
@@ -76,11 +75,7 @@ export default function PqrsModeracion() {
       // Aunque `cambios` trajera asunto, texto o tipo, no llegan a la API: lo
       // que envió el cliente no se modifica desde este panel.
       async (registro, { respuesta: textoRespuesta, estado }) => {
-        await api.patch('pqrs', registro.id, {
-          respuesta: textoRespuesta,
-          estado,
-          fechaRespuesta: new Date().toISOString(),
-        })
+        await pqrsApi.responder(registro.id, { respuesta: textoRespuesta, estado })
         await recargar()
       },
       [recargar]
@@ -90,7 +85,7 @@ export default function PqrsModeracion() {
   const visibilidad = usePeticion(
     useCallback(
       async (comentario, visible) => {
-        await api.patch('comentarios', comentario.id, { visible })
+        await moderacionApi.cambiarVisibilidad(comentario.id, visible)
         await recargar()
       },
       [recargar]
@@ -98,11 +93,11 @@ export default function PqrsModeracion() {
   )
 
   // Un solo flujo de borrado para los dos buzones: el registro lleva su colección.
-  // Un comentario se lleva sus «me gusta»: quedaban huérfanos en `meGusta`.
+  // Los «me gusta» viven dentro del comentario, así que se van con él.
   const eliminacion = useConfirmacion(
     async ({ coleccion, registro }) => {
-      await api.remove(coleccion, registro.id)
-      if (coleccion === 'comentarios') await meGustaApi.quitarDeComentario(registro.id)
+      if (coleccion === 'comentarios') await moderacionApi.eliminarComentario(registro.id)
+      else await pqrsApi.eliminar(registro.id)
     },
     { alTerminar: recargar }
   )

@@ -1,5 +1,5 @@
 // Campos editables de la ficha del establecimiento. La ficha en sí —dirección,
-// teléfono, WhatsApp, horario, referencias y tiempos— vive en json-server
+// teléfono, WhatsApp, horario, referencias y tiempos— vive en la API
 // (colección "establecimiento"), no aquí: así el administrador la edita y
 // todos los roles ven el mismo valor (R25).
 

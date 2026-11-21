@@ -15,10 +15,13 @@ import {
   partesDe,
 } from './calendario'
 import { estadoDelLocal, indiceDelDia, normalizarHorario, resumenDelDia } from './horario'
-import { destacadosApi, establecimientoApi } from './api'
+import { destacadosApi } from './api'
 import { useFicha } from './useFicha'
 
 const hoy = new Date()
+
+// Sin fechas especiales en el backend; se conserva la forma que espera el calendario.
+const SIN_FECHAS_ESPECIALES = []
 
 // Años que ofrece el desplegable: el próximo y los dieciséis anteriores. Es el
 // rango con el que tiene sentido consultar días especiales; el calendario sigue
@@ -55,12 +58,9 @@ export default function Horarios() {
     recargar: recargarFicha,
   } = useFicha()
 
-  const {
-    datos: dias,
-    cargando: cargandoDias,
-    error: errorDias,
-    recargar: recargarDias,
-  } = useRecurso(establecimientoApi.listarDiasEspeciales, [])
+  // El backend no guarda fechas sueltas: los avisos salen del horario semanal (nota de cada día).
+  const dias = SIN_FECHAS_ESPECIALES
+  const avisosHorario = (ficha?.horarioSemanal ?? []).filter((dia) => dia.nota)
 
   const [mes, setMes] = useState({ año: hoy.getFullYear(), mes: hoy.getMonth() })
   const [selector, setSelector] = useState(null) // 'mes' | 'año' | null
@@ -105,7 +105,6 @@ export default function Horarios() {
     return indexados
   }, [dias, mes])
 
-  const especiales = Object.keys(delMes).sort((a, b) => a - b)
   const indiceHoy = indiceDelDia(hoy)
 
   const irA = (cambios) => {
@@ -171,7 +170,6 @@ export default function Horarios() {
   return (
     <>
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
-      <MensajeError texto={errorDias} onReintentar={recargarDias} />
 
       <div className="row g-3">
         <div className="col-12 col-xl-6">
@@ -332,41 +330,22 @@ export default function Horarios() {
                 </div>
               </article>
 
-              <h4 className="h6 fw-bold mt-3">Días especiales este mes</h4>
-              {cargandoDias && <Cargando texto="Cargando días especiales…" />}
-
-              {!cargandoDias && especiales.length === 0 ? (
-                <p className="text-secondary small fst-italic mb-0">
-                  No hay días especiales este mes.
-                </p>
+              <h4 className="h6 fw-bold mt-3">Avisos del horario</h4>
+              {avisosHorario.length === 0 ? (
+                <p className="text-secondary small fst-italic mb-0">No hay avisos en el horario.</p>
               ) : (
                 <ul className="list-group list-group-flush">
-                  {especiales.map((numero) => {
-                    const especial = delMes[numero]
-                    const tipo = TIPOS_DIA[especial.tipo] ?? {}
-
-                    return (
-                      <li
-                        key={especial.id}
-                        className="list-group-item d-flex align-items-center gap-2 px-0"
-                      >
-                        <span className={`badge bg-${tipo.color ?? 'secondary'} flex-shrink-0`}>
-                          <i className={`fa-solid ${tipo.icono ?? 'fa-circle'} me-1`} />
-                          {tipo.etiqueta ?? especial.tipo}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-link btn-sm text-start text-decoration-none small flex-grow-1 min-width-0 p-0"
-                          onClick={() => setSeleccion(especial.fecha)}
-                        >
-                          <span className="d-block fw-semibold">
-                            {fechaLegible(especial.fecha)}
-                          </span>
-                          <span className="text-secondary">{especial.motivo}</span>
-                        </button>
-                      </li>
-                    )
-                  })}
+                  {avisosHorario.map((dia) => (
+                    <li key={dia.dia} className="list-group-item d-flex align-items-center gap-2 px-0">
+                      <span className={`badge bg-${dia.abre ? 'success' : 'danger'} flex-shrink-0`}>
+                        {dia.abre ? 'Abierto' : 'Cerrado'}
+                      </span>
+                      <span className="small flex-grow-1 min-width-0">
+                        <span className="d-block fw-semibold">{dia.dia}</span>
+                        <span className="text-secondary">{dia.nota}</span>
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>

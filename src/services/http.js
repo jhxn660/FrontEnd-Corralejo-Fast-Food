@@ -1,18 +1,27 @@
-// Cliente HTTP de json-server. fetch nativo, sin axios: timeout propio,
-// cancelación por señal y errores normalizados en ErrorApi.
+// Cliente HTTP de la API (config.apiUrl). fetch nativo, sin axios: timeout
+// propio, cancelación por señal y errores normalizados en ErrorApi.
 //
-// La sesión (Supabase) no viaja aquí: json-server no autentica, así que las
-// peticiones salen sin cabecera Authorization.
+// Contrato del backend: el token viaja en `X-Token`; las respuestas buenas
+// llegan como `{ msg, data }` y aquí se devuelve solo `data`; un 401 significa
+// que el token venció o la cuenta se desactivó, y cierra la sesión.
 
 import { config } from './config'
 import { desdeRespuesta, errorDeRed, errorDeTimeout } from './errores'
+// El token es el mismo que guarda el cliente axios (api/client.js): una sola sesión.
+import { getToken, notificarNoAutorizado, notificarPeticionExitosa } from '../api/client'
 import { notificarCambio } from './sincronizacion'
 
-const construirUrl = (ruta, query) => {
-  const url = new URL(`${config.apiUrl}${ruta}`)
+/** `{ msg, data }` → `data`. Lo que no venga con ese envoltorio pasa tal cual. */
+const desenvolver = (cuerpo) =>
+  cuerpo && typeof cuerpo === 'object' && !Array.isArray(cuerpo) && 'data' in cuerpo
+    ? cuerpo.data
+    : cuerpo
+
+const construirUrl = (base, ruta, query) => {
+  const url = new URL(`${base}${ruta}`)
   Object.entries(query ?? {}).forEach(([clave, valor]) => {
     // Un filtro sin valor no debe viajar: `?estado=` significa otra cosa que
-    // no filtrar, y json-server lo interpreta literalmente.
+    // no filtrar, y la API lo interpretaría literalmente.
     if (valor !== undefined && valor !== null && valor !== '') {
       url.searchParams.set(clave, String(valor))
     }
@@ -20,8 +29,8 @@ const construirUrl = (ruta, query) => {
   return url.toString()
 }
 
-async function ejecutar({ ruta, metodo = 'GET', cuerpo, query, senal }) {
-  const url = construirUrl(ruta, query)
+async function ejecutar({ base, servicio, ruta, metodo = 'GET', cuerpo, query, senal }) {
+  const url = construirUrl(base, ruta, query)
 
   // Timeout propio combinado con la señal que pueda traer quien llama (un
   // componente que se desmonta a mitad de la carga).
@@ -38,18 +47,20 @@ async function ejecutar({ ruta, metodo = 'GET', cuerpo, query, senal }) {
       ? errorDeTimeout(ruta, config.timeoutMs)
       : new DOMException('Petición cancelada', 'AbortError')
 
+  const token = getToken()
+
   let res
   try {
     res = await fetch(url, {
       method: metodo,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'X-Token': token } : {}) },
       body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
       signal: controlador.signal,
     })
   } catch (err) {
     clearTimeout(temporizador)
     if (controlador.signal.aborted || err?.name === 'AbortError') throw cancelada()
-    throw errorDeRed(ruta)
+    throw errorDeRed(ruta, servicio)
   }
 
   // El cuerpo también puede cortarse a medias: sin esta comprobación, una
@@ -58,28 +69,42 @@ async function ejecutar({ ruta, metodo = 'GET', cuerpo, query, senal }) {
   const datos = res.status === 204 ? null : await res.json().catch(() => null)
   clearTimeout(temporizador)
   if (controlador.signal.aborted) throw cancelada()
-  if (!res.ok) throw desdeRespuesta(res.status, ruta)
+  if (!res.ok) {
+    // Con sesión abierta, un 401 es un token vencido o una cuenta desactivada.
+    // Sin token (un login fallido) no hay sesión que cerrar.
+    if (res.status === 401 && token) notificarNoAutorizado()
+    throw desdeRespuesta(res.status, ruta, datos)
+  }
 
-  // Toda escritura que llega a json-server se anuncia: las demás pantallas,
+  // Toda escritura que llega a la API se anuncia: las demás pantallas,
   // pestañas y roles recargan lo suyo (services/sincronizacion.js).
   if (metodo !== 'GET') notificarCambio(ruta)
-  return datos
+  // Respuesta correcta: cuenta como actividad y renueva el token (api/client.js)
+  notificarPeticionExitosa(ruta)
+  return desenvolver(datos)
 }
 
-/**
- * Forma única de las listas. json-server devuelve un array plano y, si se
- * pagina con `_page`, un objeto con `data`; las dos se leen igual.
- */
+/** Forma única de las listas: `{ datos, total }` a partir de un array. */
 const normalizarLista = (respuesta) => {
-  const datos = Array.isArray(respuesta) ? respuesta : (respuesta?.data ?? [])
-  return { datos, total: respuesta?.items ?? datos.length }
+  const datos = Array.isArray(respuesta) ? respuesta : []
+  return { datos, total: datos.length }
 }
 
-export const http = {
-  get: (ruta, opciones) => ejecutar({ ...opciones, ruta, metodo: 'GET' }),
-  post: (ruta, cuerpo, opciones) => ejecutar({ ...opciones, ruta, metodo: 'POST', cuerpo }),
-  put: (ruta, cuerpo, opciones) => ejecutar({ ...opciones, ruta, metodo: 'PUT', cuerpo }),
-  patch: (ruta, cuerpo, opciones) => ejecutar({ ...opciones, ruta, metodo: 'PATCH', cuerpo }),
-  delete: (ruta, opciones) => ejecutar({ ...opciones, ruta, metodo: 'DELETE' }),
-  lista: async (ruta, opciones) => normalizarLista(await ejecutar({ ...opciones, ruta })),
+/** Cliente de un servidor: timeout, errores y aviso de cambios compartidos. */
+const crearCliente = (base, servicio) => {
+  const llamar = (opciones) => ejecutar({ ...opciones, base: base(), servicio })
+  return {
+    get: (ruta, opciones) => llamar({ ...opciones, ruta, metodo: 'GET' }),
+    post: (ruta, cuerpo, opciones) => llamar({ ...opciones, ruta, metodo: 'POST', cuerpo }),
+    put: (ruta, cuerpo, opciones) => llamar({ ...opciones, ruta, metodo: 'PUT', cuerpo }),
+    patch: (ruta, cuerpo, opciones) => llamar({ ...opciones, ruta, metodo: 'PATCH', cuerpo }),
+    delete: (ruta, opciones) => llamar({ ...opciones, ruta, metodo: 'DELETE' }),
+    lista: async (ruta, opciones) => normalizarLista(await llamar({ ...opciones, ruta })),
+  }
 }
+
+/** API REST del proyecto (Backend-Corralejo-Fast-Food). */
+export const http = crearCliente(
+  () => config.apiUrl,
+  'el backend (npm run dev en Backend-Corralejo-Fast-Food)'
+)

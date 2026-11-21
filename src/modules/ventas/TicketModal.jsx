@@ -25,7 +25,7 @@ import { precioUnitario, urlQR } from './servicio'
  * centrado, a 76 mm y sin cabecera ni pie. La clase se quita al desmontar: si
  * se quedara puesta, cualquier impresión posterior saldría recortada.
  *
- * Dirección y teléfono salen de la ficha del local en json-server, la misma
+ * Dirección y teléfono salen de la ficha del local en la API, la misma
  * que edita el administrador: el ticket nunca imprime un dato desactualizado.
  */
 export default function TicketModal({ venta, onCerrar }) {

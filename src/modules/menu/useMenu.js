@@ -74,7 +74,7 @@ export function useMenu({ editable = false } = {}) {
 
   useSincronizar(refrescar)
 
-  // Fuera del modo editable json-server ya recorta las inhabilitadas
+  // Fuera del modo editable la API ya recorta las inhabilitadas
   // (?estado=Disponible); el filtro de abajo es solo un segundo seguro.
   const visibles = useMemo(() => {
     const texto = busqueda.toLowerCase().trim()
@@ -99,7 +99,7 @@ export function useMenu({ editable = false } = {}) {
   }, [categorias, busqueda, orden, editable])
 
   // Tras cada escritura se recarga el recurso completo (R21): es más lento que
-  // parchear el array local, pero nunca queda inconsistente con json-server.
+  // parchear el array local, pero nunca queda inconsistente con la API.
   const trasEscribir = useCallback(
     async (promesa) => {
       const datos = await promesa

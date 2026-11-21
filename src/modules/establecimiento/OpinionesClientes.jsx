@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import logo from '../../assets/logo.png'
 import { useRecurso } from '../../hooks/useRecurso'
@@ -11,9 +11,8 @@ import { fechaCorta, inicialesDe } from '../../utils/format'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import Estrellas from '../../components/ui/Estrellas'
 import { nombrePublico } from '../pqrs/esquema'
-import { comentariosApi, meGustaApi, opinionesApi } from './api'
+import { meGustaApi, opinionesApi } from './api'
 import { VALORACION_MAXIMA, estrellasDe } from './valoracion'
-import FormularioComentario, { LARGO_MINIMO } from './FormularioComentario'
 
 const VISIBLES_AL_INICIO = 8
 
@@ -50,8 +49,8 @@ const autorDe = (opinion) =>
  * Aquí no se califica: la valoración se da al escanear el QR del tiquete
  * (/calificar/:qr, CalificarPedido), con o sin cuenta.
  *
- * Props: `puedeComentar` (botón "Realizar comentario") y `ancla` (id al que
- * enlaza la Lista Top, `…#ancla`).
+ * Los comentarios SOLO se escriben desde el QR del tiquete: `puedeComentar` muestra un
+ * botón que lleva a /calificar. `ancla` es el id al que enlaza la Lista Top (`…#ancla`).
  */
 export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro-comentarios' }) {
   const { usuario, puede } = useAuth()
@@ -61,13 +60,10 @@ export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro
   const conDetalle = puede(PERMISO.VER_DETALLE_OPINIONES)
 
   const cargarOpiniones = useCallback(() => opinionesApi.listar({ conDetalle }), [conDetalle])
-  const cargarMeGusta = useCallback(() => meGustaApi.listar(), [])
   const { datos: opiniones, cargando, error, recargar } = useRecurso(cargarOpiniones, [])
-  const { datos: votos, recargar: recargarMeGusta } = useRecurso(cargarMeGusta, [])
 
   const [filtro, setFiltro] = useState('todas')
   const [verTodas, setVerTodas] = useState(false)
-  const [escribiendo, setEscribiendo] = useState(false)
   const [pendiente, setPendiente] = useState(null) // id con el me gusta en vuelo
 
   const correo = usuario?.email ?? null
@@ -79,17 +75,11 @@ export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro
     }
   }, [hash, ancla])
 
-  // Recuento de "me gusta" por opinión y cuál es el mío, en una pasada.
-  const meGusta = useMemo(() => {
-    const indice = new Map()
-    votos.forEach((voto) => {
-      const actual = indice.get(voto.comentario) ?? { total: 0, mio: null }
-      actual.total += 1
-      if (correo && voto.usuario === correo) actual.mio = voto.id
-      indice.set(voto.comentario, actual)
-    })
-    return indice
-  }, [votos, correo])
+  // "Me gusta" de cada opinión: el contador y si YO ya lo di vienen del backend.
+  const meGusta = useMemo(
+    () => new Map(opiniones.map((opinion) => [opinion.id, { total: opinion.likes, mio: opinion.meGusta }])),
+    [opiniones]
+  )
 
   const filtradas = useMemo(() => {
     if (filtro === 'comentarios') return opiniones.filter((opinion) => opinion.texto)
@@ -105,48 +95,22 @@ export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro
     return { valor: Math.round((suma / valoradas.length) * 10) / 10, total: valoradas.length }
   }, [opiniones])
 
-  const envio = usePeticion(
-    useCallback(
-      async (contenido) => {
-        await comentariosApi.publicar({ texto: contenido, nombre: correo ?? AUTOR_ANONIMO, usuario: correo })
-        await recargar()
-      },
-      [correo, recargar]
-    )
-  )
-
+  // El mismo botón da o quita el "me gusta"; el backend lleva la cuenta por persona.
   const voto = usePeticion(
     useCallback(
-      async (id, mio) => {
-        if (mio) await meGustaApi.quitar(mio)
-        else await meGustaApi.dar({ comentario: id, usuario: correo })
-        await recargarMeGusta()
+      async (id) => {
+        await meGustaApi.alternar(id)
+        await recargar()
       },
-      [correo, recargarMeGusta]
+      [recargar]
     )
   )
 
-  const publicar = async (contenido, limpiar) => {
-    if (contenido.length < LARGO_MINIMO) {
-      avisos.error('Comentario muy corto', `Escribe al menos ${LARGO_MINIMO} caracteres.`)
-      return
-    }
-    const { ok, error: fallo } = await envio.ejecutar(contenido)
-    if (!ok) {
-      avisos.fallo('No se pudo enviar el comentario', fallo)
-      return
-    }
-    limpiar()
-    setEscribiendo(false)
-    avisos.exito('¡Gracias por tu comentario!', 'Aparecerá aquí cuando el restaurante lo apruebe.')
-  }
-
-  // El "me gusta" se guarda por persona: sin sesión no hay a quién atribuirlo.
+  // Sin sesión no hay a quién atribuir el "me gusta".
   const alternarMeGusta = async (opinion) => {
     if (!correo) return
-    const { mio } = meGusta.get(opinion.id) ?? {}
     setPendiente(opinion.id)
-    const { ok, error: fallo } = await voto.ejecutar(opinion.id, mio ?? null)
+    const { ok, error: fallo } = await voto.ejecutar(opinion.id)
     setPendiente(null)
     if (!ok) avisos.fallo('No se pudo guardar tu me gusta', fallo)
   }
@@ -172,14 +136,6 @@ export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro
       </div>
 
       <div className="card-body">
-        {escribiendo ? (
-          <FormularioComentario
-            autor={nombrePublico(correo)}
-            enviando={envio.enviando}
-            onPublicar={publicar}
-            onCancelar={() => setEscribiendo(false)}
-          />
-        ) : (
           <>
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
               <div className="btn-group btn-group-sm" role="group" aria-label="Filtrar opiniones">
@@ -197,11 +153,12 @@ export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro
                 ))}
               </div>
 
+              {/* Comentar exige el QR del tiquete: el botón lleva a esa pantalla */}
               {puedeComentar && (
-                <button className="btn btn-primary btn-sm" onClick={() => setEscribiendo(true)}>
-                  <i className="fa-solid fa-pen me-2" />
-                  Realizar comentario
-                </button>
+                <Link className="btn btn-primary btn-sm" to="/calificar">
+                  <i className="fa-solid fa-qrcode me-2" />
+                  Calificar mi pedido
+                </Link>
               )}
             </div>
 
@@ -317,7 +274,6 @@ export default function OpinionesClientes({ puedeComentar = false, ancla = 'muro
               </div>
             )}
           </>
-        )}
       </div>
     </section>
   )

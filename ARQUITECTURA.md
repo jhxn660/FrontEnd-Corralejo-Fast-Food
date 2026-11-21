@@ -17,9 +17,9 @@ poder citarlas en el código y en las revisiones.
 
 ## 0. Visión general
 
-Este proyecto es **independiente**: es una SPA (aplicación de una sola página)
-que guarda sus datos en **json-server** (un `db.json` local) y su sesión en
-**Supabase**. No llama a ningún otro servidor (R47).
+Es una SPA (aplicación de una sola página) que pide sus datos a la API REST del
+proyecto **Backend-Corralejo-Fast-Food** (`VITE_API_URL`) y guarda su sesión en
+**su sesión (JWT)** (R47). No trae una API ni datos propios.
 
 ### 0.1 Patrón: módulos por dominio, capas dentro de cada módulo
 
@@ -36,7 +36,7 @@ El código se organiza en dos niveles:
 | **Pantalla** (page) | `Pedidos.jsx`, `Ventas.jsx`… (las que aparecen en `config/navegacion.jsx`) | Estado de la interfaz (selección, filtros, modales), manejadores de eventos y JSX. | No escribe rutas de la API ni decide reglas del negocio. |
 | **Componentes** | `FormularioX.jsx`, `DetalleX.jsx`, `TarjetaX.jsx` | Piezas visuales de una pantalla: reciben props, avisan con callbacks. | No cargan datos por su cuenta (salvo widgets autónomos como `ListaTop`). |
 | **Servicio** | `servicio.js` | Reglas de negocio que tocan una o varias colecciones: facturar un pedido, reabrirlo, sanear ventas. | No usa React ni estado. |
-| **Adaptador de API** | `api.js` | Rutas de json-server del módulo y traducción colección ↔ forma de la UI (R48). | No contiene reglas del negocio. |
+| **Adaptador de API** | `api.js` | Rutas de la API del módulo y traducción recurso ↔ forma de la UI (R48). | No contiene reglas del negocio. |
 | **Hook del módulo** | `useMenu.js`, `useFicha.js` | Une React con el servicio/API: estado de carga, error, recarga y sincronización. | No pinta nada. |
 | **Funciones puras** | `calculos.js`, `esquema.js`, `validaciones.js`, `horario.js` | Cálculos, constantes del dominio y validaciones: datos de entrada → datos de salida (R53, R61). | No tocan la red ni React. |
 
@@ -51,13 +51,13 @@ El código se organiza en dos niveles:
 | `modules/` | Un módulo por dominio, con sus capas (tabla de arriba). |
 | `components/` | Lo que no tiene dominio: `layout/` (cascarón, guardia de ruta, pantallas de error) y `ui/` (Modal, Paginacion, Estrellas…). |
 | `hooks/` | Hooks reutilizables por cualquier módulo: `useRecurso` (leer), `usePeticion` (escribir), `useConfirmacion` (borrar), `useSincronizar` (refrescar). |
-| `services/` | **Infraestructura**, sin reglas de negocio: `config` (variables de entorno), `http` (fetch), `api` (CRUD genérico), `errores`, `sincronizacion`, `supabase`. |
+| `services/` | **Infraestructura**, sin reglas de negocio: `config` (variables de entorno), `http` (fetch con token), `errores`, `sincronizacion`, `sesion` (token y usuario). |
 | `data/` | Contenido estático de interfaz: textos fijos y paletas. Nunca datos del negocio (R49). |
 | `utils/` | Funciones puras sin dominio: formato de moneda y fechas, ids, imágenes, validación de URL. |
 | `styles/` | `theme.css`, el único CSS propio. |
 
-Fuera de `src/`: `server/db.json` es la base de datos de json-server (y el único
-sitio con datos de prueba) y `docs/` tiene las guías para quien llega nuevo.
+Fuera de `src/`, `docs/` tiene las guías para quien llega nuevo. Los datos
+viven en el backend (MongoDB), no en este repositorio.
 
 ### 0.3 Flujo de datos de punta a punta
 
@@ -72,7 +72,7 @@ URL /empleado/pedidos
   → pedidos/servicio   cargarPedidos(): pide pedidos y carta, los ordena
   → services/api       api.list('pedidos')
   → services/http      fetch con timeout, cancelación y errores normalizados
-  → json-server        GET http://localhost:3000/pedidos   (lee server/db.json)
+  → API (backend)      GET ${VITE_API_URL}/pedidos
   ← la respuesta sube por el mismo camino; useRecurso la deja en `datos`
   ← Pedidos.jsx        React vuelve a pintar con los datos
 ```
@@ -82,16 +82,16 @@ URL /empleado/pedidos
 ```
 Pedidos.jsx        finalizarPedido()  → valida que haya productos
   → pedidos/servicio  facturarPedido(): crea la venta y resuelve el pedido
-  → services/api → services/http → json-server (POST /sales, PUT /pedidos/:id)
+  → services/api → services/http → API (POST /sales, PATCH /pedidos/:id)
   → services/http     anuncia el cambio (services/sincronizacion.js)
   → useSincronizar    las demás pantallas montadas, de cualquier rol o pestaña,
                       vuelven a pedir sus datos en silencio
   ← Pedidos.jsx       aviso verde (AvisosContext) y navegación a Ventas
 ```
 
-**Sesión**: `Login.jsx` → Supabase Auth → `AuthContext` recibe el usuario por
-`onAuthStateChange` → `rol` se deriva de `user_metadata.rol` → `App.jsx`
-redirige al panel de ese rol.
+**Sesión**: `Login.jsx` → `POST /api/auth/login` → `services/sesion.js` guarda
+`{ token, usuario }` → `AuthContext` se entera por su suscripción → `rol` se deriva
+de `usuario.role` → `App.jsx` redirige al panel de ese rol.
 
 ### 0.4 Decisiones técnicas de la última refactorización
 
@@ -101,47 +101,40 @@ redirige al panel de ese rol.
 | `cargarVentas`, `guardarVentaEditada` y `cumpleRango` salieron de `Ventas.jsx` a **`ventas/servicio.js`** | Mismo motivo: sanear ventas huérfanas o sincronizar el pedido al editar una venta son reglas del negocio, no de la interfaz. |
 | `numeroDeCodigo` y `generarCodigoQR` dejaron de exportarse | Tras el cambio anterior solo se usan dentro de `ventas/servicio.js`: lo que no se usa fuera no forma parte de la interfaz pública del módulo. |
 | Se mantuvo la organización **por módulos** (no se crearon `pages/`, `services/` globales por tipo) | La relación rol → pantalla es de muchos a muchos y las pantallas comparten datos por dominio; separar por tipo de archivo repartiría cada funcionalidad en cinco carpetas (R41, R42). |
-| Las pantallas con CRUD simple (Inventario, Empleados, PQRS) siguen usando `services/api.js` directamente | Una sola llamada (`api.remove('insumos', id)`) no es una regla de negocio; crear un `servicio.js` solo para reenviarla añadiría una capa sin contenido. |
+| Cada módulo habla con el backend desde su propio `api.js` (insumos, PQRS, usuarios…) | Ahí vive el adaptador entre la forma del backend (`_id`, nombres en inglés) y la de la pantalla; un CRUD genérico no puede hacer esa traducción. |
 | Se eliminó código sin uso: props `clase` (`Estrellas`) y `ayuda` (`CampoTexto`), y los estilos `.nav-pills` y `.modal-tono-exito` | Ningún componente los utilizaba (R38). La escala de espaciado y los tokens de `theme.css` se conservan completos aunque no todos se usen: son un sistema, no código muerto. |
 
 ---
 
 ## 1. Identidad y roles
 
-- **R1** El rol del usuario se escribe **una sola vez**, en el alta, dentro de
-  `user_metadata` de Supabase:
-
-  ```js
-  supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { rol: 'cliente' } },
-  })
-  ```
-
-- **R2** El rol se **lee** siempre como valor derivado del usuario, nunca se
-  guarda en un `useState` propio: `usuario?.user_metadata?.rol ?? 'cliente'`.
-  El valor de reserva es siempre el de menor privilegio.
-- **R3** Toda cuenta nueva nace como `cliente`. Elevar a `empleado` o `admin`
-  es una acción administrativa, fuera de la aplicación.
-- **R4** Prohibido mantener dos lugares donde viva el rol. Si existe una tabla
-  `profiles`, es espejo de lectura, nunca la fuente de la autorización.
+- **R1** El rol del usuario vive en **un solo lugar**: el campo `role` del modelo
+  User del backend (`Owner`, `Administrador`, `Empleado`, `Cliente`).
+- **R2** El rol se **lee** siempre como valor derivado del usuario de la sesión,
+  nunca se guarda en un `useState` propio: `normalizarRol(usuario.role)`. El valor
+  de reserva es siempre el de menor privilegio con cuenta (`cliente`).
+- **R3** Toda cuenta del registro público nace como `Cliente` (lo fuerza el
+  backend). Las de Administrador y Empleado se crean en Gestión de Usuarios.
+- **R4** Prohibido mantener dos lugares donde viva el rol: el frontend no guarda
+  roles propios, solo traduce el del backend.
 
 ## 2. Sesión
 
-- **R5** Existe un único `AuthContext`. Ningún componente llama a
-  `supabase.auth.getSession()` por su cuenta.
-- **R6** El contexto se suscribe a `onAuthStateChange` y cancela la suscripción
-  en el `return` del efecto. Sin esa cancelación no se acepta el código.
+- **R5** Existe un único `AuthContext`. Ningún componente lee el token por su
+  cuenta: el token lo guarda `services/sesion.js` y lo envía `services/http.js`.
+- **R6** El contexto se suscribe a los cambios de sesión (`alCambiarSesion`) y
+  cancela la suscripción en el `return` del efecto. Sin esa cancelación no se
+  acepta el código.
 - **R7** El contexto expone exactamente cinco cosas:
   `{ usuario, rol, cargando, cerrarSesion, puede }`. Tres datos, una acción y
   la consulta de permisos (`puede(PERMISO.X)`, derivada del rol). Añadir una
-  sexta exige justificarlo. El contexto expulsa además a las cuentas de
-  personal que el Owner desactivó o dio de baja en json-server.
+  sexta exige justificarlo. Una cuenta desactivada queda fuera en su siguiente
+  petición: el backend responde 401 y `http.js` cierra la sesión.
 - **R8** Los componentes consumen el contexto a través del hook `useAuth()`,
   nunca importando `AuthContext` directamente.
-- **R9** El estado `cargando` arranca en `true` y solo pasa a `false` cuando
-  Supabase ha respondido. Toda pantalla que dependa de la sesión lo respeta.
+- **R9** Con una sesión guardada, `cargando` arranca en `true` y solo pasa a
+  `false` cuando el backend confirmó el token (`/api/auth/renew-token`). Toda
+  pantalla que dependa de la sesión lo respeta.
 
 ## 3. Navegación
 
@@ -175,9 +168,9 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   dibuja el menú de un rol que ahí no existe. Una ruta pública declarada
   suelta en `App.jsx` sería justo el agujero que R16 existe para evitar.
 - **R17** Se asume explícitamente que este control es de **interfaz**, no de
-  **seguridad**. La seguridad real son las políticas RLS de Supabase. Toda
-  pantalla nueva que exponga datos ajenos debe anotarse como deuda hasta que
-  exista su política.
+  **seguridad**. La seguridad real la pone el backend, que comprueba el token y
+  el rol en cada ruta. Toda pantalla nueva que exponga datos ajenos necesita
+  primero su regla en el backend.
 
 ## 5. Datos
 
@@ -191,7 +184,6 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
 - **R21** Tras una escritura se recarga el recurso completo. Es más lento que
   actualizar el array local, pero nunca queda inconsistente.
 - **R22** El manejo de errores depende del origen y no se mezclan:
-  - Supabase devuelve `{ data, error }`; se comprueba con `if (error)`.
   - `fetch` no lanza con 4xx/5xx; se comprueba `respuesta.ok` dentro de un
     `try/catch`.
 
@@ -226,7 +218,7 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
 - **R32** Todo lo que solo sirve para construir o desarrollar va en
   `devDependencies`.
 - **R33** Toda dependencia que el código necesite en tiempo de ejecución debe
-  estar declarada. Si se usa `json-server`, se declara `json-server`.
+  estar declarada.
 - **R34** Cada servicio que la aplicación necesita para funcionar tiene su
   script en `package.json`. Levantar algo «a mano» no es documentable.
 - **R35** Los recursos de terceros se instalan por npm, no por CDN, salvo que
@@ -257,7 +249,7 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
 - **R43** `src/components/` guarda lo que no tiene dominio: `layout/` (el
   cascarón y las pantallas de estado) y `ui/` (piezas reutilizables).
   `src/services/` guarda solo infraestructura (`config`, `http`, `errores`,
-  `api`, `sincronizacion`, `supabase`); la
+  `sincronizacion`, `sesion`); la
   lógica de negocio va en el servicio de su módulo.
 - **R44** Cuando dos roles necesitan la misma pantalla con permisos distintos,
   se escribe **un** componente con una prop booleana `editable` y se declara
@@ -273,11 +265,9 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
 - **R46** Toda petición pasa por `services/http.js`. Ninguna pantalla ni hook
   llama a `fetch()`, y nadie fuera de `services/config.js` lee
   `import.meta.env`.
-- **R47** La persistencia es **solo json-server y Supabase**: json-server guarda
-  los datos del negocio y Supabase la sesión y las cuentas de acceso. No hay
-  clientes, rutas ni adaptadores hacia otro backend. `http.js` no envía
-  cabecera de sesión (json-server no autentica) y no importa Supabase: la
-  sesión tiene un solo dueño, `AuthContext`.
+- **R47** La persistencia es **solo el backend**: datos del negocio, cuentas y sesión
+  (JWT). Hay un único cliente HTTP, `http.js`, que apunta a `VITE_API_URL` y envía el
+  token; la sesión tiene un solo dueño, `AuthContext`.
 - **R48** Cada módulo declara sus rutas y su adaptador en
   `modules/<dominio>/api.js`. Las pantallas consumen **siempre** la forma de
   la UI, nunca la forma cruda de la colección: la diferencia (`precio` texto vs
@@ -288,9 +278,9 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   componente. La pantalla la invoca, recarga y avisa. Una llamada CRUD suelta
   (`api.remove('insumos', id)`) puede quedarse en la pantalla.
 - **R49** Ningún dato del negocio se simula en el código: lo que no trae
-  json-server se muestra como ausente (un plato sin imagen, un día sin
-  horario, una meta sin definir). Los datos de prueba van en `server/db.json`,
-  nunca en `src/`.
+  la API se muestra como ausente (un plato sin imagen, un día sin
+  horario, una meta sin definir). Los datos de prueba van en la base de datos
+  del backend, nunca en `src/`.
 - **R50** Los errores llegan a la UI como `ErrorApi` con `codigo` y `estado`;
   nunca se expone el objeto `Response`. Una petición cancelada (desmontaje o
   recarga que pisa a la anterior) lanza `AbortError`, también si se corta
@@ -318,7 +308,7 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   entre dos pantallas es una cifra distinta en el ticket.
 - **R55** El total de una venta se calcula UNA vez, en `construirVenta()`
   (`ventas/servicio.js`), a partir de las líneas del pedido; las pantallas lo
-  leen de la venta guardada en json-server, no lo recalculan por su cuenta.
+  leen de la venta guardada en la API, no lo recalculan por su cuenta.
 - **R56** Lo que cambia un rol se refleja en los demás sin recargar: toda
   escritura se anuncia (`services/sincronizacion.js`) y `useRecurso` /
   `useMenu` vuelven a pedir en silencio; entre pestañas por `BroadcastChannel`
@@ -345,7 +335,7 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   haría creer que el registro se borró.
 - **R61** Las validaciones de formulario viven en un módulo propio del módulo
   (`validaciones.js`), no en el JSX, y se ejecutan **antes** de la llamada de
-  red. Son de experiencia, no de seguridad: json-server no valida nada.
+  red. Son de experiencia, no de seguridad: la que vale es la del backend.
 - **R62** La política de contraseña (RNF-15) se declara como una regla por
   requisito, no como un único regex con lookaheads, para poder decirle al
   usuario exactamente cuál falta. No se aplica en el login: una cuenta antigua
@@ -393,7 +383,7 @@ Convención de rutas: `/{rol}/{seccion}`, más `/login`, `/registro` y `/`.
   destacados. Sin imagen propia se pinta el logo del Corralejo; no se enlazan
   fotos de archivo de un servidor ajeno, que fue lo que hubo que retirar.
 - **R72** Los indicadores se calculan desde `sales` y `comentarios`
-  (`modules/indicadores/calculos.js`); en db.json solo se guarda la meta anual.
+  (`modules/indicadores/calculos.js`); en la API solo se guarda la meta anual.
   Las colecciones `kpis`, `comparison`, `productRows`, `ranking` y `reviews`
   —cifras escritas a mano que ninguna venta movía— ya no existen. Las ventas
   con `historico: true` son datos de prueba y se pueden borrar.
@@ -441,22 +431,21 @@ No se reintroducen, aunque se encuentren en proyectos hermanos:
 ## Deuda anotada, no resuelta
 
 - El control de roles es de **interfaz**. La seguridad real son las políticas
-  RLS de Supabase, que aún no existen (R17).
-- `src/modules/pqrs/PqrsCliente.jsx` pide sus PQRS con `?usuario=correo`, pero
-  json-server no comprueba quién pregunta: cualquiera puede pedir las de otro
-  (R17).
-- Las imágenes de los platos se guardan como `data:` URL dentro de `db.json`.
+  reglas del backend (R17).
+- `src/modules/pqrs/PqrsCliente.jsx` pide sus PQRS con `?usuario=correo`, y el
+  filtro se aplica en el navegador: el backend aún no tiene una ruta para que el
+  cliente lea solo las suyas (R17).
+- Las imágenes de los platos se guardan como `data:` URL dentro del registro.
   Es suficiente para la carta de un restaurante, pero no es almacenamiento de
   archivos. La UI solo pone el valor en un `src`, así que una URL http también
   sirve.
-- json-server 1.0 beta vigila `db.json` y lo relee al cambiar: si la relectura
-  cae entre dos escrituras seguidas, la segunda se pierde (visto al facturar un
-  pedido: la venta se crea y el pedido no queda resuelto). Arrancarlo con
-  `NODE_ENV=production` desactiva esa vigilancia. Detalle en
-  `docs/PARTES-COMPLEJAS.md`, sección 8.
+- Las rutas de cada `modules/<dominio>/api.js` son las anteriores (`/insumos`,
+  `/adminMenu`, `/sales`…) y aún no coinciden con las del backend (`/api/...`,
+  respuestas `{ msg, data }`, `_id`). Recetas, disponibilidad y descuento de
+  insumos (`modules/inventario/api.js`) tampoco existen todavía en el backend.
 - La imagen del QR la dibuja un servicio externo (`api.qrserver.com`, URL fija
   en `ventas/servicio.js`): incumple R19 y ese servicio ve cada código.
 - El QR se valida en el navegador (`ticketsApi.buscarPorQr`): que la venta
-  exista, que no esté cancelada y que ese código no se haya calificado ya. Con
-  json-server nada impide saltarse los tres pasos y escribir en `comentarios`
+  exista, que no esté cancelada y que ese código no se haya calificado ya. Mientras
+  la API no lo valide, nada impide saltarse los tres pasos y escribir en `comentarios`
   directamente (R17).

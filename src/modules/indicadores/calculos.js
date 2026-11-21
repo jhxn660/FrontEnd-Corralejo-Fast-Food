@@ -1,7 +1,7 @@
 // Indicadores calculados a partir de las ventas. SIN React y SIN red: reciben
 // la lista de ventas y devuelven cifras (R53).
 //
-// Antes los indicadores eran números fijos guardados en db.json (`kpis`,
+// Antes los indicadores eran números fijos guardados en la base de datos (`kpis`,
 // `comparison`, `productRows`, `ranking`): una venta nueva no movía nada. Ahora
 // todo sale de la colección `sales`, así que cada venta generada en Pedidos o
 // corregida en Ventas cambia los indicadores en la siguiente lectura.

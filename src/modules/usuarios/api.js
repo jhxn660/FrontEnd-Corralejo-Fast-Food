@@ -1,87 +1,60 @@
-// Cuentas de personal (Gestión de Usuarios, Owner).
+// Cuentas de personal (Gestión de Usuarios, Owner) contra /api/users.
 //
-// Dos almacenes, cada uno con lo suyo:
-// - json-server, colección `usuarios`: la ficha (nombre, correo, rol, cargo,
-//   teléfono, estado, baja lógica). Es lo que lista y edita la pantalla.
-// - Supabase Auth: la cuenta de acceso. Se crea en el alta con la contraseña
-//   inicial y el rol en user_metadata. La contraseña NO se guarda en
-//   json-server.
+// Una sola fuente: el modelo User del backend guarda la ficha (nombre, correo,
+// rol, cargo, teléfono, estado) y la contraseña cifrada. El backend valida la
+// política de contraseña, que correo y teléfono no se repitan, y que solo un
+// Owner gestione cuentas Owner.
 
 import { http } from '../../services/http'
-import { crearCuentaDeAcceso } from '../../services/supabase'
-import { ROLES_GESTIONABLES, ROL_CUENTA } from './esquema'
+import { ROLES_GESTIONABLES } from './esquema'
 
-const RUTA = '/usuarios'
+const RUTA = '/users'
 
-/** Rol de la ficha → rol que lee AuthContext en user_metadata. */
-const ROL_SESION = { [ROL_CUENTA.ADMIN]: 'admin', [ROL_CUENTA.EMPLEADO]: 'empleado' }
+// El backend pagina el listado (15 por defecto). La pantalla muestra todas las
+// cuentas de personal, que son pocas: se pide una página que las incluya.
+const TODAS = { state: 'all', limit: 1000 }
 
-// Lo que no cambia una edición: la contraseña no se guarda aquí, y correo y rol
-// están también en la cuenta de Supabase.
-const CAMPOS_FIJOS = ['password', 'email', 'role', 'createdAt', 'deletedAt', 'deletedBy']
+// Lo que no cambia una edición: correo y rol se fijan en el alta, y la
+// contraseña no se cambia por esta ruta (el backend la descartaría).
+const CAMPOS_FIJOS = ['password', 'email', 'role', 'createdAt', 'createdBy', 'deletedAt', 'deletedBy']
 
-const fallo = (status, mensaje) => Object.assign(new Error(mensaje), { status })
+/** Usuario del backend (`_id`) → forma de la pantalla (`id`). */
+const aCuentaUi = ({ _id, ...cuenta }) => ({ id: _id, ...cuenta })
+
+/**
+ * El teléfono es único en el backend, también cuando vale null: dos cuentas
+ * "sin teléfono" chocarían. Sin teléfono, el campo no se envía.
+ */
+const sinTelefonoVacio = ({ phone, ...resto }) => (phone ? { ...resto, phone } : resto)
 
 const gestionable = (cuenta) => ROLES_GESTIONABLES.includes(cuenta.role) && !cuenta.deletedAt
 
-const listarTodas = async () => (await http.lista(RUTA)).datos
-
-// json-server no tiene restricciones de unicidad: se comprueban aquí.
-const comprobarUnicos = (todas, { email, phone }, idPropio = null) => {
-  const otras = todas.filter((cuenta) => cuenta.id !== idPropio)
-  if (email && otras.some((cuenta) => cuenta.email === email)) {
-    throw fallo(409, 'Ya existe una cuenta con ese correo.')
-  }
-  if (phone && otras.some((cuenta) => cuenta.phone === phone)) {
-    throw fallo(409, 'Ya existe una cuenta con ese teléfono.')
-  }
-}
-
 export const usuariosApi = {
-  /** Cuentas de Administrador y Empleado, sin las dadas de baja. */
-  listar: async () => (await listarTodas()).filter(gestionable),
-
-  /** La ficha de un correo (o null), para que AuthContext bloquee las desactivadas. */
-  fichaDe: async (email) => (await http.lista(RUTA, { query: { email } })).datos[0] ?? null,
-
-  /** Alta: primero la cuenta de acceso (Supabase), después la ficha. */
-  crear: async ({ password, ...ficha }) => {
-    if (!ROLES_GESTIONABLES.includes(ficha.role)) throw fallo(400, 'Rol no permitido.')
-    comprobarUnicos(await listarTodas(), ficha)
-
-    await crearCuentaDeAcceso({
-      email: ficha.email,
-      password,
-      rol: ROL_SESION[ficha.role],
-      nombre: ficha.name,
-    })
-
-    return http.post(RUTA, {
-      ...ficha,
-      createdAt: new Date().toISOString(),
-      deletedAt: null,
-      deletedBy: null,
-    })
+  /** Cuentas de Administrador y Empleado. */
+  listar: async () => {
+    const pagina = await http.get(RUTA, { query: TODAS })
+    return (pagina?.users ?? []).map(aCuentaUi).filter(gestionable)
   },
 
-  /**
-   * Edición de la ficha. Correo y rol no se cambian aquí: viven también en la
-   * cuenta de Supabase, y cambiarlos solo en json-server las desincronizaría.
-   */
+  /** Alta con la contraseña inicial: el backend la cifra. */
+  crear: async (ficha) => {
+    if (!ROLES_GESTIONABLES.includes(ficha.role)) {
+      throw Object.assign(new Error('Rol no permitido.'), { status: 400 })
+    }
+    return aCuentaUi(await http.post(RUTA, sinTelefonoVacio(ficha)))
+  },
+
+  /** Edición de la ficha. Correo y rol se fijan en el alta. */
   actualizar: async (id, valores) => {
     const cambios = Object.fromEntries(
       Object.entries(valores).filter(([campo]) => !CAMPOS_FIJOS.includes(campo))
     )
-    comprobarUnicos(await listarTodas(), cambios, id)
-    return http.patch(`${RUTA}/${id}`, cambios)
+    return aCuentaUi(await http.patch(`${RUTA}/${id}`, sinTelefonoVacio(cambios)))
   },
 
+  /** Activa o desactiva la cuenta: una desactivada no puede iniciar sesión. */
   cambiarEstado: (id, state) => http.patch(`${RUTA}/${id}`, { state }),
 
-  /**
-   * BAJA LÓGICA: la ficha deja de listarse y queda marcada, pero se conserva
-   * para no perder el historial de quién la creó o la dio de baja.
-   */
-  eliminar: (id, { quien = null } = {}) =>
-    http.patch(`${RUTA}/${id}`, { state: false, deletedAt: new Date().toISOString(), deletedBy: quien }),
+  /** Elimina la cuenta en el backend. */
+  eliminar: (id) => http.delete(`${RUTA}/${id}`),
 }

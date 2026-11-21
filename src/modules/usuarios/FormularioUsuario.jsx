@@ -16,10 +16,9 @@ const ID_FORMULARIO = 'formulario-usuario'
 /**
  * Alta y edición de una cuenta de Administrador o Empleado.
  *
- * - La contraseña solo se pide en el alta: es la inicial de la cuenta de
- *   Supabase y no se guarda en json-server.
- * - Correo y rol se fijan en el alta: también viven en la cuenta de Supabase,
- *   así que al editar se muestran pero no se cambian.
+ * - La contraseña solo se pide en el alta: es la inicial de la cuenta, y el
+ *   backend la guarda cifrada.
+ * - Correo y rol se fijan en el alta: al editar se muestran pero no se cambian.
  * - El cargo (`empleado_rol`) solo aplica a Empleado.
  * - El estado (activa / inactiva) solo se edita en una cuenta existente; una
  *   cuenta nueva nace activa.

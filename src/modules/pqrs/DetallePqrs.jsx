@@ -29,7 +29,7 @@ export default function DetallePqrs({ pqrs, onEditar, onResponder, onCerrar }) {
           <button className="btn btn-outline-secondary me-auto" onClick={onCerrar}>
             Cerrar
           </button>
-          {onEditar && pqrs.estado !== 'Resuelta' && (
+          {onEditar && pqrs.estado !== 'Resuelto' && (
             <button className="btn btn-primary" onClick={() => onEditar(pqrs)}>
               <i className="fa-solid fa-pen me-2" />
               Editar solicitud

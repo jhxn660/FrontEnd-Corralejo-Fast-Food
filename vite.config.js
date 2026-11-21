@@ -11,7 +11,6 @@ export default defineConfig({
         // el navegador las conserva en caché entre despliegues.
         manualChunks: {
           react: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
         },
       },
     },

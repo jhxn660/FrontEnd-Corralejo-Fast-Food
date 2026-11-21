@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { api } from '../../services/api'
+import { pqrsApi } from './api'
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
 import { useAvisos } from '../../context/AvisosContext'
@@ -10,6 +10,7 @@ import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import {
   COLOR_ESTADO,
+  ESTADOS,
   ICONO_ESTADO,
   NOMBRES_TIPO,
   ayudaDe,
@@ -28,7 +29,7 @@ import DetallePqrs from './DetallePqrs'
  * local quedaría sin contexto. Por eso esta pantalla no tiene botones de editar
  * ni de eliminar, y el formulario solo se abre para solicitudes nuevas.
  *
- * Es una restricción de interfaz (R17): json-server acepta PUT y DELETE de
+ * Es una restricción de interfaz (R17): la API acepta PUT y DELETE de
  * cualquiera.
  */
 export default function PqrsCliente() {
@@ -36,13 +37,9 @@ export default function PqrsCliente() {
   const { usuario } = useAuth()
   const avisos = useAvisos()
 
-  // El filtro por usuario viaja a la API (?usuario=correo): las PQRS de otros
-  // clientes ya no llegan a este navegador. Sin correo no se pide nada.
+  // El backend reconoce al cliente por su token y le devuelve SOLO sus PQRS.
   const correo = usuario?.email ?? null
-  const cargar = useCallback(
-    () => (correo ? api.list('pqrs', { usuario: correo }) : Promise.resolve([])),
-    [correo]
-  )
+  const cargar = useCallback(() => (correo ? pqrsApi.listar() : Promise.resolve([])), [correo])
   const { datos: todas, cargando, error, recargar } = useRecurso(cargar, [])
 
   const [nueva, setNueva] = useState(null) // solicitud en creación
@@ -50,33 +47,18 @@ export default function PqrsCliente() {
   // el detalle abierto se actualiza solo.
   const [detalleId, setDetalleId] = useState(null)
 
-  // Segundo seguro en el cliente: aunque la API ignorara el filtro, aquí solo
-  // pasan las del usuario. DEUDA (R17): json-server no comprueba quién pregunta.
-  const mias = useMemo(
-    () =>
-      todas
-        .filter((registro) => Boolean(usuario?.email) && registro.usuario === usuario.email)
-        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
-    [todas, usuario]
-  )
+  // Ya filtradas por el backend; aquí solo se ordenan de la más reciente a la más antigua.
+  const mias = useMemo(() => [...todas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)), [todas])
   const detalle = mias.find((registro) => registro.id === detalleId) ?? null
 
   const envio = usePeticion(
     useCallback(
       async (valores) => {
-        await api.create('pqrs', {
-          tipo: valores.tipo,
-          asunto: valores.asunto.trim(),
-          texto: valores.texto.trim(),
-          nombre: usuario?.email ?? 'Cliente',
-          usuario: usuario?.email ?? null,
-          fecha: new Date().toISOString(),
-          // El estado lo decide el local, nunca el cliente.
-          estado: 'Pendiente',
-        })
+        // El autor y el estado ("Pendiente") los pone el backend, nunca el cliente.
+        await pqrsApi.crear(valores)
         await recargar()
       },
-      [recargar, usuario]
+      [recargar]
     )
   )
 
@@ -135,7 +117,7 @@ export default function PqrsCliente() {
           <h2 className="h6 fw-bold mb-0">Mis solicitudes</h2>
           {mias.length > 0 && (
             <div className="d-flex flex-wrap gap-2">
-              {['Pendiente', 'En revisión', 'Resuelta'].map((estado) => (
+              {ESTADOS.map((estado) => (
                 <span className={`badge bg-${COLOR_ESTADO[estado]}`} key={estado}>
                   {porEstado(estado)} {estado.toLowerCase()}
                 </span>

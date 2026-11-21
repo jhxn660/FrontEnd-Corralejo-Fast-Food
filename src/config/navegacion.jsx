@@ -31,7 +31,6 @@ const Establecimiento = lazy(() => import('../modules/establecimiento/Establecim
 const Menu = lazy(() => import('../modules/menu/Menu'))
 const Inventario = lazy(() => import('../modules/inventario/Inventario'))
 const Indicadores = lazy(() => import('../modules/indicadores/Indicadores'))
-const Empleados = lazy(() => import('../modules/empleados/Empleados'))
 const Pedidos = lazy(() => import('../modules/pedidos/Pedidos'))
 const Ventas = lazy(() => import('../modules/ventas/Ventas'))
 const PqrsEmpleado = lazy(() => import('../modules/pqrs/PqrsEmpleado'))
@@ -50,7 +49,7 @@ const MENU_PROPIO = {
       modulo: 'usuarios',
       vista: 'owner-usuarios',
       ruta: '/owner/usuarios',
-      titulo: 'Gestión de Usuarios',
+      etiqueta: 'Gestión de Usuarios',
       icono: 'fa-user-shield',
       elemento: <GestionUsuarios />,
     },
@@ -61,7 +60,7 @@ const MENU_PROPIO = {
       modulo: 'establecimiento',
       vista: 'admin-establecimiento',
       ruta: '/admin/establecimiento',
-      titulo: 'Gestión del Establecimiento',
+      etiqueta: 'Gestión del Establecimiento',
       icono: 'fa-store',
       elemento: <Establecimiento editable />,
     },
@@ -69,7 +68,7 @@ const MENU_PROPIO = {
       modulo: 'inventario',
       vista: 'admin-inventario',
       ruta: '/admin/inventario',
-      titulo: 'Gestión de Inventario',
+      etiqueta: 'Gestión de Inventario',
       icono: 'fa-paste',
       elemento: <Inventario />,
     },
@@ -77,23 +76,25 @@ const MENU_PROPIO = {
       modulo: 'menu',
       vista: 'admin-menu',
       ruta: '/admin/menu',
-      titulo: 'Gestión de Menú',
+      etiqueta: 'Gestión de Menú',
       icono: 'fa-utensils',
       elemento: <Menu editable />,
     },
+    // Empleados y administradores son USUARIOS del backend (/api/users) con su rol: se
+    // gestionan en una sola pantalla. El Owner tiene la misma (módulo 'usuarios') en su ruta.
     {
-      modulo: 'empleados',
-      vista: 'admin-empleados',
-      ruta: '/admin/empleados',
-      titulo: 'Gestión de Empleados',
+      modulo: 'usuarios',
+      vista: 'admin-usuarios',
+      ruta: '/admin/usuarios',
+      etiqueta: 'Gestión de Usuarios',
       icono: 'fa-people-line',
-      elemento: <Empleados />,
+      elemento: <GestionUsuarios />,
     },
     {
       modulo: 'indicadores',
       vista: 'admin-indicadores',
       ruta: '/admin/indicadores',
-      titulo: 'Gestión de Indicadores',
+      etiqueta: 'Gestión de Indicadores',
       icono: 'fa-chart-pie',
       elemento: <Indicadores />,
     },
@@ -101,7 +102,7 @@ const MENU_PROPIO = {
       modulo: 'pqrs',
       vista: 'admin-pqrs',
       ruta: '/admin/pqrs',
-      titulo: 'Moderación de PQRS',
+      etiqueta: 'Moderación de PQRS',
       icono: 'fa-comments',
       // Sustituye a la PQRS del empleado EN SU SITIO: va dentro del bloque
       // heredado (Pedidos, Ventas, PQRS), no con las vistas propias del admin.
@@ -115,7 +116,7 @@ const MENU_PROPIO = {
       modulo: 'pedidos',
       vista: 'empleado-pedidos',
       ruta: '/empleado/pedidos',
-      titulo: 'Gestión de Pedidos',
+      etiqueta: 'Gestión de Pedidos',
       icono: 'fa-grip',
       elemento: <Pedidos />,
     },
@@ -124,7 +125,7 @@ const MENU_PROPIO = {
       vista: 'empleado-menu',
       listaTop: true,
       ruta: '/empleado/menu',
-      titulo: 'Menú',
+      etiqueta: 'Menú',
       icono: 'fa-utensils',
       // Vitrina: la carta del cliente para enseñarla en el local, sin
       // WhatsApp ni datos de contacto.
@@ -134,7 +135,7 @@ const MENU_PROPIO = {
       modulo: 'ventas',
       vista: 'empleado-ventas',
       ruta: '/empleado/ventas',
-      titulo: 'Gestión de Ventas',
+      etiqueta: 'Gestión de Ventas',
       icono: 'fa-book-open',
       elemento: <Ventas />,
     },
@@ -142,7 +143,7 @@ const MENU_PROPIO = {
       modulo: 'pqrs',
       vista: 'empleado-pqrs',
       ruta: '/empleado/pqrs',
-      titulo: 'Gestión de PQRS',
+      etiqueta: 'Gestión de PQRS',
       icono: 'fa-users-rectangle',
       elemento: <PqrsEmpleado />,
     },
@@ -157,7 +158,7 @@ const MENU_PROPIO = {
       // Mismo orden que el Inicio del visitante: bienvenida, ficha, Lista Top.
       listaTopEnPagina: true,
       ruta: '/cliente/inicio',
-      titulo: 'Inicio',
+      etiqueta: 'Inicio',
       icono: 'fa-house',
       elemento: <InicioCliente />,
     },
@@ -166,7 +167,7 @@ const MENU_PROPIO = {
       vista: 'cliente-menu',
       listaTop: true,
       ruta: '/cliente/menu',
-      titulo: 'Menú',
+      etiqueta: 'Menú',
       icono: 'fa-utensils',
       elemento: <Menu />,
     },
@@ -174,7 +175,7 @@ const MENU_PROPIO = {
       modulo: 'pqrs',
       vista: 'cliente-pqrs',
       ruta: '/cliente/pqrs',
-      titulo: 'PQRS',
+      etiqueta: 'PQRS',
       icono: 'fa-users-rectangle',
       // El visitante sin cuenta no la recibe (PERMISO.PQRS_PROPIAS).
       requiereCuenta: true,
@@ -190,7 +191,7 @@ const MENU_PROPIO = {
       modulo: 'inicio',
       vista: 'visitante-inicio',
       ruta: '/visitante/inicio',
-      titulo: 'Inicio',
+      etiqueta: 'Inicio',
       icono: 'fa-house',
       // La pantalla coloca su propia Lista Top (tercera, tras la bienvenida y
       // la ficha del local); Layout no la pinta encima en esta vista.
@@ -202,7 +203,7 @@ const MENU_PROPIO = {
       vista: 'visitante-menu',
       listaTop: true,
       ruta: '/visitante/menu',
-      titulo: 'Menú',
+      etiqueta: 'Menú',
       icono: 'fa-utensils',
       elemento: <Menu />,
     },
@@ -282,21 +283,41 @@ export const RUTAS_PUBLICAS = [
   { vista: 'publico-calificar-qr', ruta: '/calificar/:qr', elemento: <CalificarQr /> },
 ]
 
+/** Roles que tienen cada vista en su menú: vista → ['owner', 'admin', …]. */
+const ROLES_DE_VISTA = Object.entries(MENU).reduce((indice, [rol, items]) => {
+  items.forEach(({ vista }) => indice.set(vista, [...(indice.get(vista) ?? []), rol]))
+  return indice
+}, new Map())
+
 /**
  * Todas las vistas, una vez cada una, para generar el árbol de rutas. Una vista
  * heredada aparece en varios menús pero se monta en una sola ruta.
+ *
+ * Esquema de cada ruta: { vista, ruta, etiqueta, icono, roles, elemento }
+ *   - `roles`: los roles permitidos (calculados desde MENU, no se escriben a mano).
+ *   - `elemento`: la pantalla, cargada bajo demanda (React.lazy).
  */
 export const TODAS_LAS_VISTAS = [
   ...new Map(
     Object.values(MENU)
       .flat()
-      .map((item) => [item.vista, item])
+      .map((item) => [item.vista, { ...item, roles: ROLES_DE_VISTA.get(item.vista) }])
   ).values(),
 ]
 
 export const vistasDe = (rol) => (MENU[rol] ?? []).map((item) => item.vista)
 
-export const puedeVer = (rol, vista) => vistasDe(rol).includes(vista)
+/** ¿El rol puede abrir la vista? (lo que comprueba RutaProtegida) */
+export const puedeVer = (rol, vista) => (ROLES_DE_VISTA.get(vista) ?? []).includes(rol)
 
 /** Ruta de aterrizaje del rol: la primera entrada de su menú. */
 export const rutaPorDefecto = (rol) => MENU[rol]?.[0]?.ruta ?? '/login'
+
+/**
+ * Tras iniciar sesión: vuelve a la ruta que se pidió antes del login si el rol puede
+ * verla; si no (o si no había ninguna), al aterrizaje del rol.
+ */
+export const rutaTrasLogin = (rol, rutaPedida) =>
+  TODAS_LAS_VISTAS.some(({ ruta, vista }) => ruta === rutaPedida && puedeVer(rol, vista))
+    ? rutaPedida
+    : rutaPorDefecto(rol)

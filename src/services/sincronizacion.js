@@ -1,6 +1,6 @@
 // SINCRONIZACIÓN ENTRE PANTALLAS, PESTAÑAS Y ROLES.
 //
-// json-server no empuja cambios, así que cada escritura se anuncia aquí y los
+// la API no empuja cambios, así que cada escritura se anuncia aquí y los
 // hooks de datos (useRecurso, useMenu) vuelven a pedir lo suyo en silencio:
 // - misma pestaña: un EventTarget local (otra pantalla montada a la vez, como
 //   la Lista Top del Layout, se entera al instante);
@@ -17,7 +17,7 @@ canal?.addEventListener('message', ({ data }) => {
   local.dispatchEvent(new CustomEvent(EVENTO, { detail: data }))
 })
 
-/** Anuncia que `ruta` cambió en json-server (lo llama http.js tras escribir). */
+/** Anuncia que `ruta` cambió en la API (lo llama http.js tras escribir). */
 export const notificarCambio = (ruta) => {
   const detalle = { ruta, en: Date.now() }
   local.dispatchEvent(new CustomEvent(EVENTO, { detail: detalle }))

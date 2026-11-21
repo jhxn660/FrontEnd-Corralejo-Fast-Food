@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
@@ -9,25 +9,21 @@ import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
 import { PUNTOS_CLAVE } from '../../data/contenido'
-import {
-  DIAS_SEMANA,
-  MESES,
-  TIPOS_DIA,
-  desplazamientoDe,
-  diaVacio,
-  diasDelMes,
-  fechaLegible,
-  isoDe,
-  mesDesplazado,
-  partesDe,
-} from './calendario'
 import { establecimientoApi } from './api'
 import { useFicha } from './useFicha'
 import OpinionesClientes from './OpinionesClientes'
 import FormularioFicha from './FormularioFicha'
-import FormularioDiaEspecial from './FormularioDiaEspecial'
+import FormularioHorario, { DIAS_HORARIO, horarioVacio } from './FormularioHorario'
 
-const hoy = new Date()
+// Ficha vacía para el primer alta (base de datos nueva, sin ubicación registrada)
+const FICHA_VACIA = { nombre: '', descripcion: '', ciudad: '', direccion: '', telefono: '', mapa: '' }
+
+// "14:00" → "2:00 p. m.", para leer el horario de un vistazo
+const horaLegible = (hora) => {
+  const [h, m] = String(hora ?? '').split(':').map(Number)
+  if (!Number.isFinite(h)) return hora ?? ''
+  return `${h % 12 || 12}:${String(m || 0).padStart(2, '0')} ${h >= 12 ? 'p. m.' : 'a. m.'}`
+}
 
 /**
  * Ficha del establecimiento: ubicación, horario, días especiales y narrativa.
@@ -46,17 +42,17 @@ export default function Establecimiento({ editable = false }) {
     recargar: recargarFicha,
   } = useFicha()
 
+  // Horario semanal: un registro por día en el backend (/api/horarios).
   const {
-    datos: dias,
-    cargando: cargandoDias,
-    error: errorDias,
-    recargar: recargarDias,
-  } = useRecurso(establecimientoApi.listarDiasEspeciales, [])
+    datos: horarios,
+    cargando: cargandoHorarios,
+    error: errorHorarios,
+    recargar: recargarHorarios,
+  } = useRecurso(establecimientoApi.listarHorarios, [])
 
   const avisos = useAvisos()
-  const [mes, setMes] = useState({ año: hoy.getFullYear(), mes: hoy.getMonth() })
   const [modalFicha, setModalFicha] = useState(null)
-  const [modalDia, setModalDia] = useState(null)
+  const [modalHorario, setModalHorario] = useState(null)
 
   const guardadoFicha = usePeticion(
     useCallback(
@@ -68,37 +64,15 @@ export default function Establecimiento({ editable = false }) {
     )
   )
 
-  const guardadoDia = usePeticion(
+  const guardadoHorario = usePeticion(
     useCallback(
       async (valores) => {
-        const { id, ...datos } = valores
-        if (id) await establecimientoApi.actualizarDiaEspecial(id, valores)
-        else await establecimientoApi.crearDiaEspecial(datos)
-        await recargarDias()
+        await establecimientoApi.guardarHorario(valores)
+        await recargarHorarios()
       },
-      [recargarDias]
+      [recargarHorarios]
     )
   )
-
-  // Días del mes visible, indexados por número de día para pintar el calendario.
-  const delMes = useMemo(() => {
-    const indexados = {}
-    dias.forEach((dia) => {
-      const { año, mes: mesDia, dia: numero } = partesDe(dia.fecha)
-      if (año === mes.año && mesDia === mes.mes) indexados[numero] = dia
-    })
-    return indexados
-  }, [dias, mes])
-
-  const especiales = Object.keys(delMes).sort((a, b) => a - b)
-
-  const abrirDia = (numero) => {
-    if (!editable) return
-    const existente = delMes[numero]
-    setModalDia(
-      existente ? { ...existente } : { ...diaVacio(), fecha: isoDe(mes.año, mes.mes, numero) }
-    )
-  }
 
   const guardarFicha = async (valores) => {
     const { ok, error: fallo } = await guardadoFicha.ejecutar(valores)
@@ -110,79 +84,32 @@ export default function Establecimiento({ editable = false }) {
     avisos.exito('Ficha actualizada', 'Los datos del local ya se ven en el panel del cliente.')
   }
 
-  const guardarDia = async (valores) => {
+  const guardarHorario = async (valores) => {
     const editando = Boolean(valores.id)
-    const { ok, error: fallo } = await guardadoDia.ejecutar(valores)
+    const { ok, error: fallo } = await guardadoHorario.ejecutar(valores)
     if (!ok) {
-      avisos.fallo('No se pudo guardar el día', fallo)
+      avisos.fallo('No se pudo guardar el horario', fallo)
       return
     }
-    setModalDia(null)
-    avisos.exito(
-      editando ? 'Día especial actualizado' : 'Día especial añadido',
-      `${fechaLegible(valores.fecha)} quedó marcado como ${
-        TIPOS_DIA[valores.tipo]?.etiqueta.toLowerCase() ?? valores.tipo
-      }.`
-    )
+    setModalHorario(null)
+    avisos.exito(editando ? 'Horario actualizado' : 'Horario añadido', `El horario del ${valores.dia} ya se ve en el calendario.`)
   }
 
   // RNF-01: un mismo componente confirma todos los borrados de la aplicación.
-  const eliminacionDia = useConfirmacion((dia) => establecimientoApi.eliminarDiaEspecial(dia.id), {
-    alTerminar: recargarDias,
+  const eliminacionHorario = useConfirmacion((horario) => establecimientoApi.eliminarHorario(horario.id), {
+    alTerminar: recargarHorarios,
   })
 
-  const eliminarDia = async () => {
-    const fecha = eliminacionDia.objetivo?.fecha
-    if (await eliminacionDia.confirmar()) {
-      avisos.error('Día especial eliminado', `${fechaLegible(fecha)} volvió a ser un día normal.`)
+  const eliminarHorario = async () => {
+    const dia = eliminacionHorario.objetivo?.dia
+    if (await eliminacionHorario.confirmar()) {
+      avisos.error('Horario eliminado', `El ${dia} ya no tiene horario de atención.`)
     }
   }
 
-  const celdas = () => {
-    const { año, mes: mesVisible } = mes
-    const total = diasDelMes(año, mesVisible)
-    const esMesActual = hoy.getFullYear() === año && hoy.getMonth() === mesVisible
-
-    const vacias = Array.from({ length: desplazamientoDe(año, mesVisible) }, (_, i) => (
-      <div key={`vacio-${i}`} className="calendar-day is-muted" />
-    ))
-
-    const numeradas = Array.from({ length: total }, (_, i) => {
-      const numero = i + 1
-      const marca = delMes[numero]
-      const clases = [
-        'calendar-day',
-        marca?.tipo ?? '',
-        esMesActual && hoy.getDate() === numero ? 'is-today' : '',
-        editable ? '' : 'is-readonly',
-      ]
-        .filter(Boolean)
-        .join(' ')
-
-      const descripcion = marca
-        ? `${numero}: ${TIPOS_DIA[marca.tipo]?.etiqueta ?? marca.tipo} — ${marca.motivo}`
-        : String(numero)
-
-      return editable ? (
-        <button
-          key={numero}
-          type="button"
-          className={clases}
-          title={marca?.motivo ?? 'Añadir día especial'}
-          aria-label={descripcion}
-          onClick={() => abrirDia(numero)}
-        >
-          {numero}
-        </button>
-      ) : (
-        <div key={numero} className={clases} title={marca?.motivo ?? ''} aria-label={descripcion}>
-          {numero}
-        </div>
-      )
-    })
-
-    return [...vacias, ...numeradas]
-  }
+  // Los horarios en el orden de la semana, para la tabla
+  const semana = [...horarios].sort((a, b) => DIAS_HORARIO.indexOf(a.dia) - DIAS_HORARIO.indexOf(b.dia))
+  const diasOcupados = horarios.map((horario) => horario.dia)
 
   if (cargandoFicha && !ficha) return <Cargando texto="Cargando información del local…" />
 
@@ -192,7 +119,7 @@ export default function Establecimiento({ editable = false }) {
         titulo={editable ? 'Gestión del Establecimiento' : 'Nuestro Establecimiento'}
         descripcion={
           editable
-            ? 'Actualiza la ficha del local y administra los días especiales.'
+            ? 'Actualiza la ficha del local y el horario de atención.'
             : 'Ubicación, horario y todo lo que distingue a Corralejo Fast Food.'
         }
       >
@@ -200,7 +127,7 @@ export default function Establecimiento({ editable = false }) {
           className="btn btn-outline-secondary"
           onClick={() => {
             recargarFicha()
-            recargarDias()
+            recargarHorarios()
           }}
         >
           <i className="fa-solid fa-rotate me-2" />
@@ -209,7 +136,7 @@ export default function Establecimiento({ editable = false }) {
       </EncabezadoPagina>
 
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
-      <MensajeError texto={errorDias} onReintentar={recargarDias} />
+      <MensajeError texto={errorHorarios} onReintentar={recargarHorarios} />
 
       {/* Sin Lista Top ni podio de más vendidos: esta pantalla es de gestión
           (Admin y Owner). Empieza directamente por la ficha y el calendario. */}
@@ -217,6 +144,14 @@ export default function Establecimiento({ editable = false }) {
       {!ficha && !cargandoFicha && (
         <div className="card border-0 shadow-sm">
           <Vacio texto="Todavía no hay una ficha del establecimiento." icono="fa-store" />
+          {editable && (
+            <div className="text-center pb-4">
+              <button className="btn btn-primary" onClick={() => setModalFicha({ ...FICHA_VACIA })}>
+                <i className="fa-solid fa-plus me-2" />
+                Crear ficha
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -290,108 +225,65 @@ export default function Establecimiento({ editable = false }) {
 
           <div className="col-12 col-xl-aureo-menor">
             <div className="card border-0 shadow-sm h-100">
-              <div className="card-header bg-white">
+              <div className="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h2 className="h6 fw-bold mb-0">
                   <i className="fa-solid fa-calendar-days text-brand me-2" />
-                  Calendario de atención
+                  Horario de atención
                 </h2>
+                {editable && diasOcupados.length < DIAS_HORARIO.length && (
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => setModalHorario(horarioVacio(diasOcupados))}
+                  >
+                    <i className="fa-solid fa-plus me-2" />
+                    Añadir horario
+                  </button>
+                )}
               </div>
               <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => setMes(mesDesplazado(mes, -1))}
-                    aria-label="Mes anterior"
-                  >
-                    <i className="fa-solid fa-chevron-left" />
-                  </button>
-                  <strong>
-                    {MESES[mes.mes]} {mes.año}
-                  </strong>
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => setMes(mesDesplazado(mes, 1))}
-                    aria-label="Mes siguiente"
-                  >
-                    <i className="fa-solid fa-chevron-right" />
-                  </button>
-                </div>
+                {cargandoHorarios && <Cargando texto="Cargando horario…" />}
 
-                <div className="calendar-grid text-center small text-secondary fw-semibold mb-1">
-                  {DIAS_SEMANA.map((dia) => (
-                    <div key={dia}>{dia}</div>
-                  ))}
-                </div>
-                <div className="calendar-grid mb-3">{celdas()}</div>
-
-                <div className="d-flex flex-wrap gap-3 small text-secondary mb-3">
-                  {Object.values(TIPOS_DIA).map(({ etiqueta, color }) => (
-                    <span key={etiqueta}>
-                      <span className={`badge bg-${color}`}>&nbsp;</span> {etiqueta}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Añadir va en la misma fila que el lápiz y la papelera de cada día. */}
-                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                  <h3 className="h6 fw-bold mb-0">Días especiales este mes</h3>
-                  {editable && (
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => setModalDia(diaVacio())}
-                    >
-                      <i className="fa-solid fa-calendar-plus me-2" />
-                      Añadir día especial
-                    </button>
-                  )}
-                </div>
-                {cargandoDias && <Cargando texto="Cargando días especiales…" />}
-
-                {!cargandoDias && especiales.length === 0 ? (
+                {!cargandoHorarios && semana.length === 0 ? (
                   <p className="text-secondary small fst-italic mb-0">
-                    No hay días especiales configurados.
-                    {editable && ' Pulsa un día del calendario para añadirlo.'}
+                    No hay horarios configurados.
+                    {editable && ' Pulsa "Añadir horario" para crear el de cada día.'}
                   </p>
                 ) : (
                   <ul className="list-group list-group-flush">
-                    {especiales.map((numero) => {
-                      const dia = delMes[numero]
-                      const tipo = TIPOS_DIA[dia.tipo] ?? {}
-
-                      return (
-                        <li
-                          key={dia.id}
-                          className="list-group-item d-flex align-items-center gap-2 px-0"
-                        >
-                          <span className={`badge bg-${tipo.color ?? 'secondary'} flex-shrink-0`}>
-                            <i className={`fa-solid ${tipo.icono ?? 'fa-circle'} me-1`} />
-                            {tipo.etiqueta ?? dia.tipo}
+                    {semana.map((horario) => (
+                      <li key={horario.id} className="list-group-item d-flex align-items-center gap-2 px-0">
+                        <span className={`badge bg-${horario.estaAbierto ? 'success' : 'danger'} flex-shrink-0`}>
+                          {horario.estaAbierto ? 'Abierto' : 'Cerrado'}
+                        </span>
+                        <span className="small flex-grow-1 min-width-0">
+                          <span className="d-block fw-semibold">{horario.dia}</span>
+                          <span className="text-secondary">
+                            {horario.estaAbierto
+                              ? `${horaLegible(horario.horaApertura)} – ${horaLegible(horario.horaCierre)}`
+                              : 'Sin atención'}
+                            {horario.estadoNota ? ` · ${horario.estadoNota}` : ''}
                           </span>
-                          <span className="small flex-grow-1 min-width-0">
-                            <span className="d-block fw-semibold">{fechaLegible(dia.fecha)}</span>
-                            <span className="text-secondary">{dia.motivo}</span>
+                        </span>
+                        {editable && (
+                          <span className="btn-group btn-group-sm flex-shrink-0">
+                            <button
+                              className="btn btn-outline-primary"
+                              onClick={() => setModalHorario({ ...horario })}
+                              aria-label={`Editar el horario del ${horario.dia}`}
+                            >
+                              <i className="fa-solid fa-pen" />
+                            </button>
+                            <button
+                              className="btn btn-outline-danger"
+                              onClick={() => eliminacionHorario.pedir(horario)}
+                              aria-label={`Eliminar el horario del ${horario.dia}`}
+                            >
+                              <i className="fa-solid fa-trash-can" />
+                            </button>
                           </span>
-                          {editable && (
-                            <span className="btn-group btn-group-sm flex-shrink-0">
-                              <button
-                                className="btn btn-outline-primary"
-                                onClick={() => setModalDia({ ...dia })}
-                                aria-label={`Editar el día ${fechaLegible(dia.fecha)}`}
-                              >
-                                <i className="fa-solid fa-pen" />
-                              </button>
-                              <button
-                                className="btn btn-outline-danger"
-                                onClick={() => eliminacionDia.pedir(dia)}
-                                aria-label={`Eliminar el día ${fechaLegible(dia.fecha)}`}
-                              >
-                                <i className="fa-solid fa-trash-can" />
-                              </button>
-                            </span>
-                          )}
-                        </li>
-                      )
-                    })}
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>
@@ -414,29 +306,25 @@ export default function Establecimiento({ editable = false }) {
         />
       )}
 
-      {modalDia && (
-        <FormularioDiaEspecial
-          dia={modalDia}
-          enviando={guardadoDia.enviando}
-          onGuardar={guardarDia}
-          onCerrar={() => setModalDia(null)}
+      {modalHorario && (
+        <FormularioHorario
+          horario={modalHorario}
+          diasOcupados={diasOcupados}
+          enviando={guardadoHorario.enviando}
+          onGuardar={guardarHorario}
+          onCerrar={() => setModalHorario(null)}
         />
       )}
 
-      {eliminacionDia.objetivo && (
+      {eliminacionHorario.objetivo && (
         <ConfirmarEliminacion
-          entidad="el día especial"
-          nombre={fechaLegible(eliminacionDia.objetivo.fecha)}
-          consecuencias={[
-            `Estaba marcado como: ${
-              TIPOS_DIA[eliminacionDia.objetivo.tipo]?.etiqueta ?? eliminacionDia.objetivo.tipo
-            } — ${eliminacionDia.objetivo.motivo}`,
-            'El cliente dejará de verlo en el calendario.',
-          ]}
-          enviando={eliminacionDia.enviando}
-          error={eliminacionDia.error}
-          onConfirmar={eliminarDia}
-          onCancelar={eliminacionDia.cancelar}
+          entidad="el horario del"
+          nombre={eliminacionHorario.objetivo.dia}
+          consecuencias={['El cliente verá ese día sin horario de atención en el calendario.']}
+          enviando={eliminacionHorario.enviando}
+          error={eliminacionHorario.error}
+          onConfirmar={eliminarHorario}
+          onCancelar={eliminacionHorario.cancelar}
         />
       )}
     </>

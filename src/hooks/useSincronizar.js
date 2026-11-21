@@ -8,7 +8,7 @@ import { alCambiar } from '../services/sincronizacion'
 const AGRUPAR_MS = 150
 
 /**
- * Llama a `refrescar` cuando los datos pueden haber cambiado en json-server:
+ * Llama a `refrescar` cuando los datos pueden haber cambiado en la API:
  * - otra pantalla, pestaña o rol escribió (services/sincronizacion.js);
  * - la pestaña vuelve a estar visible o recupera el foco;
  * - cada `config.sincronizacionMs` mientras la pestaña está visible (cambios

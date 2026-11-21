@@ -3,7 +3,7 @@ import { useState } from 'react'
 const LARGO = { texto: 1500, titulo: 60, resumen: 160, historia: 2000 }
 const MINIMO = 20
 
-/** Errores por campo; vacío = válido. Validación de experiencia: json-server no valida. */
+/** Errores por campo; vacío = válido. Validación de experiencia: la API no valida. */
 const validar = ({ mision, vision, historias }) => {
   const fallos = {}
   if (mision.trim().length < MINIMO) fallos.mision = `La misión necesita al menos ${MINIMO} caracteres.`

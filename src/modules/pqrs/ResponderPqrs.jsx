@@ -19,8 +19,8 @@ const ID_FORMULARIO = 'formulario-respuesta'
  */
 export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
   const [respuesta, setRespuesta] = useState(pqrs.respuesta ?? '')
-  // Responder suele cerrar el caso: se propone "Resuelta" si aún no lo estaba.
-  const [estado, setEstado] = useState(pqrs.respuesta ? pqrs.estado : 'Resuelta')
+  // Responder suele cerrar el caso: se propone "Resuelto" si aún no lo estaba.
+  const [estado, setEstado] = useState(pqrs.respuesta ? pqrs.estado : 'Resuelto')
   const [error, setError] = useState(null)
 
   const enviar = (evento) => {

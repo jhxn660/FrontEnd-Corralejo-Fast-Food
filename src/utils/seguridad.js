@@ -10,7 +10,7 @@ const HOSTS_MAPA = new Set(['www.google.com', 'google.com', 'maps.google.com'])
  * La ficha del local guarda una URL que se pinta en un <iframe> en el panel de
  * TODOS los clientes. Antes solo se comprobaba que contuviera "/maps/embed",
  * y eso lo cumple también `https://sitio-falso.com/?/maps/embed`: cualquiera
- * que pudiera escribir en la API —json-server no tiene autenticación— podía
+ * que pudiera escribir en la API —la API no tiene autenticación— podía
  * incrustar una página de phishing dentro de la aplicación. Aquí se analiza la
  * URL de verdad: protocolo https, dominio de Google y ruta de inserción.
  */

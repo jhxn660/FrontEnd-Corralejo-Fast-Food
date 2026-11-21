@@ -6,7 +6,7 @@
 // leyendo `estrellas`, así que ninguno de los dos cambia.
 //
 // Registros anteriores a esta escala solo traen `estrellas` (entero 1-5): se
-// leen como el doble (5★ → 10). No hace falta migrar db.json.
+// leen como el doble (5★ → 10). No hace falta migrar los datos.
 
 export const VALORACION_MAXIMA = 10
 

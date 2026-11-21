@@ -1,4 +1,5 @@
 import Modal from '../../components/ui/Modal'
+import { config } from '../../services/config'
 import { moneda, soloDigitos } from '../../utils/format'
 import { useFicha } from '../establecimiento/useFicha'
 import { imagenDe, tieneImagen, tonoDe } from './esquema'
@@ -18,7 +19,8 @@ export default function DetallePlato({ plato, categoria, vitrina = false, onCerr
   const { datos: ficha } = useFicha()
   const tono = tonoDe(plato.nombre, categoria)
 
-  const whatsapp = soloDigitos(ficha?.whatsapp)
+  // Número de la ficha del local; si aún no hay ficha, el de respaldo del .env
+  const whatsapp = soloDigitos(ficha?.whatsapp || config.whatsapp)
   const mensaje = encodeURIComponent(
     `¡Hola Corralejo Fast Food! Quiero pedir: ${plato.nombre} (${moneda(plato.precio)}).`
   )

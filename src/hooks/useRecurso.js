@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSincronizar } from './useSincronizar'
 
 /**
- * Carga un recurso de json-server y expone {datos, cargando, error, recargar}.
+ * Carga un recurso de la API y expone {datos, cargando, error, recargar}.
  *
  * Se mantiene al día solo: cuando cualquier pantalla, pestaña o rol escribe
  * (o pasa el intervalo de sincronización) vuelve a pedir los datos EN SILENCIO,

@@ -1,11 +1,10 @@
 // Esquema de las CUENTAS de personal que gestiona el Owner.
 //
-// Ficha en json-server (colección `usuarios`): `id, name, email, role, phone,
-// state, empleado_rol, createdAt, deletedAt, deletedBy`. La cuenta de acceso
-// vive en Supabase (ver api.js).
+// Cuenta en el backend (/api/users): `id, name, email, role, phone, state,
+// empleado_rol, createdAt`, más la contraseña cifrada (ver api.js).
 //
-// OJO: no es la colección `employees` que usa el módulo Empleados (turnos y
-// cargos del equipo del local).
+// Los empleados se gestionan AQUÍ: en el backend son usuarios con rol Empleado
+// (el antiguo módulo Empleados se unió a este para no repetirlo).
 
 import { PERMISO } from '../../config/roles'
 import { validarEmail, validarPassword } from '../autenticacion/validaciones'
@@ -71,7 +70,7 @@ export const LIMITES = { MAX_NOMBRE, MAX_EMAIL, MAX_CARGO }
 
 /**
  * Validación de experiencia. `creando` exige contraseña: es la inicial de la
- * cuenta de Supabase y solo se pide en el alta (misma política que el registro).
+ * cuenta y solo se pide en el alta (misma política que el registro).
  */
 export const validarCuenta = (valores, { creando }) => {
   const fallos = {}
@@ -105,7 +104,7 @@ export const validarCuenta = (valores, { creando }) => {
 
 export const hayFallos = (fallos) => Object.keys(fallos).length > 0
 
-/** Valores del formulario → ficha para json-server (más la contraseña en el alta). */
+/** Valores del formulario → ficha para la API (más la contraseña en el alta). */
 export const aPayload = (valores, { creando }) => {
   const payload = {
     name: valores.name.trim(),

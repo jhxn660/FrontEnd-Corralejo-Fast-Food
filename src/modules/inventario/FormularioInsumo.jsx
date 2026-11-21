@@ -20,7 +20,7 @@ const ID_FORMULARIO = 'formulario-insumo'
  * - Agrupaba doce campos en una sola retícula plana; aquí van en tres bloques
  *   con título, así que se sabe dónde mirar.
  * - No validaba nada antes de llamar a la red: un nombre en blanco o un stock
- *   negativo llegaban a json-server, que no valida nada. Las comprobaciones son
+ *   negativo llegaban a la API, que no valida nada. Las comprobaciones son
  *   de experiencia, no de seguridad, pero ahorran un viaje y señalan el campo
  *   exacto (R61, R64).
  * - No mostraba el efecto de lo que se escribía. La cabecera previsualiza el

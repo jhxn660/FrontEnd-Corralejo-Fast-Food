@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { api } from '../../services/api'
+import { insumosApi } from './api'
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
 import { useConfirmacion } from '../../hooks/useConfirmacion'
@@ -38,7 +38,7 @@ const RANGO_NIVEL = { agotado: 0, bajo: 1, justo: 2, suficiente: 3 }
 const prioridad = (insumo) => RANGO_NIVEL[nivelDe(insumo).clave] ?? 9
 
 export default function Inventario() {
-  const cargar = useCallback(() => api.list('insumos'), [])
+  const cargar = useCallback(() => insumosApi.listar(), [])
   const { datos: insumos, cargando, error, recargar } = useRecurso(cargar, [])
   const avisos = useAvisos()
 
@@ -57,8 +57,8 @@ export default function Inventario() {
   const guardado = usePeticion(
     useCallback(
       async (insumo) => {
-        if (insumo.id) await api.update('insumos', insumo.id, insumo)
-        else await api.create('insumos', insumo)
+        if (insumo.id) await insumosApi.actualizar(insumo.id, insumo)
+        else await insumosApi.crear(insumo)
         await recargar()
         return insumo
       },
@@ -122,7 +122,7 @@ export default function Inventario() {
   }
 
   // RNF-01: el borrado pasa por un modal que nombra el insumo y bloquea el DOM.
-  const eliminacion = useConfirmacion((insumo) => api.remove('insumos', insumo.id), {
+  const eliminacion = useConfirmacion((insumo) => insumosApi.eliminar(insumo.id), {
     alTerminar: () => {
       recargar()
       setDetalleId(null)

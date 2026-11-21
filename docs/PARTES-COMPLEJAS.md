@@ -33,14 +33,14 @@ Pantalla (Inventario.jsx)
   └─ useRecurso / usePeticion            ← estado: datos, cargando, error
        └─ api.js del módulo o services/api.js
             └─ services/http.js          ← timeout, cancelación, errores, aviso de cambio
-                 └─ fetch → json-server (http://localhost:3000)
+                 └─ fetch → API del backend (VITE_API_URL, http://localhost:3000)
 ```
 
 Lo que no es obvio:
 
-- **No viaja ninguna cabecera de sesión.** json-server no autentica; la sesión
-  (Supabase) solo la usa `AuthContext`. Por eso nada de lo que hay en
-  json-server está protegido (ver [Deuda](#13-deuda-conocida)).
+- **El token viaja en `X-Token`.** `http.js` lo toma de `services/sesion.js` en cada
+  petición; si el backend responde 401 (token vencido o cuenta desactivada), cierra la
+  sesión.
 - **Todo error llega como `ErrorApi`** (`services/errores.js`) con `mensaje`,
   `estado` y `codigo`. En pantalla se usa `err.message`; nunca se lee el
   `Response` de `fetch`.
@@ -56,7 +56,7 @@ Lo que no es obvio:
 
 ## 2. `api.list()` frente a `api.obtener()`
 
-`db.json` tiene dos tipos de claves:
+La API tiene dos tipos de recursos:
 
 | Tipo | Ejemplo | Cómo se pide |
 |---|---|---|
@@ -69,12 +69,12 @@ fue el motivo de dos errores graves: Indicadores en blanco (leía
 `comparison.previous` de un `[]`) y la gráfica de Pedidos al 100 % (el catálogo
 llegaba vacío). Regla R70.
 
-> Si una pantalla recibe un array vacío y en `db.json` sí hay datos, mira
-> primero si la clave es un objeto.
+> Si una pantalla recibe un array vacío y en la API sí hay datos, mira
+> primero si el recurso es un objeto.
 
 ## 3. Sesión, roles y quién ve qué
 
-- **El rol vive en Supabase**, en `user_metadata.rol`. Se lee en
+- **El rol vive en el backend**, en `usuario.role` (lo trae el login). Se lee en
   `AuthContext` con `normalizarRol()`: cualquier valor desconocido se trata
   como `cliente` (el de menor privilegio).
 - **Todo lo que ve cada rol está en `src/config/navegacion.jsx`.** Esa tabla
@@ -99,9 +99,8 @@ llegaba vacío). Regla R70.
   por `RutaProtegida` ni por `Layout` —no hay rol cuyo menú dibujar— así que
   `CalificarQr.jsx` trae su propio cascarón.
 - **Esto es control de interfaz, no seguridad (R17).** Esconde botones y
-  rutas, pero cualquiera con el token —o sin él, con json-server— puede llamar
-  a la API directamente. La seguridad real llegará con las políticas RLS de
-  Supabase.
+  rutas, pero cualquiera puede llamar a la API directamente: la que decide es la
+  autorización del backend (token y rol en cada ruta).
 
 ## 4. Los tres hooks de datos
 
@@ -176,7 +175,7 @@ adminMenu ── menu/api.js: aCategoriaUi() ── useMenu ──┬─ Gestion
 
 - **El adaptador (`aCategoriaUi`) traduce la forma de la API a la de la
   pantalla.** En la API el campo es `categoria` y los platos son `items`; en
-  pantalla, `nombre` y `productos`. Si cambias un campo de `db.json`, se cambia
+  pantalla, `nombre` y `productos`. Si cambia un campo en la API, se cambia
   en el adaptador y nada más (R48).
 - **Un plato con combo se vende como dos productos:** `Hamburguesa Clásica` y
   `Hamburguesa Clásica (combo)`, cada uno con su precio. Lo hace
@@ -186,7 +185,8 @@ adminMenu ── menu/api.js: aCategoriaUi() ── useMenu ──┬─ Gestion
 - ⚠️ **Los pedidos y las ventas guardan el NOMBRE del producto, no un id.** Si
   el administrador renombra "Hamburguesa Clásica", los pedidos viejos siguen
   diciendo el nombre antiguo y en la gráfica de Pedidos caen en "Otros". Es
-  una limitación conocida: json-server no tiene relaciones.
+  una limitación conocida del frontend: el backend ya guarda `productId` en
+  cada línea, falta usarlo aquí.
 - **Cada plato tiene un `id` propio y persistido** (`items[].id` en
   `adminMenu`). Antes era posicional (`<categoría>-<índice>`) y editar un plato
   mientras otro rol añadía o quitaba otro de la misma categoría guardaba los
@@ -211,7 +211,7 @@ adminMenu ── menu/api.js: aCategoriaUi() ── useMenu ──┬─ Gestion
   archivo.
 - **Se reduce antes de guardar** (`utils/imagen.js`): 800 px de ancho y JPEG de
   calidad 0,72. La imagen viaja dentro del registro del plato, así que una foto
-  de teléfono sin reducir serían megabytes de base64 en `db.json` que el
+  de teléfono sin reducir serían megabytes de base64 en la base de datos que el
   navegador descargaría con la carta. Se aceptan PNG de entrada pero se guarda
   JPEG, y el lienzo se pinta de blanco antes de dibujar porque el JPEG no tiene
   canal alfa.
@@ -247,17 +247,9 @@ negocio no hace falta leer el JSX.
 
 Puntos delicados:
 
-- **json-server puede perder una escritura si llegan varias seguidas.** La
-  versión 1.0 beta vigila `db.json` y lo relee cuando cambia; si esa relectura
-  cae justo entre dos escrituras, la segunda se pierde en memoria. Depende del
-  momento exacto: en una prueba de 12 repeticiones de la secuencia de facturar
-  (crear venta + resolver pedido), en 2 el pedido quedó sin resolver. Si pasa,
-  basta con volver a pulsar «Finalizar»: `facturarPedido` reutiliza la venta
-  que ya existe en vez de duplicarla. Arrancar la API sin esa vigilancia lo
-  evita (PowerShell: `$env:NODE_ENV='production'; npm run api`).
 - **Son varias llamadas sueltas, no una transacción.** Si falla el paso 4
-  después del 3, queda una venta con el pedido sin resolver: json-server no
-  tiene transacciones.
+  después del 3, queda una venta con el pedido sin resolver. Al integrar con el backend, la
+  venta debe registrarse allí en una sola llamada (`POST /api/sales { orderId }`).
 - **El detalle abierto guarda el id, no la venta**: se busca en cada render
   entre las recién sincronizadas, así una corrección hecha desde otro rol se
   ve sin volver a seleccionarla. Lo mismo hacen Inventario y las tres
@@ -284,9 +276,6 @@ Puntos delicados:
   `createdAt`, para no depender de la zona horaria.
 - La meta anual es el único dato que se escribe: `PUT /goal { meta }`.
 - La pantalla se refresca sola cada 30 s y al volver a la pestaña.
-- **Ventas de prueba:** `db.json` incluye 352 ventas con `historico: true`
-  para que haya meses que comparar. Para empezar con datos reales, bórralas
-  filtrando ese campo.
 
 ### El QR, el comentario y la nota de cada producto
 
@@ -320,10 +309,6 @@ QR del tiquete  ->  venta (/sales?qrCode=)  ->  comentario con qr, estrellas
   en el muro. Una puntuación sin texto no entra en el buzón de Moderación.
 - **Un QR, una valoración.** Es lo único que impide votar en bucle con el mismo
   código, y hoy se comprueba en el navegador (sección 14).
-- **Valoraciones de prueba:** las 30 valoraciones con `mock: true` de `db.json`
-  cuelgan de ventas reales. Si las borras, el panel de productos valorados
-  queda vacío hasta que alguien califique un pedido, que es el comportamiento
-  correcto.
 
 ## 10. Dinero y fechas
 
@@ -366,27 +351,30 @@ de `.ticket-impresion` o con la clase `no-imprimir`.
 
 ## 13. Deuda conocida
 
-- **json-server no tiene autenticación:** cualquiera que alcance el puerto
-  3000 puede leer y modificar todo. Se resuelve migrando las colecciones a
-  Supabase con RLS (R17).
+- **Rutas sin integrar:** cada `modules/<dominio>/api.js` pide los recursos
+  con los nombres anteriores (`/insumos`, `/adminMenu`, `/sales`…), que no son
+  los del backend (`/api/supplies`, `/api/products`, `/api/sales`…). Hay que
+  adaptarlos, junto con el envoltorio `{ msg, data }`, el `_id` y el token.
+  Recetas, disponibilidad y descuento de insumos (`modules/inventario/api.js`)
+  aún no existen en el backend.
 - **El QR del ticket se genera en `api.qrserver.com`:** el código de cada
   ticket sale a un tercero. Se resuelve generándolo en el navegador con una
   librería.
 - **Productos identificados por nombre** en pedidos y ventas (sección 7).
 - **El más vendido del día** se calcula en el navegador con `/sales?date=`
   (`establecimiento/api.js`).
-- **Las imágenes de los platos viven dentro de `db.json`** como `data:` URL
+- **Las imágenes de los platos viven dentro del registro** como `data:` URL
   (sección 7.1). Funciona para la carta de un restaurante, pero no es
   almacenamiento de archivos.
 - **PQRS privadas y muro de comentarios:** el cliente pide solo sus PQRS
   (`?usuario=correo`) y solo puede crearlas y leerlas; el admin las responde
   (campo `respuesta`) o elimina. El muro público usa la colección
   `comentarios`, con `visible` controlado por el admin. Todo esto es de
-  interfaz: json-server no sabe quién pregunta y acepta cualquier escritura.
+  interfaz: hasta integrarlo, el filtro lo aplica el navegador.
 - **Valoración por QR:** las tres comprobaciones (la venta existe, no está
   cancelada, ese QR no se calificó antes) se hacen en el navegador, y la ruta
-  `/calificar` es pública por diseño (R74). Con json-server cualquiera puede
-  escribir en `comentarios` sin pasar por ellas.
+  `/calificar` es pública por diseño (R74). Al integrar, la validación
+  la hace el backend (`POST /api/comments` con el `codigo` del QR).
 - **Texto sin moderar en el navegador:** `opinionesApi.listar()` recorta el
   texto de los comentarios que aún no están aprobados, pero lo recorta *después*
   de recibirlo.

@@ -6,6 +6,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
+  /* ---------- Escala general ----------
+     El panel se pinta al 95 % en escritorio, como el zoom del navegador (ver
+     `html { zoom }` justo después de este bloque). Cambiar este número escala
+     TODO por igual: la escala Fibonacci está en px y un font-size base solo
+     encogería la mitad de las medidas.
+     Bajo `zoom`, 100vh también se encoge: las alturas de pantalla completa
+     usan --vh-pantalla / --dvh-pantalla, que lo compensan y siguen llenando
+     la ventana. */
+  --escala: 1;
+  --vh-pantalla: calc(100vh / var(--escala));
+  --dvh-pantalla: calc(100dvh / var(--escala));
+
   --cff-naranja: #ff8a00;
   --cff-naranja-oscuro: #c96400;
   --cff-naranja-claro: #ffb24d;
@@ -87,6 +99,23 @@
   --cff-cat-combos: #7209b7;
   --cff-cat-otros: #6b7280;
 }
+
+/* Escritorio al 95 %. En móvil se queda al 100 %: el texto pequeño ya está en
+   13 px, el mínimo legible de la escala, y bajarlo un 5 % lo dejaría corto. */
+@media (min-width: 992px) {
+  :root { --escala: 0.95; }
+}
+
+html { zoom: var(--escala); }
+
+/* El ticket se imprime a su tamaño real, no al 95 %. */
+@media print {
+  :root { --escala: 1; }
+}
+
+/* Las utilidades de alto completo de Bootstrap, compensadas igual. */
+.min-vh-100 { min-height: var(--vh-pantalla) !important; }
+.vh-100 { height: var(--vh-pantalla) !important; }
 
 body {
   background-color: var(--cff-fondo);
@@ -265,8 +294,8 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
     position: sticky;
     top: calc(var(--cff-header) + var(--fib-21));
     align-self: flex-start;
-    height: calc(100vh - var(--cff-header) - 2 * var(--fib-21));
-    height: calc(100dvh - var(--cff-header) - 2 * var(--fib-21));
+    height: calc(var(--vh-pantalla) - var(--cff-header) - 2 * var(--fib-21));
+    height: calc(var(--dvh-pantalla) - var(--cff-header) - 2 * var(--fib-21));
   }
 
   /* Alto de ventana: el botón "Información" (mt-auto en Layout) queda abajo
@@ -283,7 +312,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
     width: auto;
     z-index: 1020;
     padding: var(--fib-13);
-    max-height: calc(100dvh - var(--cff-header));
+    max-height: calc(var(--dvh-pantalla) - var(--cff-header));
     overflow-y: auto;
   }
 
@@ -321,7 +350,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 /* ---------- Piezas reutilizables ---------- */
 
 .auth-screen {
-  min-height: 100vh;
+  min-height: var(--vh-pantalla);
   background-size: cover;
   background-position: center;
 }
@@ -480,7 +509,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 .modal-body {
   padding: 1.25rem;
   overflow-y: auto;
-  max-height: calc(100vh - var(--cff-header) - 9rem);
+  max-height: calc(var(--vh-pantalla) - var(--cff-header) - 9rem);
 }
 
 .modal-footer {
@@ -504,7 +533,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   top: calc(var(--cff-header) + 0.75rem);
   right: 1rem;
   z-index: 1090;
-  width: min(23rem, calc(100vw - 2rem));
+  width: min(23rem, calc(100vw / var(--escala) - 2rem));
   display: grid;
   gap: 0.6rem;
   pointer-events: none;
@@ -1003,7 +1032,7 @@ html:hover { scrollbar-color: #aab0bc transparent; }
   --cff-cristal-borde: rgb(255 255 255 / 70%);
   --cff-brillo: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgb(255 255 255 / 0%) 55%);
 
-  min-height: 100vh;
+  min-height: var(--vh-pantalla);
   background-image:
     radial-gradient(900px 500px at 8% 0%, rgb(255 178 77 / 28%) 0%, transparent 62%),
     radial-gradient(760px 460px at 100% 12%, rgb(67 97 238 / 12%) 0%, transparent 60%),

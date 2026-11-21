@@ -1,7 +1,13 @@
 import { Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
-import { RUTAS_PUBLICAS, TODAS_LAS_VISTAS, rutaPorDefecto, vistasDe } from './config/navegacion'
+import {
+  RUTAS_PUBLICAS,
+  TODAS_LAS_VISTAS,
+  rutaPorDefecto,
+  rutaTrasLogin,
+  vistasDe,
+} from './config/navegacion'
 import { useAuth } from './context/AuthContext'
 import Layout from './components/layout/Layout'
 import AccesoDenegado from './components/layout/AccesoDenegado'
@@ -23,6 +29,7 @@ const pantallaCargando = (
  */
 export default function App() {
   const { usuario, rol, cargando, cerrarSesion } = useAuth()
+  const location = useLocation()
 
   if (cargando) return pantallaCargando
 
@@ -39,13 +46,16 @@ export default function App() {
   // Sin sesión el rol es 'usuario': se aterriza en el panel del visitante, no
   // en el login. Login y registro siguen a un clic desde la cabecera.
   const inicio = rutaPorDefecto(rol)
+  // Al entrar desde /login: vuelve a la ruta protegida que se pidió (RutaProtegida la
+  // guarda en state.from) si el rol puede verla; si no, a la de inicio del rol.
+  const trasLogin = rutaTrasLogin(rol, location.state?.from)
 
   // Las pantallas llegan bajo demanda (config/navegacion.jsx). Dentro de los
   // paneles las espera el <Suspense> de Layout; este cubre las rutas públicas.
   return (
     <Suspense fallback={pantallaCargando}>
       <Routes>
-        <Route path="/login" element={usuario ? <Navigate to={inicio} replace /> : <Login />} />
+        <Route path="/login" element={usuario ? <Navigate to={trasLogin} replace /> : <Login />} />
         <Route path="/registro" element={usuario ? <Navigate to={inicio} replace /> : <Register />} />
         <Route path="/" element={<Navigate to={inicio} replace />} />
 
