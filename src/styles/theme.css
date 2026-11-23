@@ -1,0 +1,2044 @@
+/* Tema de Corralejo Fast Food.
+   Único archivo CSS propio (R26): define la marca, repinta las variables de
+   Bootstrap y resuelve lo que Bootstrap no cubre (calendario, torta, avisos,
+   impresión del ticket). Todo lo demás sale de las clases de Bootstrap. */
+
+@import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* ---------- Escala general ----------
+     El panel se pinta al 95 % en escritorio, como el zoom del navegador (ver
+     `html { zoom }` justo después de este bloque). Cambiar este número escala
+     TODO por igual: la escala Fibonacci está en px y un font-size base solo
+     encogería la mitad de las medidas.
+     Bajo `zoom`, 100vh también se encoge: las alturas de pantalla completa
+     usan --vh-pantalla / --dvh-pantalla, que lo compensan y siguen llenando
+     la ventana. */
+  --escala: 1;
+  --vh-pantalla: calc(100vh / var(--escala));
+  --dvh-pantalla: calc(100dvh / var(--escala));
+
+  --cff-naranja: #ff8a00;
+  --cff-naranja-oscuro: #c96400;
+  --cff-naranja-claro: #ffb24d;
+  --cff-naranja-tenue: #fff3e3;
+  --cff-carbon: #16181d;
+  --cff-carbon-claro: #2a2e38;
+  --cff-fondo: #e9ebf0;
+  --cff-superficie: #ffffff;
+  --cff-borde: #d6d9e0;
+  --cff-tinta: #16181d;
+  --cff-tinta-suave: #596070;
+
+  /* ---------- Sistema Fibonacci / proporción áurea ----------
+     Toda medida de espacio, radio, tipografía y alto de pieza sale de esta
+     escala. Las utilidades de Bootstrap (p-*, m-*, g-*, gap-*) se remapean al
+     final del archivo: 1→5 · 2→8 · 3→13 · 4→21 · 5→34 · 6→55 · 7→89. */
+  --phi: 1.618;
+  --fib-3: 3px;
+  --fib-5: 5px;
+  --fib-8: 8px;
+  --fib-13: 13px;
+  --fib-21: 21px;
+  --fib-34: 34px;
+  --fib-55: 55px;
+  --fib-89: 89px;
+  --fib-144: 144px;
+  --fib-233: 233px;
+  --aureo-mayor: 61.8%;
+  --aureo-menor: 38.2%;
+
+  --cff-header: var(--fib-55);
+
+  /* Sombras en una sola escala: así todas las tarjetas pertenecen al mismo
+     sistema en vez de inventar cada una la suya. */
+  --cff-sombra-1: 0 1px 2px rgba(22, 24, 29, 0.06), 0 2px 8px rgba(22, 24, 29, 0.06);
+  --cff-sombra-2: 0 4px 12px rgba(22, 24, 29, 0.1), 0 12px 28px rgba(22, 24, 29, 0.1);
+  --cff-sombra-3: 0 18px 50px rgba(22, 24, 29, 0.28);
+
+  --bs-primary: var(--cff-naranja);
+  --bs-primary-rgb: 255, 138, 0;
+  /* Bootstrap usa --bs-body-bg también como fondo de listas, tablas e inputs.
+     Si fuera el gris de la página, las reseñas, las solicitudes de PQRS y las
+     tablas saldrían grises dentro de tarjetas blancas: el fondo de la página
+     se pinta en body, y esta variable se queda en blanco. */
+  --bs-body-bg: var(--cff-superficie);
+  --bs-body-color: var(--cff-tinta);
+  --bs-body-font-family: 'Albert Sans', system-ui, sans-serif;
+  --bs-link-color: var(--cff-naranja-oscuro);
+  --bs-link-hover-color: var(--cff-carbon);
+  /* Radios Fibonacci: control 8 · pequeño 5 · tarjeta 13 · modal 21. */
+  --bs-border-radius: var(--fib-8);
+  --bs-border-radius-sm: var(--fib-5);
+  --bs-border-radius-lg: var(--fib-13);
+  --bs-border-radius-xl: var(--fib-21);
+  --bs-border-radius-xxl: var(--fib-34);
+
+  /* Interlineado áureo para el texto corrido. Los botones y campos conservan
+     el suyo (Bootstrap los fija aparte), así no crecen de alto. */
+  --bs-body-line-height: var(--phi);
+  --bs-border-color: var(--cff-borde);
+
+  /* El gris de Bootstrap (#6c757d) baja de 4.5:1 sobre el fondo de la página.
+     Este tono mantiene la jerarquía y pasa AA en tarjeta y en fondo. */
+  --bs-secondary-color: var(--cff-tinta-suave);
+
+  /* Paleta de las gráficas. Los componentes las citan como var(…) para que
+     ningún color viva fuera de este archivo (R28). */
+  --cff-grafica-1: #ff8a00;
+  --cff-grafica-2: #ff6b35;
+  --cff-grafica-3: #ffb24d;
+  --cff-grafica-4: #2a9d8f;
+  --cff-grafica-5: #4361ee;
+
+  --cff-cat-perros: #ff8a00;
+  --cff-cat-salchipapas: #e63946;
+  --cff-cat-hamburguesas: #2a9d8f;
+  --cff-cat-bebidas: #4361ee;
+  --cff-cat-acompanamientos: #f4a261;
+  --cff-cat-combos: #7209b7;
+  --cff-cat-otros: #6b7280;
+}
+
+/* Escritorio al 95 %. En móvil se queda al 100 %: el texto pequeño ya está en
+   13 px, el mínimo legible de la escala, y bajarlo un 5 % lo dejaría corto. */
+@media (min-width: 992px) {
+  :root { --escala: 0.95; }
+}
+
+html { zoom: var(--escala); }
+
+/* El ticket se imprime a su tamaño real, no al 95 %. */
+@media print {
+  :root { --escala: 1; }
+}
+
+/* Las utilidades de alto completo de Bootstrap, compensadas igual. */
+.min-vh-100 { min-height: var(--vh-pantalla) !important; }
+.vh-100 { height: var(--vh-pantalla) !important; }
+
+body {
+  background-color: var(--cff-fondo);
+  /* Un fondo con una veladura cálida separa las tarjetas blancas del lienzo sin
+     recurrir a bordes gruesos. */
+  background-image: radial-gradient(1200px 600px at 100% -5%, #fdf0df 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
+
+/* ---------- Botones ---------- */
+
+/* Bootstrap arma los botones con sus propias variables: se repintan aquí en vez
+   de recompilar Sass. */
+.btn {
+  --bs-btn-font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  --bs-btn-bg: var(--cff-naranja);
+  --bs-btn-border-color: var(--cff-naranja);
+  --bs-btn-hover-bg: var(--cff-naranja-oscuro);
+  --bs-btn-hover-border-color: var(--cff-naranja-oscuro);
+  --bs-btn-active-bg: var(--cff-naranja-oscuro);
+  --bs-btn-active-border-color: var(--cff-naranja-oscuro);
+  --bs-btn-disabled-bg: var(--cff-naranja-claro);
+  --bs-btn-disabled-border-color: var(--cff-naranja-claro);
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-color: #fff;
+  --bs-btn-disabled-color: #fff;
+  box-shadow: 0 2px 6px rgba(255, 138, 0, 0.35);
+}
+
+.btn-primary:hover { box-shadow: 0 4px 14px rgba(255, 138, 0, 0.45); }
+
+.btn-outline-primary {
+  --bs-btn-color: var(--cff-naranja-oscuro);
+  --bs-btn-border-color: var(--cff-naranja);
+  --bs-btn-hover-bg: var(--cff-naranja);
+  --bs-btn-hover-border-color: var(--cff-naranja);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: var(--cff-naranja-oscuro);
+  --bs-btn-active-border-color: var(--cff-naranja-oscuro);
+}
+
+/* El gris de Bootstrap sobre blanco es casi invisible: se oscurece el borde
+   para que un botón secundario siga leyéndose como botón. */
+.btn-outline-secondary {
+  --bs-btn-color: var(--cff-carbon-claro);
+  --bs-btn-border-color: #aeb4c0;
+  --bs-btn-hover-bg: var(--cff-carbon-claro);
+  --bs-btn-hover-border-color: var(--cff-carbon-claro);
+  --bs-btn-hover-color: #fff;
+}
+
+.text-brand { color: var(--cff-naranja-oscuro) !important; }
+.bg-brand { background-color: var(--cff-naranja) !important; }
+.bg-carbon { background-color: var(--cff-carbon) !important; }
+.badge.bg-brand { color: #fff; }
+
+/* ---------- Superficies ---------- */
+
+.card {
+  --bs-card-bg: var(--cff-superficie);
+  --bs-card-border-color: var(--cff-borde);
+  --bs-card-border-radius: var(--bs-border-radius-lg);
+}
+
+/* Las pantallas piden "border-0 shadow-sm"; se les da la sombra del sistema y
+   un filo de 1px, que es lo que separa la tarjeta del fondo. */
+.card.border-0 {
+  border: 1px solid rgba(22, 24, 29, 0.07) !important;
+  box-shadow: var(--cff-sombra-1) !important;
+}
+
+.card-header {
+  --bs-card-cap-bg: var(--cff-superficie);
+  border-bottom: 1px solid var(--cff-borde);
+  font-weight: 600;
+}
+
+/* Un filo naranja en la cabecera da jerarquía a cada panel sin añadir ruido. */
+.card-header.bg-white { box-shadow: inset 3px 0 0 var(--cff-naranja); }
+
+.card-footer { border-top: 1px solid var(--cff-borde); }
+
+.table {
+  --bs-table-border-color: var(--cff-borde);
+}
+
+.table > thead th {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--cff-tinta-suave);
+  background: #f5f6f9;
+}
+
+.form-control,
+.form-select {
+  border-color: #c6cad4;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--cff-naranja);
+  box-shadow: 0 0 0 0.2rem rgba(255, 138, 0, 0.22);
+}
+
+.form-label { font-weight: 600; font-size: 0.875rem; }
+
+/* Bootstrap fija el azul de la paginación con un literal, no con --bs-primary:
+   sin repintarlo, la página activa saldría azul en una interfaz naranja. */
+.pagination {
+  --bs-pagination-color: var(--cff-carbon);
+  --bs-pagination-border-color: var(--cff-borde);
+  --bs-pagination-hover-color: var(--cff-naranja-oscuro);
+  --bs-pagination-hover-bg: var(--cff-naranja-tenue);
+  --bs-pagination-hover-border-color: var(--cff-naranja);
+  --bs-pagination-focus-color: var(--cff-naranja-oscuro);
+  --bs-pagination-focus-bg: var(--cff-naranja-tenue);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(255, 138, 0, 0.25);
+  --bs-pagination-active-bg: var(--cff-naranja);
+  --bs-pagination-active-border-color: var(--cff-naranja-oscuro);
+  --bs-pagination-active-color: #fff;
+  font-weight: 600;
+}
+
+.form-check-input:checked {
+  background-color: var(--cff-naranja);
+  border-color: var(--cff-naranja-oscuro);
+}
+
+.form-check-input:focus {
+  border-color: var(--cff-naranja);
+  box-shadow: 0 0 0 0.2rem rgba(255, 138, 0, 0.22);
+}
+
+/* ---------- Estructura de la aplicación ---------- */
+
+.app-header {
+  height: var(--cff-header);
+  background: linear-gradient(100deg, var(--cff-carbon) 0%, var(--cff-carbon-claro) 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  box-shadow: 0 2px 12px rgba(22, 24, 29, 0.35);
+  border-bottom: 2px solid var(--cff-naranja);
+}
+
+.app-header .text-brand { color: var(--cff-naranja-claro) !important; }
+
+/* 233px: número de Fibonacci (144 · 233 · 377). */
+.app-sidebar {
+  width: var(--fib-233);
+  flex-shrink: 0;
+}
+
+/* MENÚ LATERAL QUE ACOMPAÑA EL SCROLL (hacia abajo y hacia arriba).
+   Escritorio: el <aside> mismo es sticky y se alinea arriba (flex-start), así
+   no depende de cuánto mida su columna. `top` no es 0 porque la cabecera
+   también es sticky y lo taparía: se pega justo debajo, con 21px de aire.
+   Ningún ancestro (html, body, #root, .container-fluid, la fila flex) tiene
+   overflow ni transform, que es lo que rompe un sticky.
+   Móvil: el menú abierto flota fijo bajo la cabecera, así que se puede abrir
+   y usar desde cualquier punto de la página sin volver arriba. */
+.app-sidebar-inner { height: 100%; }
+
+@media (min-width: 992px) {
+  .app-sidebar {
+    position: sticky;
+    top: calc(var(--cff-header) + var(--fib-21));
+    align-self: flex-start;
+    height: calc(var(--vh-pantalla) - var(--cff-header) - 2 * var(--fib-21));
+    height: calc(var(--dvh-pantalla) - var(--cff-header) - 2 * var(--fib-21));
+  }
+
+  /* Alto de ventana: el botón "Información" (mt-auto en Layout) queda abajo
+     del todo; si el menú no cabe, desplaza por dentro. */
+  .app-sidebar-inner { overflow-y: auto; }
+}
+
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    position: fixed;
+    top: var(--cff-header);
+    left: 0;
+    right: 0;
+    width: auto;
+    z-index: 1020;
+    padding: var(--fib-13);
+    max-height: calc(var(--dvh-pantalla) - var(--cff-header));
+    overflow-y: auto;
+  }
+
+  .app-sidebar-inner { height: auto; box-shadow: var(--cff-sombra-3); }
+}
+
+/* Botón de navegación del panel: activo = naranja. */
+.nav-panel .nav-link {
+  color: var(--cff-carbon);
+  text-align: left;
+  border-radius: var(--bs-border-radius);
+  padding: var(--fib-8) var(--fib-13);
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.nav-panel .nav-link:hover {
+  background: var(--cff-naranja-tenue);
+  color: var(--cff-naranja-oscuro);
+}
+
+.nav-panel .nav-link.active {
+  background: linear-gradient(100deg, var(--cff-naranja) 0%, var(--cff-naranja-claro) 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(255, 138, 0, 0.4);
+}
+
+.nav-panel .nav-link i { width: var(--fib-21); }
+
+/* ---------- Piezas reutilizables ---------- */
+
+.auth-screen {
+  min-height: var(--vh-pantalla);
+  background-size: cover;
+  background-position: center;
+}
+
+.auth-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(22, 24, 29, 0.82) 0%, rgba(201, 100, 0, 0.55) 100%);
+}
+
+.logo-circle {
+  width: var(--fib-89);
+  height: var(--fib-89);
+  border-radius: 50%;
+  background: var(--cff-naranja-tenue);
+  border: 2px solid var(--cff-naranja);
+}
+
+/* Cuadro de icono: fondo sólido e icono blanco. La versión anterior era naranja
+   claro sobre naranja y no llegaba a 3:1. */
+.icon-tile {
+  width: var(--fib-55);
+  height: var(--fib-55);
+  border-radius: var(--bs-border-radius-lg);
+  background: linear-gradient(140deg, var(--cff-naranja) 0%, var(--cff-naranja-oscuro) 100%);
+  color: #fff;
+  font-size: var(--fib-21);
+  box-shadow: 0 3px 8px rgba(255, 138, 0, 0.35);
+}
+
+.icon-tile-sm {
+  width: var(--fib-34);
+  height: var(--fib-34);
+  border-radius: var(--bs-border-radius);
+  font-size: var(--fib-13);
+}
+
+/* Bootstrap no trae utilidades de min-width: sin esto, un flex hijo con texto
+   largo no se deja encoger y desborda la fila. */
+.min-width-0 { min-width: 0; }
+
+.card-clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--cff-sombra-2) !important;
+  border-color: var(--cff-naranja) !important;
+}
+
+.card-clickable:focus-visible {
+  outline: 3px solid var(--cff-naranja);
+  outline-offset: 2px;
+}
+
+/* Cinta superior de color para clasificar tarjetas (empleados, insumos). */
+.cinta-superior { box-shadow: inset 0 4px 0 var(--color-cinta, var(--cff-naranja)); }
+
+/* Texto recortado a N líneas: una descripción larga no debe estirar la tarjeta
+   y romper la rejilla. */
+.recorte-2,
+.recorte-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.recorte-2 { -webkit-line-clamp: 2; }
+.recorte-3 { -webkit-line-clamp: 3; }
+
+/* ---------- Modales ---------- */
+
+/* El portal monta el diálogo con la clase .modal de Bootstrap: ahí es donde
+   viven TODAS las variables --bs-modal-*. Sin esa clase, .modal-content se
+   queda sin fondo ni relleno y modal-lg no tiene ningún efecto, que era el
+   motivo real de que los modales se vieran mal en toda la aplicación. */
+.modal {
+  --bs-modal-bg: var(--cff-superficie);
+  --bs-modal-border-radius: var(--bs-border-radius-xl);
+  --bs-modal-border-width: 0;
+  --bs-modal-header-border-color: var(--cff-borde);
+  --bs-modal-footer-border-color: var(--cff-borde);
+  --bs-modal-box-shadow: var(--cff-sombra-3);
+}
+
+.cff-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  background: rgba(10, 11, 14, 0.62);
+  backdrop-filter: blur(3px);
+  animation: cff-fundido 0.18s ease-out;
+}
+
+.cff-dialogo {
+  animation: cff-subida 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cff-fundido {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cff-subida {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cff-backdrop,
+  .cff-dialogo { animation: none; }
+}
+
+.modal-content {
+  overflow: hidden;
+  box-shadow: var(--cff-sombra-3);
+}
+
+/* Cabecera oscura con el icono en naranja: el modal deja de parecer un trozo
+   de página suelto y se lee como una capa aparte. */
+.modal-header {
+  background: linear-gradient(100deg, var(--cff-carbon) 0%, var(--cff-carbon-claro) 100%);
+  color: #fff;
+  padding: 1rem 1.25rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-header .modal-title {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.modal-header .text-brand { color: var(--cff-naranja-claro) !important; }
+
+/* btn-close es un SVG negro: sobre la cabecera oscura hay que invertirlo. */
+.modal-header .btn-close {
+  filter: invert(1) grayscale(1) brightness(2);
+  opacity: 0.75;
+}
+
+.modal-header .btn-close:hover { opacity: 1; }
+
+.modal-tono-peligro .modal-header {
+  background: linear-gradient(100deg, #8c1420 0%, #c1272d 100%);
+}
+
+/* Cuerpo desplazable con cabecera y pie fijos: un formulario largo ya no
+   empuja los botones fuera de la pantalla. */
+.modal-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: calc(var(--vh-pantalla) - var(--cff-header) - 9rem);
+}
+
+.modal-footer {
+  padding: 0.85rem 1.25rem;
+  background: #f7f8fb;
+  gap: 0.5rem;
+}
+
+/* Franja de resumen dentro de un modal (datos del registro, totales). */
+.modal-resumen {
+  background: var(--cff-naranja-tenue);
+  border: 1px solid #ffd9ab;
+  border-radius: var(--bs-border-radius);
+  padding: 0.75rem 0.9rem;
+}
+
+/* ---------- Avisos flotantes ---------- */
+
+.pila-avisos {
+  position: fixed;
+  top: calc(var(--cff-header) + 0.75rem);
+  right: 1rem;
+  z-index: 1090;
+  width: min(23rem, calc(100vw / var(--escala) - 2rem));
+  display: grid;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.aviso {
+  pointer-events: auto;
+  border: 0;
+  border-left: 5px solid currentColor;
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--cff-sombra-2);
+  animation: cff-entra-derecha 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aviso.saliendo { animation: cff-sale-derecha 0.2s ease-in forwards; }
+
+@keyframes cff-entra-derecha {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cff-sale-derecha {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(28px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso,
+  .aviso.saliendo { animation: none; }
+}
+
+/* Barra que se agota con el temporizador: el aviso dice cuánto le queda. */
+.aviso-progreso {
+  height: 3px;
+  border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+  background: currentColor;
+  opacity: 0.45;
+  animation: cff-agotar var(--aviso-duracion, 3s) linear forwards;
+}
+
+@keyframes cff-agotar {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* ---------- Calendario de días especiales ---------- */
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+/* El día es un <button> cuando se puede editar y un <div> cuando no: se
+   neutralizan los estilos propios del botón para que las dos variantes se vean
+   exactamente igual. */
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+  border: 1px solid var(--cff-borde);
+  background: #fff;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.calendar-day:focus-visible {
+  outline: 3px solid var(--cff-naranja);
+  outline-offset: 2px;
+}
+
+.calendar-day:hover:not(.is-muted):not(.is-readonly) {
+  background: var(--cff-naranja-tenue);
+  border-color: var(--cff-naranja);
+  transform: scale(1.06);
+}
+
+.calendar-day.is-muted { color: #c2c6d0; cursor: default; background: transparent; border-color: transparent; }
+.calendar-day.is-today { border: 2px solid var(--cff-naranja); color: var(--cff-naranja-oscuro); }
+.calendar-day.cerrado { background: #c1272d; color: #fff; border-color: #8c1420; }
+.calendar-day.evento { background: var(--cff-naranja); color: #fff; border-color: var(--cff-naranja-oscuro); }
+
+/* Dos cierres distintos, dos marcas distintas: "los lunes no abrimos" es la
+   norma de la casa y va en rojo sobre fondo normal; un día especial cerrado
+   (Nochebuena) es la excepción y va en rojo sólido, para que salte a la vista
+   al recorrer el mes. */
+.calendar-day.cierre-semanal:not(.cerrado) { color: #c1272d; border-color: #eec0c3; }
+
+/* El día elegido. El anillo se compone con cualquier fondo, así que un día
+   especial seleccionado conserva su color en vez de perderlo. */
+.calendar-day.is-seleccionado { box-shadow: 0 0 0 3px var(--cff-carbon-claro); }
+
+.calendar-day.is-seleccionado:not(.cerrado):not(.evento) {
+  background: var(--cff-carbon-claro);
+  border-color: var(--cff-carbon);
+  color: #fff;
+}
+
+/* El cliente y el empleado consultan el calendario, no lo editan. */
+.calendar-day.is-readonly { cursor: default; }
+
+/* ---------- Gráfica de torta ---------- */
+
+.pie-chart {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--cff-sombra-1);
+}
+
+.pie-chart::after {
+  content: '';
+  grid-area: 1 / 1;
+  width: 58%;
+  height: 58%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--cff-borde);
+}
+
+.pie-chart > * { grid-area: 1 / 1; z-index: 1; }
+
+/* Texto en el hueco central de la torta. */
+.pie-centro {
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* ---------- Carta del cliente ---------- */
+
+/* Tarjeta de plato: la imagen es un degradado con el emoji de su categoría, así
+   que la carta se ve apetecible sin depender de fotos que no existen. */
+.plato-foto {
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  font-size: 3rem;
+  background: linear-gradient(140deg, var(--plato-tono, var(--cff-naranja-claro)) 0%, #fff 140%);
+  border-bottom: 1px solid var(--cff-borde);
+}
+
+/* La imagen del plato llena el hueco de la foto; el logo de respaldo NO, que
+   recortado no se reconoce: se deja entero con aire alrededor. El archivo del
+   logo es blanco sobre transparente, así que el respaldo tapa el degradado
+   claro de `.plato-foto` con el fondo oscuro de la marca o no se vería nada
+   (misma razón que `.ticket-logo`). */
+.plato-foto-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* `img.` y no `.` a secas: estas reglas tienen que ganarle a `.podio-foto` y a
+   `.plato-foto-img`, que también fijan object-fit y van más abajo en el
+   archivo. Con la misma especificidad ganaría la última y el logo saldría
+   recortado. El relleno va en porcentaje para servir igual a una miniatura de
+   2,75 rem y a la foto del podio. */
+img.plato-foto-respaldo,
+img.miniatura-respaldo {
+  object-fit: contain;
+  background-color: var(--cff-carbon);
+  padding: 8%;
+}
+
+/* Miniatura de la tabla del administrador y del catálogo de Pedidos. */
+.miniatura-plato {
+  width: 2.75rem;
+  height: 2.75rem;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  flex-shrink: 0;
+}
+
+
+/* ---------- Zona de arrastrar y soltar una imagen ---------- */
+
+.zona-imagen {
+  border: 2px dashed var(--cff-borde);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+/* El resalte al arrastrar encima es la única señal de que se puede soltar ahí:
+   sin él, el puntero con el archivo no dice si la zona lo acepta. */
+.zona-imagen-activa {
+  border-color: var(--cff-naranja);
+  background-color: rgb(255 138 0 / 8%);
+}
+
+.zona-imagen-boton {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.zona-imagen-boton:disabled { cursor: default; }
+
+.zona-imagen-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zona-imagen-foto-respaldo {
+  object-fit: contain;
+  padding: 1.5rem;
+  background-color: var(--cff-carbon);
+}
+
+.zona-imagen-velo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: rgb(255 255 255 / 75%);
+  font-weight: 600;
+}
+
+.plato-precio {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--cff-naranja-oscuro);
+}
+
+/* Cinta de anclas de la carta: se queda pegada bajo el header para que los
+   atajos sigan a mano mientras se recorre el catálogo completo. */
+.carta-ancla {
+  position: sticky;
+  top: var(--cff-header);
+  z-index: 10;
+  background: var(--cff-fondo);
+  padding: 0.75rem 0;
+}
+
+/* Logo del ticket: el archivo es blanco sobre transparente (pensado para la
+   cabecera oscura) y en papel no se vería. brightness(0) lo pinta en negro. */
+.ticket-logo { filter: brightness(0); }
+
+/* ---------- Impresión del ticket ---------- */
+
+/* Al imprimir solo sale el ticket, centrado y sin los botones del modal. La
+   clase la pone el propio modal del ticket mientras está abierto.
+
+   `window.print()` imprime la página entera: antes salía la aplicación completa
+   —cabecera, menú, tabla de ventas— con el ticket pegado arriba y los botones
+   "Cerrar" e "Imprimir" dentro del papel. La salida es apagar todo lo que no es
+   el portal del modal, y dentro del portal apagar la cabecera y el pie.
+
+   Importa que el diálogo pase a `position: static`: un elemento fijo se repite
+   en cada página impresa, y el `inset: 0` del fondo hacía que el documento
+   mantuviera la altura de la pantalla y saliera una segunda hoja en blanco. */
+@media print {
+  @page {
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* El portal del modal es hijo directo de body: todo lo demás no se imprime. */
+  body.imprimiendo-ticket > *:not(.cff-backdrop) { display: none !important; }
+
+  body.imprimiendo-ticket .cff-backdrop {
+    position: static !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    animation: none !important;
+  }
+
+  body.imprimiendo-ticket .modal-dialog {
+    margin: 0 auto !important;
+    max-width: none !important;
+    width: auto !important;
+    min-height: 0 !important;
+    animation: none !important;
+    display: block !important;
+  }
+
+  body.imprimiendo-ticket .modal-content {
+    display: block !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* La cabecera y el pie son interfaz, no ticket. */
+  body.imprimiendo-ticket .modal-header,
+  body.imprimiendo-ticket .modal-footer,
+  body.imprimiendo-ticket .no-imprimir { display: none !important; }
+
+  body.imprimiendo-ticket .modal-body {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  body.imprimiendo-ticket .ticket-impresion {
+    width: 76mm;
+    margin: 0 auto !important;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
+}
+
+/* Cuerpo del ticket: tipografía monoespaciada y ancho de rollo, tanto en
+   pantalla como en papel, para que lo que se ve sea lo que sale. */
+.ticket-impresion {
+  font-family: 'Courier New', ui-monospace, monospace;
+  background: #fff;
+  color: #16181d;
+  max-width: 76mm;
+  margin: 0 auto;
+  padding: 0.5rem 0.25rem;
+}
+
+.ticket-impresion .ticket-separador {
+  border: 0;
+  border-top: 1px dashed #9aa0ad;
+  margin: 0.5rem 0;
+}
+
+.ticket-impresion .ticket-marca {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-size: 1.05rem;
+}
+
+.ticket-impresion table {
+  width: 100%;
+  font-size: 0.8rem;
+  border-collapse: collapse;
+}
+
+.ticket-impresion td { padding: 0.1rem 0; vertical-align: top; }
+
+.ticket-impresion .ticket-total {
+  font-weight: 700;
+  font-size: 1rem;
+  border-top: 1px solid #16181d;
+  border-bottom: 3px double #16181d;
+  padding: 0.25rem 0;
+}
+
+/* Tarjetas que se pulsan varias veces seguidas (el catálogo de Pedidos suma
+   una unidad por clic): sin esto, el doble y triple clic selecciona el texto
+   de la descripción y la tarjeta queda resaltada en azul. */
+.sin-seleccion {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Barras de desplazamiento ---------- */
+
+/* La barra del sistema (gris claro y ancha en Windows) cortaba la página con
+   una franja ajena a la marca. Se afina y se pinta con los colores del tema:
+   el carril se funde con el fondo y el pulgar es un gris suave que se vuelve
+   naranja al pasar el cursor, para que se encuentre sin estorbar. Vale para
+   la página, el menú lateral, los modales y las listas con scroll propio. */
+* {
+  scrollbar-width: thin; /* Firefox y Chrome 121+ */
+  scrollbar-color: #c3c8d2 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track { background: transparent; }
+
+*::-webkit-scrollbar-thumb {
+  background-color: #c3c8d2;
+  border-radius: 999px;
+  /* El borde del color del fondo hace que el pulgar se vea más fino que el
+     carril sin reducir la zona donde se puede agarrar. */
+  border: 3px solid var(--cff-fondo);
+}
+
+*::-webkit-scrollbar-thumb:hover { background-color: var(--cff-naranja); }
+
+*::-webkit-scrollbar-corner { background: transparent; }
+
+/* Dentro de superficies blancas (modales, tarjetas) el borde debe ser blanco,
+   no el gris de la página. */
+.modal-body::-webkit-scrollbar-thumb,
+.card ::-webkit-scrollbar-thumb { border-color: var(--cff-superficie); }
+
+html:hover { scrollbar-color: #aab0bc transparent; }
+
+/* Barra que se queda pegada bajo la cabecera al hacer scroll (selector de mes
+   de Indicadores). El fondo opaco evita que el contenido se lea por debajo. */
+.barra-fija {
+  position: sticky;
+  top: var(--cff-header);
+  z-index: 20;
+  background: var(--cff-fondo);
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--cff-borde);
+}
+
+/* ---------- Podio de más vendidos ---------- */
+
+.podio-foto {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+/* El Top 1 se agranda un poco solo cuando las tres tarjetas van en fila; en
+   móvil se apilan y un escalado las montaría unas sobre otras. */
+@media (min-width: 768px) {
+  .podio-primero {
+    transform: scale(1.07);
+    z-index: 1;
+    box-shadow: var(--cff-sombra-3);
+  }
+}
+
+/* Selector de valoración 1-10 (Estrellas con onCalificar). Solo aparece al
+   calificar un pedido por QR. Cada estrella lleva dos botones invisibles que
+   cubren su mitad izquierda (2n-1) y derecha (2n). */
+.estrella {
+  position: relative;
+  display: inline-block;
+  padding: 0 var(--fib-3);
+  font-size: var(--fib-34);
+  line-height: 1;
+  color: #c3c8d2;
+  transition: transform .1s ease, color .1s ease;
+}
+
+.estrella.activa { color: #f5a623; }
+.estrella:hover { transform: scale(1.1); }
+
+.estrella-mitad {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.estrella-mitad.izquierda { left: 0; }
+.estrella-mitad.derecha { right: 0; }
+.estrella-mitad:focus-visible { outline: 2px solid var(--cff-naranja); border-radius: var(--fib-3); }
+.estrella-mitad:disabled { cursor: default; }
+
+/* Lectura: iconos con medias estrellas, separados 3px. */
+.estrellas-lectura { display: inline-flex; gap: var(--fib-3); }
+
+/* ---------- Estética Frutiger Aero (solo rol cliente) ---------- */
+
+/* La añade Layout con la clase `cff-aero` cuando el rol es cliente, así que
+   ninguna de estas reglas alcanza las pantallas del administrador ni del
+   empleado: ahí hay tablas y formularios densos donde el cristal resta
+   legibilidad.
+
+   El cristal se monta sobre la paleta de la casa —naranja y carbón— con dos
+   velos frescos muy suaves para el aire de Frutiger Aero, no sobre los azules
+   y verdes saturados del estilo original, que no son de la marca.
+
+   CONTRASTE: la superficie se queda en blanco al 72 % sobre un fondo claro, de
+   modo que la tinta (#16181d) y el gris de apoyo (#596070) mantienen su ratio.
+   El texto nunca se vuelve translúcido. */
+.cff-aero {
+  --cff-cristal: rgb(255 255 255 / 72%);
+  --cff-cristal-borde: rgb(255 255 255 / 70%);
+  --cff-brillo: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgb(255 255 255 / 0%) 55%);
+
+  min-height: var(--vh-pantalla);
+  background-image:
+    radial-gradient(900px 500px at 8% 0%, rgb(255 178 77 / 28%) 0%, transparent 62%),
+    radial-gradient(760px 460px at 100% 12%, rgb(67 97 238 / 12%) 0%, transparent 60%),
+    radial-gradient(700px 520px at 50% 100%, rgb(42 157 143 / 14%) 0%, transparent 62%);
+  background-attachment: fixed;
+}
+
+.cff-aero .card {
+  background-color: var(--cff-cristal);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-radius: var(--bs-border-radius-lg);
+  border: 1px solid var(--cff-cristal-borde);
+  box-shadow: var(--cff-sombra-1), inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+/* El brillo superior es un pseudoelemento y no un degradado del fondo para no
+   pisar el color de las tarjetas que ya traen uno (`.bg-carbon`, `.bg-brand`). */
+.cff-aero .card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 45%;
+  border-radius: inherit;
+  background: var(--cff-brillo);
+  pointer-events: none;
+}
+
+.cff-aero .card { position: relative; }
+
+/* Las tarjetas oscuras siguen oscuras: su texto es blanco y aclararlas lo
+   dejaría ilegible. Solo reciben el redondeo y un brillo más discreto. */
+.cff-aero .card.bg-carbon {
+  background-color: var(--cff-carbon) !important;
+  backdrop-filter: none;
+  border-color: rgb(255 255 255 / 12%);
+}
+
+.cff-aero .card.bg-carbon::before { height: 55%; opacity: 0.12; }
+
+/* Cabeceras y pies de tarjeta: transparentes para que se vea el cristal. El
+   `bg-white` de las cabeceras taparía el efecto. */
+.cff-aero .card > .card-header,
+.cff-aero .card > .card-footer {
+  background-color: transparent !important;
+  border-color: rgb(22 24 29 / 8%);
+}
+
+.cff-aero .app-sidebar-inner,
+.cff-aero .carta-ancla {
+  background-color: var(--cff-cristal);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.cff-aero .app-sidebar-inner {
+  border: 1px solid var(--cff-cristal-borde);
+  box-shadow: var(--cff-sombra-1), inset 0 1px 0 rgb(255 255 255 / 80%);
+}
+
+.cff-aero .carta-ancla {
+  border-radius: var(--bs-border-radius);
+  padding: 0.75rem;
+}
+
+/* Los campos y las tablas se quedan opacos: leer y escribir sobre un fondo que
+   se mueve detrás del cristal cansa, y el borde del foco necesita un contraste
+   fijo. */
+.cff-aero .form-control,
+.cff-aero .form-select,
+.cff-aero .table {
+  background-color: var(--cff-superficie);
+}
+
+/* Sin backdrop-filter (navegadores antiguos) el cristal se vería como un velo
+   plano y el texto perdería contraste: se sube la opacidad. */
+@supports not (backdrop-filter: blur(1px)) {
+  .cff-aero {
+    --cff-cristal: rgb(255 255 255 / 94%);
+  }
+}
+
+/* =====================================================================
+   SISTEMA FIBONACCI — tipografía, piezas y rejilla áurea.
+   ===================================================================== */
+
+/* Escala tipográfica: 13 · 16 (cuerpo) · 21 · 34 · 55. El cuerpo se queda en
+   16px (1rem): 13px como texto corrido baja de lo legible para el público
+   general; 13 es el tamaño de apoyo (small, ayudas, insignias). */
+h1, .h1 { font-size: clamp(var(--fib-34), 5vw, var(--fib-55)); line-height: 1.146; }
+h2, .h2 { font-size: clamp(var(--fib-21), 3.5vw, var(--fib-34)); line-height: 1.236; }
+h3, .h3 { font-size: clamp(var(--fib-21), 3vw, var(--fib-34)); line-height: 1.236; }
+h4, .h4, h5, .h5 { font-size: var(--fib-21); line-height: 1.382; }
+h6, .h6 { font-size: 1rem; line-height: 1.382; }
+small, .small, .form-text { font-size: var(--fib-13); }
+
+.fs-1 { font-size: var(--fib-55) !important; }
+.fs-2, .fs-3 { font-size: var(--fib-34) !important; }
+.fs-4, .fs-5 { font-size: var(--fib-21) !important; }
+.fs-6 { font-size: 1rem !important; }
+
+/* Piezas de Bootstrap con medidas de la serie. */
+.card {
+  --bs-card-spacer-y: var(--fib-21);
+  --bs-card-spacer-x: var(--fib-21);
+  --bs-card-cap-padding-y: var(--fib-13);
+  --bs-card-cap-padding-x: var(--fib-21);
+}
+
+.modal { --bs-modal-padding: var(--fib-21); --bs-modal-header-padding: var(--fib-21); }
+
+.list-group {
+  --bs-list-group-item-padding-y: var(--fib-13);
+  --bs-list-group-item-padding-x: var(--fib-21);
+}
+
+.btn { --bs-btn-padding-y: var(--fib-8); --bs-btn-padding-x: var(--fib-13); }
+.btn-sm { --bs-btn-padding-y: var(--fib-5); --bs-btn-padding-x: var(--fib-8); --bs-btn-font-size: var(--fib-13); }
+.btn-lg { --bs-btn-padding-y: var(--fib-13); --bs-btn-padding-x: var(--fib-21); --bs-btn-font-size: var(--fib-21); }
+
+.form-control, .form-select { padding: var(--fib-8) var(--fib-13); }
+.form-select { padding-right: var(--fib-34); }
+.form-control-sm, .form-select-sm { padding: var(--fib-5) var(--fib-8); font-size: var(--fib-13); }
+.form-select-sm { padding-right: var(--fib-34); }
+.input-group-text { padding: var(--fib-8) var(--fib-13); }
+
+/* Rejilla áurea: las divisiones principales de cada pantalla (contenido /
+   panel lateral, lista / detalle) son 61.8% / 38.2% en lugar de 7/5 u 8/4. */
+.col-aureo-mayor { flex: 0 0 auto; width: var(--aureo-mayor); }
+.col-aureo-menor { flex: 0 0 auto; width: var(--aureo-menor); }
+
+@media (min-width: 992px) {
+  .col-lg-aureo-mayor { flex: 0 0 auto; width: var(--aureo-mayor); }
+  .col-lg-aureo-menor { flex: 0 0 auto; width: var(--aureo-menor); }
+}
+
+@media (min-width: 1200px) {
+  .col-xl-aureo-mayor { flex: 0 0 auto; width: var(--aureo-mayor); }
+  .col-xl-aureo-menor { flex: 0 0 auto; width: var(--aureo-menor); }
+}
+
+@media (min-width: 1400px) {
+  .col-xxl-aureo-mayor { flex: 0 0 auto; width: var(--aureo-mayor); }
+  .col-xxl-aureo-menor { flex: 0 0 auto; width: var(--aureo-menor); }
+}
+
+
+/* =====================================================================
+   SISTEMA FIBONACCI — espaciado (generado; no editar a mano cada línea).
+   Remapea las utilidades de Bootstrap a la serie 5·8·13·21·34·55·89 y
+   añade los pasos 6 (55px) y 7 (89px), que Bootstrap no trae. Va al final
+   para ganar a bootstrap.min.css con la misma especificidad.
+   ===================================================================== */
+.m-1{margin:5px!important}
+.m-2{margin:8px!important}
+.m-3{margin:13px!important}
+.m-4{margin:21px!important}
+.m-5{margin:34px!important}
+.m-6{margin:55px!important}
+.m-7{margin:89px!important}
+.mt-1{margin-top:5px!important}
+.mt-2{margin-top:8px!important}
+.mt-3{margin-top:13px!important}
+.mt-4{margin-top:21px!important}
+.mt-5{margin-top:34px!important}
+.mt-6{margin-top:55px!important}
+.mt-7{margin-top:89px!important}
+.mb-1{margin-bottom:5px!important}
+.mb-2{margin-bottom:8px!important}
+.mb-3{margin-bottom:13px!important}
+.mb-4{margin-bottom:21px!important}
+.mb-5{margin-bottom:34px!important}
+.mb-6{margin-bottom:55px!important}
+.mb-7{margin-bottom:89px!important}
+.ms-1{margin-left:5px!important}
+.ms-2{margin-left:8px!important}
+.ms-3{margin-left:13px!important}
+.ms-4{margin-left:21px!important}
+.ms-5{margin-left:34px!important}
+.ms-6{margin-left:55px!important}
+.ms-7{margin-left:89px!important}
+.me-1{margin-right:5px!important}
+.me-2{margin-right:8px!important}
+.me-3{margin-right:13px!important}
+.me-4{margin-right:21px!important}
+.me-5{margin-right:34px!important}
+.me-6{margin-right:55px!important}
+.me-7{margin-right:89px!important}
+.mx-1{margin-left:5px!important;margin-right:5px!important}
+.mx-2{margin-left:8px!important;margin-right:8px!important}
+.mx-3{margin-left:13px!important;margin-right:13px!important}
+.mx-4{margin-left:21px!important;margin-right:21px!important}
+.mx-5{margin-left:34px!important;margin-right:34px!important}
+.mx-6{margin-left:55px!important;margin-right:55px!important}
+.mx-7{margin-left:89px!important;margin-right:89px!important}
+.my-1{margin-top:5px!important;margin-bottom:5px!important}
+.my-2{margin-top:8px!important;margin-bottom:8px!important}
+.my-3{margin-top:13px!important;margin-bottom:13px!important}
+.my-4{margin-top:21px!important;margin-bottom:21px!important}
+.my-5{margin-top:34px!important;margin-bottom:34px!important}
+.my-6{margin-top:55px!important;margin-bottom:55px!important}
+.my-7{margin-top:89px!important;margin-bottom:89px!important}
+.p-1{padding:5px!important}
+.p-2{padding:8px!important}
+.p-3{padding:13px!important}
+.p-4{padding:21px!important}
+.p-5{padding:34px!important}
+.p-6{padding:55px!important}
+.p-7{padding:89px!important}
+.pt-1{padding-top:5px!important}
+.pt-2{padding-top:8px!important}
+.pt-3{padding-top:13px!important}
+.pt-4{padding-top:21px!important}
+.pt-5{padding-top:34px!important}
+.pt-6{padding-top:55px!important}
+.pt-7{padding-top:89px!important}
+.pb-1{padding-bottom:5px!important}
+.pb-2{padding-bottom:8px!important}
+.pb-3{padding-bottom:13px!important}
+.pb-4{padding-bottom:21px!important}
+.pb-5{padding-bottom:34px!important}
+.pb-6{padding-bottom:55px!important}
+.pb-7{padding-bottom:89px!important}
+.ps-1{padding-left:5px!important}
+.ps-2{padding-left:8px!important}
+.ps-3{padding-left:13px!important}
+.ps-4{padding-left:21px!important}
+.ps-5{padding-left:34px!important}
+.ps-6{padding-left:55px!important}
+.ps-7{padding-left:89px!important}
+.pe-1{padding-right:5px!important}
+.pe-2{padding-right:8px!important}
+.pe-3{padding-right:13px!important}
+.pe-4{padding-right:21px!important}
+.pe-5{padding-right:34px!important}
+.pe-6{padding-right:55px!important}
+.pe-7{padding-right:89px!important}
+.px-1{padding-left:5px!important;padding-right:5px!important}
+.px-2{padding-left:8px!important;padding-right:8px!important}
+.px-3{padding-left:13px!important;padding-right:13px!important}
+.px-4{padding-left:21px!important;padding-right:21px!important}
+.px-5{padding-left:34px!important;padding-right:34px!important}
+.px-6{padding-left:55px!important;padding-right:55px!important}
+.px-7{padding-left:89px!important;padding-right:89px!important}
+.py-1{padding-top:5px!important;padding-bottom:5px!important}
+.py-2{padding-top:8px!important;padding-bottom:8px!important}
+.py-3{padding-top:13px!important;padding-bottom:13px!important}
+.py-4{padding-top:21px!important;padding-bottom:21px!important}
+.py-5{padding-top:34px!important;padding-bottom:34px!important}
+.py-6{padding-top:55px!important;padding-bottom:55px!important}
+.py-7{padding-top:89px!important;padding-bottom:89px!important}
+.gap-1{gap:5px!important}
+.gap-2{gap:8px!important}
+.gap-3{gap:13px!important}
+.gap-4{gap:21px!important}
+.gap-5{gap:34px!important}
+.gap-6{gap:55px!important}
+.gap-7{gap:89px!important}
+.row-gap-1{row-gap:5px!important}
+.row-gap-2{row-gap:8px!important}
+.row-gap-3{row-gap:13px!important}
+.row-gap-4{row-gap:21px!important}
+.row-gap-5{row-gap:34px!important}
+.row-gap-6{row-gap:55px!important}
+.row-gap-7{row-gap:89px!important}
+.column-gap-1{column-gap:5px!important}
+.column-gap-2{column-gap:8px!important}
+.column-gap-3{column-gap:13px!important}
+.column-gap-4{column-gap:21px!important}
+.column-gap-5{column-gap:34px!important}
+.column-gap-6{column-gap:55px!important}
+.column-gap-7{column-gap:89px!important}
+.g-1{--bs-gutter-x:5px;--bs-gutter-y:5px}
+.g-2{--bs-gutter-x:8px;--bs-gutter-y:8px}
+.g-3{--bs-gutter-x:13px;--bs-gutter-y:13px}
+.g-4{--bs-gutter-x:21px;--bs-gutter-y:21px}
+.g-5{--bs-gutter-x:34px;--bs-gutter-y:34px}
+.g-6{--bs-gutter-x:55px;--bs-gutter-y:55px}
+.g-7{--bs-gutter-x:89px;--bs-gutter-y:89px}
+.gx-1{--bs-gutter-x:5px}
+.gx-2{--bs-gutter-x:8px}
+.gx-3{--bs-gutter-x:13px}
+.gx-4{--bs-gutter-x:21px}
+.gx-5{--bs-gutter-x:34px}
+.gx-6{--bs-gutter-x:55px}
+.gx-7{--bs-gutter-x:89px}
+.gy-1{--bs-gutter-y:5px}
+.gy-2{--bs-gutter-y:8px}
+.gy-3{--bs-gutter-y:13px}
+.gy-4{--bs-gutter-y:21px}
+.gy-5{--bs-gutter-y:34px}
+.gy-6{--bs-gutter-y:55px}
+.gy-7{--bs-gutter-y:89px}
+@media (min-width:576px){
+.m-sm-1{margin:5px!important}
+.m-sm-2{margin:8px!important}
+.m-sm-3{margin:13px!important}
+.m-sm-4{margin:21px!important}
+.m-sm-5{margin:34px!important}
+.m-sm-6{margin:55px!important}
+.m-sm-7{margin:89px!important}
+.mt-sm-1{margin-top:5px!important}
+.mt-sm-2{margin-top:8px!important}
+.mt-sm-3{margin-top:13px!important}
+.mt-sm-4{margin-top:21px!important}
+.mt-sm-5{margin-top:34px!important}
+.mt-sm-6{margin-top:55px!important}
+.mt-sm-7{margin-top:89px!important}
+.mb-sm-1{margin-bottom:5px!important}
+.mb-sm-2{margin-bottom:8px!important}
+.mb-sm-3{margin-bottom:13px!important}
+.mb-sm-4{margin-bottom:21px!important}
+.mb-sm-5{margin-bottom:34px!important}
+.mb-sm-6{margin-bottom:55px!important}
+.mb-sm-7{margin-bottom:89px!important}
+.ms-sm-1{margin-left:5px!important}
+.ms-sm-2{margin-left:8px!important}
+.ms-sm-3{margin-left:13px!important}
+.ms-sm-4{margin-left:21px!important}
+.ms-sm-5{margin-left:34px!important}
+.ms-sm-6{margin-left:55px!important}
+.ms-sm-7{margin-left:89px!important}
+.me-sm-1{margin-right:5px!important}
+.me-sm-2{margin-right:8px!important}
+.me-sm-3{margin-right:13px!important}
+.me-sm-4{margin-right:21px!important}
+.me-sm-5{margin-right:34px!important}
+.me-sm-6{margin-right:55px!important}
+.me-sm-7{margin-right:89px!important}
+.mx-sm-1{margin-left:5px!important;margin-right:5px!important}
+.mx-sm-2{margin-left:8px!important;margin-right:8px!important}
+.mx-sm-3{margin-left:13px!important;margin-right:13px!important}
+.mx-sm-4{margin-left:21px!important;margin-right:21px!important}
+.mx-sm-5{margin-left:34px!important;margin-right:34px!important}
+.mx-sm-6{margin-left:55px!important;margin-right:55px!important}
+.mx-sm-7{margin-left:89px!important;margin-right:89px!important}
+.my-sm-1{margin-top:5px!important;margin-bottom:5px!important}
+.my-sm-2{margin-top:8px!important;margin-bottom:8px!important}
+.my-sm-3{margin-top:13px!important;margin-bottom:13px!important}
+.my-sm-4{margin-top:21px!important;margin-bottom:21px!important}
+.my-sm-5{margin-top:34px!important;margin-bottom:34px!important}
+.my-sm-6{margin-top:55px!important;margin-bottom:55px!important}
+.my-sm-7{margin-top:89px!important;margin-bottom:89px!important}
+.p-sm-1{padding:5px!important}
+.p-sm-2{padding:8px!important}
+.p-sm-3{padding:13px!important}
+.p-sm-4{padding:21px!important}
+.p-sm-5{padding:34px!important}
+.p-sm-6{padding:55px!important}
+.p-sm-7{padding:89px!important}
+.pt-sm-1{padding-top:5px!important}
+.pt-sm-2{padding-top:8px!important}
+.pt-sm-3{padding-top:13px!important}
+.pt-sm-4{padding-top:21px!important}
+.pt-sm-5{padding-top:34px!important}
+.pt-sm-6{padding-top:55px!important}
+.pt-sm-7{padding-top:89px!important}
+.pb-sm-1{padding-bottom:5px!important}
+.pb-sm-2{padding-bottom:8px!important}
+.pb-sm-3{padding-bottom:13px!important}
+.pb-sm-4{padding-bottom:21px!important}
+.pb-sm-5{padding-bottom:34px!important}
+.pb-sm-6{padding-bottom:55px!important}
+.pb-sm-7{padding-bottom:89px!important}
+.ps-sm-1{padding-left:5px!important}
+.ps-sm-2{padding-left:8px!important}
+.ps-sm-3{padding-left:13px!important}
+.ps-sm-4{padding-left:21px!important}
+.ps-sm-5{padding-left:34px!important}
+.ps-sm-6{padding-left:55px!important}
+.ps-sm-7{padding-left:89px!important}
+.pe-sm-1{padding-right:5px!important}
+.pe-sm-2{padding-right:8px!important}
+.pe-sm-3{padding-right:13px!important}
+.pe-sm-4{padding-right:21px!important}
+.pe-sm-5{padding-right:34px!important}
+.pe-sm-6{padding-right:55px!important}
+.pe-sm-7{padding-right:89px!important}
+.px-sm-1{padding-left:5px!important;padding-right:5px!important}
+.px-sm-2{padding-left:8px!important;padding-right:8px!important}
+.px-sm-3{padding-left:13px!important;padding-right:13px!important}
+.px-sm-4{padding-left:21px!important;padding-right:21px!important}
+.px-sm-5{padding-left:34px!important;padding-right:34px!important}
+.px-sm-6{padding-left:55px!important;padding-right:55px!important}
+.px-sm-7{padding-left:89px!important;padding-right:89px!important}
+.py-sm-1{padding-top:5px!important;padding-bottom:5px!important}
+.py-sm-2{padding-top:8px!important;padding-bottom:8px!important}
+.py-sm-3{padding-top:13px!important;padding-bottom:13px!important}
+.py-sm-4{padding-top:21px!important;padding-bottom:21px!important}
+.py-sm-5{padding-top:34px!important;padding-bottom:34px!important}
+.py-sm-6{padding-top:55px!important;padding-bottom:55px!important}
+.py-sm-7{padding-top:89px!important;padding-bottom:89px!important}
+.gap-sm-1{gap:5px!important}
+.gap-sm-2{gap:8px!important}
+.gap-sm-3{gap:13px!important}
+.gap-sm-4{gap:21px!important}
+.gap-sm-5{gap:34px!important}
+.gap-sm-6{gap:55px!important}
+.gap-sm-7{gap:89px!important}
+.row-gap-sm-1{row-gap:5px!important}
+.row-gap-sm-2{row-gap:8px!important}
+.row-gap-sm-3{row-gap:13px!important}
+.row-gap-sm-4{row-gap:21px!important}
+.row-gap-sm-5{row-gap:34px!important}
+.row-gap-sm-6{row-gap:55px!important}
+.row-gap-sm-7{row-gap:89px!important}
+.column-gap-sm-1{column-gap:5px!important}
+.column-gap-sm-2{column-gap:8px!important}
+.column-gap-sm-3{column-gap:13px!important}
+.column-gap-sm-4{column-gap:21px!important}
+.column-gap-sm-5{column-gap:34px!important}
+.column-gap-sm-6{column-gap:55px!important}
+.column-gap-sm-7{column-gap:89px!important}
+.g-sm-1{--bs-gutter-x:5px;--bs-gutter-y:5px}
+.g-sm-2{--bs-gutter-x:8px;--bs-gutter-y:8px}
+.g-sm-3{--bs-gutter-x:13px;--bs-gutter-y:13px}
+.g-sm-4{--bs-gutter-x:21px;--bs-gutter-y:21px}
+.g-sm-5{--bs-gutter-x:34px;--bs-gutter-y:34px}
+.g-sm-6{--bs-gutter-x:55px;--bs-gutter-y:55px}
+.g-sm-7{--bs-gutter-x:89px;--bs-gutter-y:89px}
+.gx-sm-1{--bs-gutter-x:5px}
+.gx-sm-2{--bs-gutter-x:8px}
+.gx-sm-3{--bs-gutter-x:13px}
+.gx-sm-4{--bs-gutter-x:21px}
+.gx-sm-5{--bs-gutter-x:34px}
+.gx-sm-6{--bs-gutter-x:55px}
+.gx-sm-7{--bs-gutter-x:89px}
+.gy-sm-1{--bs-gutter-y:5px}
+.gy-sm-2{--bs-gutter-y:8px}
+.gy-sm-3{--bs-gutter-y:13px}
+.gy-sm-4{--bs-gutter-y:21px}
+.gy-sm-5{--bs-gutter-y:34px}
+.gy-sm-6{--bs-gutter-y:55px}
+.gy-sm-7{--bs-gutter-y:89px}
+}
+@media (min-width:768px){
+.m-md-1{margin:5px!important}
+.m-md-2{margin:8px!important}
+.m-md-3{margin:13px!important}
+.m-md-4{margin:21px!important}
+.m-md-5{margin:34px!important}
+.m-md-6{margin:55px!important}
+.m-md-7{margin:89px!important}
+.mt-md-1{margin-top:5px!important}
+.mt-md-2{margin-top:8px!important}
+.mt-md-3{margin-top:13px!important}
+.mt-md-4{margin-top:21px!important}
+.mt-md-5{margin-top:34px!important}
+.mt-md-6{margin-top:55px!important}
+.mt-md-7{margin-top:89px!important}
+.mb-md-1{margin-bottom:5px!important}
+.mb-md-2{margin-bottom:8px!important}
+.mb-md-3{margin-bottom:13px!important}
+.mb-md-4{margin-bottom:21px!important}
+.mb-md-5{margin-bottom:34px!important}
+.mb-md-6{margin-bottom:55px!important}
+.mb-md-7{margin-bottom:89px!important}
+.ms-md-1{margin-left:5px!important}
+.ms-md-2{margin-left:8px!important}
+.ms-md-3{margin-left:13px!important}
+.ms-md-4{margin-left:21px!important}
+.ms-md-5{margin-left:34px!important}
+.ms-md-6{margin-left:55px!important}
+.ms-md-7{margin-left:89px!important}
+.me-md-1{margin-right:5px!important}
+.me-md-2{margin-right:8px!important}
+.me-md-3{margin-right:13px!important}
+.me-md-4{margin-right:21px!important}
+.me-md-5{margin-right:34px!important}
+.me-md-6{margin-right:55px!important}
+.me-md-7{margin-right:89px!important}
+.mx-md-1{margin-left:5px!important;margin-right:5px!important}
+.mx-md-2{margin-left:8px!important;margin-right:8px!important}
+.mx-md-3{margin-left:13px!important;margin-right:13px!important}
+.mx-md-4{margin-left:21px!important;margin-right:21px!important}
+.mx-md-5{margin-left:34px!important;margin-right:34px!important}
+.mx-md-6{margin-left:55px!important;margin-right:55px!important}
+.mx-md-7{margin-left:89px!important;margin-right:89px!important}
+.my-md-1{margin-top:5px!important;margin-bottom:5px!important}
+.my-md-2{margin-top:8px!important;margin-bottom:8px!important}
+.my-md-3{margin-top:13px!important;margin-bottom:13px!important}
+.my-md-4{margin-top:21px!important;margin-bottom:21px!important}
+.my-md-5{margin-top:34px!important;margin-bottom:34px!important}
+.my-md-6{margin-top:55px!important;margin-bottom:55px!important}
+.my-md-7{margin-top:89px!important;margin-bottom:89px!important}
+.p-md-1{padding:5px!important}
+.p-md-2{padding:8px!important}
+.p-md-3{padding:13px!important}
+.p-md-4{padding:21px!important}
+.p-md-5{padding:34px!important}
+.p-md-6{padding:55px!important}
+.p-md-7{padding:89px!important}
+.pt-md-1{padding-top:5px!important}
+.pt-md-2{padding-top:8px!important}
+.pt-md-3{padding-top:13px!important}
+.pt-md-4{padding-top:21px!important}
+.pt-md-5{padding-top:34px!important}
+.pt-md-6{padding-top:55px!important}
+.pt-md-7{padding-top:89px!important}
+.pb-md-1{padding-bottom:5px!important}
+.pb-md-2{padding-bottom:8px!important}
+.pb-md-3{padding-bottom:13px!important}
+.pb-md-4{padding-bottom:21px!important}
+.pb-md-5{padding-bottom:34px!important}
+.pb-md-6{padding-bottom:55px!important}
+.pb-md-7{padding-bottom:89px!important}
+.ps-md-1{padding-left:5px!important}
+.ps-md-2{padding-left:8px!important}
+.ps-md-3{padding-left:13px!important}
+.ps-md-4{padding-left:21px!important}
+.ps-md-5{padding-left:34px!important}
+.ps-md-6{padding-left:55px!important}
+.ps-md-7{padding-left:89px!important}
+.pe-md-1{padding-right:5px!important}
+.pe-md-2{padding-right:8px!important}
+.pe-md-3{padding-right:13px!important}
+.pe-md-4{padding-right:21px!important}
+.pe-md-5{padding-right:34px!important}
+.pe-md-6{padding-right:55px!important}
+.pe-md-7{padding-right:89px!important}
+.px-md-1{padding-left:5px!important;padding-right:5px!important}
+.px-md-2{padding-left:8px!important;padding-right:8px!important}
+.px-md-3{padding-left:13px!important;padding-right:13px!important}
+.px-md-4{padding-left:21px!important;padding-right:21px!important}
+.px-md-5{padding-left:34px!important;padding-right:34px!important}
+.px-md-6{padding-left:55px!important;padding-right:55px!important}
+.px-md-7{padding-left:89px!important;padding-right:89px!important}
+.py-md-1{padding-top:5px!important;padding-bottom:5px!important}
+.py-md-2{padding-top:8px!important;padding-bottom:8px!important}
+.py-md-3{padding-top:13px!important;padding-bottom:13px!important}
+.py-md-4{padding-top:21px!important;padding-bottom:21px!important}
+.py-md-5{padding-top:34px!important;padding-bottom:34px!important}
+.py-md-6{padding-top:55px!important;padding-bottom:55px!important}
+.py-md-7{padding-top:89px!important;padding-bottom:89px!important}
+.gap-md-1{gap:5px!important}
+.gap-md-2{gap:8px!important}
+.gap-md-3{gap:13px!important}
+.gap-md-4{gap:21px!important}
+.gap-md-5{gap:34px!important}
+.gap-md-6{gap:55px!important}
+.gap-md-7{gap:89px!important}
+.row-gap-md-1{row-gap:5px!important}
+.row-gap-md-2{row-gap:8px!important}
+.row-gap-md-3{row-gap:13px!important}
+.row-gap-md-4{row-gap:21px!important}
+.row-gap-md-5{row-gap:34px!important}
+.row-gap-md-6{row-gap:55px!important}
+.row-gap-md-7{row-gap:89px!important}
+.column-gap-md-1{column-gap:5px!important}
+.column-gap-md-2{column-gap:8px!important}
+.column-gap-md-3{column-gap:13px!important}
+.column-gap-md-4{column-gap:21px!important}
+.column-gap-md-5{column-gap:34px!important}
+.column-gap-md-6{column-gap:55px!important}
+.column-gap-md-7{column-gap:89px!important}
+.g-md-1{--bs-gutter-x:5px;--bs-gutter-y:5px}
+.g-md-2{--bs-gutter-x:8px;--bs-gutter-y:8px}
+.g-md-3{--bs-gutter-x:13px;--bs-gutter-y:13px}
+.g-md-4{--bs-gutter-x:21px;--bs-gutter-y:21px}
+.g-md-5{--bs-gutter-x:34px;--bs-gutter-y:34px}
+.g-md-6{--bs-gutter-x:55px;--bs-gutter-y:55px}
+.g-md-7{--bs-gutter-x:89px;--bs-gutter-y:89px}
+.gx-md-1{--bs-gutter-x:5px}
+.gx-md-2{--bs-gutter-x:8px}
+.gx-md-3{--bs-gutter-x:13px}
+.gx-md-4{--bs-gutter-x:21px}
+.gx-md-5{--bs-gutter-x:34px}
+.gx-md-6{--bs-gutter-x:55px}
+.gx-md-7{--bs-gutter-x:89px}
+.gy-md-1{--bs-gutter-y:5px}
+.gy-md-2{--bs-gutter-y:8px}
+.gy-md-3{--bs-gutter-y:13px}
+.gy-md-4{--bs-gutter-y:21px}
+.gy-md-5{--bs-gutter-y:34px}
+.gy-md-6{--bs-gutter-y:55px}
+.gy-md-7{--bs-gutter-y:89px}
+}
+@media (min-width:992px){
+.m-lg-1{margin:5px!important}
+.m-lg-2{margin:8px!important}
+.m-lg-3{margin:13px!important}
+.m-lg-4{margin:21px!important}
+.m-lg-5{margin:34px!important}
+.m-lg-6{margin:55px!important}
+.m-lg-7{margin:89px!important}
+.mt-lg-1{margin-top:5px!important}
+.mt-lg-2{margin-top:8px!important}
+.mt-lg-3{margin-top:13px!important}
+.mt-lg-4{margin-top:21px!important}
+.mt-lg-5{margin-top:34px!important}
+.mt-lg-6{margin-top:55px!important}
+.mt-lg-7{margin-top:89px!important}
+.mb-lg-1{margin-bottom:5px!important}
+.mb-lg-2{margin-bottom:8px!important}
+.mb-lg-3{margin-bottom:13px!important}
+.mb-lg-4{margin-bottom:21px!important}
+.mb-lg-5{margin-bottom:34px!important}
+.mb-lg-6{margin-bottom:55px!important}
+.mb-lg-7{margin-bottom:89px!important}
+.ms-lg-1{margin-left:5px!important}
+.ms-lg-2{margin-left:8px!important}
+.ms-lg-3{margin-left:13px!important}
+.ms-lg-4{margin-left:21px!important}
+.ms-lg-5{margin-left:34px!important}
+.ms-lg-6{margin-left:55px!important}
+.ms-lg-7{margin-left:89px!important}
+.me-lg-1{margin-right:5px!important}
+.me-lg-2{margin-right:8px!important}
+.me-lg-3{margin-right:13px!important}
+.me-lg-4{margin-right:21px!important}
+.me-lg-5{margin-right:34px!important}
+.me-lg-6{margin-right:55px!important}
+.me-lg-7{margin-right:89px!important}
+.mx-lg-1{margin-left:5px!important;margin-right:5px!important}
+.mx-lg-2{margin-left:8px!important;margin-right:8px!important}
+.mx-lg-3{margin-left:13px!important;margin-right:13px!important}
+.mx-lg-4{margin-left:21px!important;margin-right:21px!important}
+.mx-lg-5{margin-left:34px!important;margin-right:34px!important}
+.mx-lg-6{margin-left:55px!important;margin-right:55px!important}
+.mx-lg-7{margin-left:89px!important;margin-right:89px!important}
+.my-lg-1{margin-top:5px!important;margin-bottom:5px!important}
+.my-lg-2{margin-top:8px!important;margin-bottom:8px!important}
+.my-lg-3{margin-top:13px!important;margin-bottom:13px!important}
+.my-lg-4{margin-top:21px!important;margin-bottom:21px!important}
+.my-lg-5{margin-top:34px!important;margin-bottom:34px!important}
+.my-lg-6{margin-top:55px!important;margin-bottom:55px!important}
+.my-lg-7{margin-top:89px!important;margin-bottom:89px!important}
+.p-lg-1{padding:5px!important}
+.p-lg-2{padding:8px!important}
+.p-lg-3{padding:13px!important}
+.p-lg-4{padding:21px!important}
+.p-lg-5{padding:34px!important}
+.p-lg-6{padding:55px!important}
+.p-lg-7{padding:89px!important}
+.pt-lg-1{padding-top:5px!important}
+.pt-lg-2{padding-top:8px!important}
+.pt-lg-3{padding-top:13px!important}
+.pt-lg-4{padding-top:21px!important}
+.pt-lg-5{padding-top:34px!important}
+.pt-lg-6{padding-top:55px!important}
+.pt-lg-7{padding-top:89px!important}
+.pb-lg-1{padding-bottom:5px!important}
+.pb-lg-2{padding-bottom:8px!important}
+.pb-lg-3{padding-bottom:13px!important}
+.pb-lg-4{padding-bottom:21px!important}
+.pb-lg-5{padding-bottom:34px!important}
+.pb-lg-6{padding-bottom:55px!important}
+.pb-lg-7{padding-bottom:89px!important}
+.ps-lg-1{padding-left:5px!important}
+.ps-lg-2{padding-left:8px!important}
+.ps-lg-3{padding-left:13px!important}
+.ps-lg-4{padding-left:21px!important}
+.ps-lg-5{padding-left:34px!important}
+.ps-lg-6{padding-left:55px!important}
+.ps-lg-7{padding-left:89px!important}
+.pe-lg-1{padding-right:5px!important}
+.pe-lg-2{padding-right:8px!important}
+.pe-lg-3{padding-right:13px!important}
+.pe-lg-4{padding-right:21px!important}
+.pe-lg-5{padding-right:34px!important}
+.pe-lg-6{padding-right:55px!important}
+.pe-lg-7{padding-right:89px!important}
+.px-lg-1{padding-left:5px!important;padding-right:5px!important}
+.px-lg-2{padding-left:8px!important;padding-right:8px!important}
+.px-lg-3{padding-left:13px!important;padding-right:13px!important}
+.px-lg-4{padding-left:21px!important;padding-right:21px!important}
+.px-lg-5{padding-left:34px!important;padding-right:34px!important}
+.px-lg-6{padding-left:55px!important;padding-right:55px!important}
+.px-lg-7{padding-left:89px!important;padding-right:89px!important}
+.py-lg-1{padding-top:5px!important;padding-bottom:5px!important}
+.py-lg-2{padding-top:8px!important;padding-bottom:8px!important}
+.py-lg-3{padding-top:13px!important;padding-bottom:13px!important}
+.py-lg-4{padding-top:21px!important;padding-bottom:21px!important}
+.py-lg-5{padding-top:34px!important;padding-bottom:34px!important}
+.py-lg-6{padding-top:55px!important;padding-bottom:55px!important}
+.py-lg-7{padding-top:89px!important;padding-bottom:89px!important}
+.gap-lg-1{gap:5px!important}
+.gap-lg-2{gap:8px!important}
+.gap-lg-3{gap:13px!important}
+.gap-lg-4{gap:21px!important}
+.gap-lg-5{gap:34px!important}
+.gap-lg-6{gap:55px!important}
+.gap-lg-7{gap:89px!important}
+.row-gap-lg-1{row-gap:5px!important}
+.row-gap-lg-2{row-gap:8px!important}
+.row-gap-lg-3{row-gap:13px!important}
+.row-gap-lg-4{row-gap:21px!important}
+.row-gap-lg-5{row-gap:34px!important}
+.row-gap-lg-6{row-gap:55px!important}
+.row-gap-lg-7{row-gap:89px!important}
+.column-gap-lg-1{column-gap:5px!important}
+.column-gap-lg-2{column-gap:8px!important}
+.column-gap-lg-3{column-gap:13px!important}
+.column-gap-lg-4{column-gap:21px!important}
+.column-gap-lg-5{column-gap:34px!important}
+.column-gap-lg-6{column-gap:55px!important}
+.column-gap-lg-7{column-gap:89px!important}
+.g-lg-1{--bs-gutter-x:5px;--bs-gutter-y:5px}
+.g-lg-2{--bs-gutter-x:8px;--bs-gutter-y:8px}
+.g-lg-3{--bs-gutter-x:13px;--bs-gutter-y:13px}
+.g-lg-4{--bs-gutter-x:21px;--bs-gutter-y:21px}
+.g-lg-5{--bs-gutter-x:34px;--bs-gutter-y:34px}
+.g-lg-6{--bs-gutter-x:55px;--bs-gutter-y:55px}
+.g-lg-7{--bs-gutter-x:89px;--bs-gutter-y:89px}
+.gx-lg-1{--bs-gutter-x:5px}
+.gx-lg-2{--bs-gutter-x:8px}
+.gx-lg-3{--bs-gutter-x:13px}
+.gx-lg-4{--bs-gutter-x:21px}
+.gx-lg-5{--bs-gutter-x:34px}
+.gx-lg-6{--bs-gutter-x:55px}
+.gx-lg-7{--bs-gutter-x:89px}
+.gy-lg-1{--bs-gutter-y:5px}
+.gy-lg-2{--bs-gutter-y:8px}
+.gy-lg-3{--bs-gutter-y:13px}
+.gy-lg-4{--bs-gutter-y:21px}
+.gy-lg-5{--bs-gutter-y:34px}
+.gy-lg-6{--bs-gutter-y:55px}
+.gy-lg-7{--bs-gutter-y:89px}
+}
+@media (min-width:1200px){
+.m-xl-1{margin:5px!important}
+.m-xl-2{margin:8px!important}
+.m-xl-3{margin:13px!important}
+.m-xl-4{margin:21px!important}
+.m-xl-5{margin:34px!important}
+.m-xl-6{margin:55px!important}
+.m-xl-7{margin:89px!important}
+.mt-xl-1{margin-top:5px!important}
+.mt-xl-2{margin-top:8px!important}
+.mt-xl-3{margin-top:13px!important}
+.mt-xl-4{margin-top:21px!important}
+.mt-xl-5{margin-top:34px!important}
+.mt-xl-6{margin-top:55px!important}
+.mt-xl-7{margin-top:89px!important}
+.mb-xl-1{margin-bottom:5px!important}
+.mb-xl-2{margin-bottom:8px!important}
+.mb-xl-3{margin-bottom:13px!important}
+.mb-xl-4{margin-bottom:21px!important}
+.mb-xl-5{margin-bottom:34px!important}
+.mb-xl-6{margin-bottom:55px!important}
+.mb-xl-7{margin-bottom:89px!important}
+.ms-xl-1{margin-left:5px!important}
+.ms-xl-2{margin-left:8px!important}
+.ms-xl-3{margin-left:13px!important}
+.ms-xl-4{margin-left:21px!important}
+.ms-xl-5{margin-left:34px!important}
+.ms-xl-6{margin-left:55px!important}
+.ms-xl-7{margin-left:89px!important}
+.me-xl-1{margin-right:5px!important}
+.me-xl-2{margin-right:8px!important}
+.me-xl-3{margin-right:13px!important}
+.me-xl-4{margin-right:21px!important}
+.me-xl-5{margin-right:34px!important}
+.me-xl-6{margin-right:55px!important}
+.me-xl-7{margin-right:89px!important}
+.mx-xl-1{margin-left:5px!important;margin-right:5px!important}
+.mx-xl-2{margin-left:8px!important;margin-right:8px!important}
+.mx-xl-3{margin-left:13px!important;margin-right:13px!important}
+.mx-xl-4{margin-left:21px!important;margin-right:21px!important}
+.mx-xl-5{margin-left:34px!important;margin-right:34px!important}
+.mx-xl-6{margin-left:55px!important;margin-right:55px!important}
+.mx-xl-7{margin-left:89px!important;margin-right:89px!important}
+.my-xl-1{margin-top:5px!important;margin-bottom:5px!important}
+.my-xl-2{margin-top:8px!important;margin-bottom:8px!important}
+.my-xl-3{margin-top:13px!important;margin-bottom:13px!important}
+.my-xl-4{margin-top:21px!important;margin-bottom:21px!important}
+.my-xl-5{margin-top:34px!important;margin-bottom:34px!important}
+.my-xl-6{margin-top:55px!important;margin-bottom:55px!important}
+.my-xl-7{margin-top:89px!important;margin-bottom:89px!important}
+.p-xl-1{padding:5px!important}
+.p-xl-2{padding:8px!important}
+.p-xl-3{padding:13px!important}
+.p-xl-4{padding:21px!important}
+.p-xl-5{padding:34px!important}
+.p-xl-6{padding:55px!important}
+.p-xl-7{padding:89px!important}
+.pt-xl-1{padding-top:5px!important}
+.pt-xl-2{padding-top:8px!important}
+.pt-xl-3{padding-top:13px!important}
+.pt-xl-4{padding-top:21px!important}
+.pt-xl-5{padding-top:34px!important}
+.pt-xl-6{padding-top:55px!important}
+.pt-xl-7{padding-top:89px!important}
+.pb-xl-1{padding-bottom:5px!important}
+.pb-xl-2{padding-bottom:8px!important}
+.pb-xl-3{padding-bottom:13px!important}
+.pb-xl-4{padding-bottom:21px!important}
+.pb-xl-5{padding-bottom:34px!important}
+.pb-xl-6{padding-bottom:55px!important}
+.pb-xl-7{padding-bottom:89px!important}
+.ps-xl-1{padding-left:5px!important}
+.ps-xl-2{padding-left:8px!important}
+.ps-xl-3{padding-left:13px!important}
+.ps-xl-4{padding-left:21px!important}
+.ps-xl-5{padding-left:34px!important}
+.ps-xl-6{padding-left:55px!important}
+.ps-xl-7{padding-left:89px!important}
+.pe-xl-1{padding-right:5px!important}
+.pe-xl-2{padding-right:8px!important}
+.pe-xl-3{padding-right:13px!important}
+.pe-xl-4{padding-right:21px!important}
+.pe-xl-5{padding-right:34px!important}
+.pe-xl-6{padding-right:55px!important}
+.pe-xl-7{padding-right:89px!important}
+.px-xl-1{padding-left:5px!important;padding-right:5px!important}
+.px-xl-2{padding-left:8px!important;padding-right:8px!important}
+.px-xl-3{padding-left:13px!important;padding-right:13px!important}
+.px-xl-4{padding-left:21px!important;padding-right:21px!important}
+.px-xl-5{padding-left:34px!important;padding-right:34px!important}
+.px-xl-6{padding-left:55px!important;padding-right:55px!important}
+.px-xl-7{padding-left:89px!important;padding-right:89px!important}
+.py-xl-1{padding-top:5px!important;padding-bottom:5px!important}
+.py-xl-2{padding-top:8px!important;padding-bottom:8px!important}
+.py-xl-3{padding-top:13px!important;padding-bottom:13px!important}
+.py-xl-4{padding-top:21px!important;padding-bottom:21px!important}
+.py-xl-5{padding-top:34px!important;padding-bottom:34px!important}
+.py-xl-6{padding-top:55px!important;padding-bottom:55px!important}
+.py-xl-7{padding-top:89px!important;padding-bottom:89px!important}
+.gap-xl-1{gap:5px!important}
+.gap-xl-2{gap:8px!important}
+.gap-xl-3{gap:13px!important}
+.gap-xl-4{gap:21px!important}
+.gap-xl-5{gap:34px!important}
+.gap-xl-6{gap:55px!important}
+.gap-xl-7{gap:89px!important}
+.row-gap-xl-1{row-gap:5px!important}
+.row-gap-xl-2{row-gap:8px!important}
+.row-gap-xl-3{row-gap:13px!important}
+.row-gap-xl-4{row-gap:21px!important}
+.row-gap-xl-5{row-gap:34px!important}
+.row-gap-xl-6{row-gap:55px!important}
+.row-gap-xl-7{row-gap:89px!important}
+.column-gap-xl-1{column-gap:5px!important}
+.column-gap-xl-2{column-gap:8px!important}
+.column-gap-xl-3{column-gap:13px!important}
+.column-gap-xl-4{column-gap:21px!important}
+.column-gap-xl-5{column-gap:34px!important}
+.column-gap-xl-6{column-gap:55px!important}
+.column-gap-xl-7{column-gap:89px!important}
+.g-xl-1{--bs-gutter-x:5px;--bs-gutter-y:5px}
+.g-xl-2{--bs-gutter-x:8px;--bs-gutter-y:8px}
+.g-xl-3{--bs-gutter-x:13px;--bs-gutter-y:13px}
+.g-xl-4{--bs-gutter-x:21px;--bs-gutter-y:21px}
+.g-xl-5{--bs-gutter-x:34px;--bs-gutter-y:34px}
+.g-xl-6{--bs-gutter-x:55px;--bs-gutter-y:55px}
+.g-xl-7{--bs-gutter-x:89px;--bs-gutter-y:89px}
+.gx-xl-1{--bs-gutter-x:5px}
+.gx-xl-2{--bs-gutter-x:8px}
+.gx-xl-3{--bs-gutter-x:13px}
+.gx-xl-4{--bs-gutter-x:21px}
+.gx-xl-5{--bs-gutter-x:34px}
+.gx-xl-6{--bs-gutter-x:55px}
+.gx-xl-7{--bs-gutter-x:89px}
+.gy-xl-1{--bs-gutter-y:5px}
+.gy-xl-2{--bs-gutter-y:8px}
+.gy-xl-3{--bs-gutter-y:13px}
+.gy-xl-4{--bs-gutter-y:21px}
+.gy-xl-5{--bs-gutter-y:34px}
+.gy-xl-6{--bs-gutter-y:55px}
+.gy-xl-7{--bs-gutter-y:89px}
+}
+@media (min-width:1400px){
+.m-xxl-1{margin:5px!important}
+.m-xxl-2{margin:8px!important}
+.m-xxl-3{margin:13px!important}
+.m-xxl-4{margin:21px!important}
+.m-xxl-5{margin:34px!important}
+.m-xxl-6{margin:55px!important}
+.m-xxl-7{margin:89px!important}
+.mt-xxl-1{margin-top:5px!important}
+.mt-xxl-2{margin-top:8px!important}
+.mt-xxl-3{margin-top:13px!important}
+.mt-xxl-4{margin-top:21px!important}
+.mt-xxl-5{margin-top:34px!important}
+.mt-xxl-6{margin-top:55px!important}
+.mt-xxl-7{margin-top:89px!important}
+.mb-xxl-1{margin-bottom:5px!important}
+.mb-xxl-2{margin-bottom:8px!important}
+.mb-xxl-3{margin-bottom:13px!important}
+.mb-xxl-4{margin-bottom:21px!important}
+.mb-xxl-5{margin-bottom:34px!important}
+.mb-xxl-6{margin-bottom:55px!important}
+.mb-xxl-7{margin-bottom:89px!important}
+.ms-xxl-1{margin-left:5px!important}
+.ms-xxl-2{margin-left:8px!important}
+.ms-xxl-3{margin-left:13px!important}
+.ms-xxl-4{margin-left:21px!important}
+.ms-xxl-5{margin-left:34px!important}
+.ms-xxl-6{margin-left:55px!important}
+.ms-xxl-7{margin-left:89px!important}
+.me-xxl-1{margin-right:5px!important}
+.me-xxl-2{margin-right:8px!important}
+.me-xxl-3{margin-right:13px!important}
+.me-xxl-4{margin-right:21px!important}
+.me-xxl-5{margin-right:34px!important}
+.me-xxl-6{margin-right:55px!important}
+.me-xxl-7{margin-right:89px!important}
+.mx-xxl-1{margin-left:5px!important;margin-right:5px!important}
+.mx-xxl-2{margin-left:8px!important;margin-right:8px!important}
+.mx-xxl-3{margin-left:13px!important;margin-right:13px!important}
+.mx-xxl-4{margin-left:21px!important;margin-right:21px!important}
+.mx-xxl-5{margin-left:34px!important;margin-right:34px!important}
+.mx-xxl-6{margin-left:55px!important;margin-right:55px!important}
+.mx-xxl-7{margin-left:89px!important;margin-right:89px!important}
+.my-xxl-1{margin-top:5px!important;margin-bottom:5px!important}
+.my-xxl-2{margin-top:8px!important;margin-bottom:8px!important}
+.my-xxl-3{margin-top:13px!important;margin-bottom:13px!important}
+.my-xxl-4{margin-top:21px!important;margin-bottom:21px!important}
+.my-xxl-5{margin-top:34px!important;margin-bottom:34px!important}
+.my-xxl-6{margin-top:55px!important;margin-bottom:55px!important}
+.my-xxl-7{margin-top:89px!important;margin-bottom:89px!important}
+.p-xxl-1{padding:5px!important}
+.p-xxl-2{padding:8px!important}
+.p-xxl-3{padding:13px!important}
+.p-xxl-4{padding:21px!important}
+.p-xxl-5{padding:34px!important}
+.p-xxl-6{padding:55px!important}
+.p-xxl-7{padding:89px!important}
+.pt-xxl-1{padding-top:5px!important}
+.pt-xxl-2{padding-top:8px!important}
+.pt-xxl-3{padding-top:13px!important}
+.pt-xxl-4{padding-top:21px!important}
+.pt-xxl-5{padding-top:34px!important}
+.pt-xxl-6{padding-top:55px!important}
+.pt-xxl-7{padding-top:89px!important}
+.pb-xxl-1{padding-bottom:5px!important}
+.pb-xxl-2{padding-bottom:8px!important}
+.pb-xxl-3{padding-bottom:13px!important}
+.pb-xxl-4{padding-bottom:21px!important}
+.pb-xxl-5{padding-bottom:34px!important}
+.pb-xxl-6{padding-bottom:55px!important}
+.pb-xxl-7{padding-bottom:89px!important}
+.ps-xxl-1{padding-left:5px!important}
+.ps-xxl-2{padding-left:8px!important}
+.ps-xxl-3{padding-left:13px!important}
+.ps-xxl-4{padding-left:21px!important}
+.ps-xxl-5{padding-left:34px!important}
+.ps-xxl-6{padding-left:55px!important}
+.ps-xxl-7{padding-left:89px!important}
+.pe-xxl-1{padding-right:5px!important}
+.pe-xxl-2{padding-right:8px!important}
+.pe-xxl-3{padding-right:13px!important}
+.pe-xxl-4{padding-right:21px!important}
+.pe-xxl-5{padding-right:34px!important}
+.pe-xxl-6{padding-right:55px!important}
+.pe-xxl-7{padding-right:89px!important}
+.px-xxl-1{padding-left:5px!important;padding-right:5px!important}
+.px-xxl-2{padding-left:8px!important;padding-right:8px!important}
+.px-xxl-3{padding-left:13px!important;padding-right:13px!important}
+.px-xxl-4{padding-left:21px!important;padding-right:21px!important}
+.px-xxl-5{padding-left:34px!important;padding-right:34px!important}
+.px-xxl-6{padding-left:55px!important;padding-right:55px!important}
+.px-xxl-7{padding-left:89px!important;padding-right:89px!important}
+.py-xxl-1{padding-top:5px!important;padding-bottom:5px!important}
+.py-xxl-2{padding-top:8px!important;padding-bottom:8px!important}
+.py-xxl-3{padding-top:13px!important;padding-bottom:13px!important}
+.py-xxl-4{padding-top:21px!important;padding-bottom:21px!important}
+.py-xxl-5{padding-top:34px!important;padding-bottom:34px!important}
+.py-xxl-6{padding-top:55px!important;padding-bottom:55px!important}
+.py-xxl-7{padding-top:89px!important;padding-bottom:89px!important}
+.gap-xxl-1{gap:5px!important}
+.gap-xxl-2{gap:8px!important}
+.gap-xxl-3{gap:13px!important}
+.gap-xxl-4{gap:21px!important}
+.gap-xxl-5{gap:34px!important}
+.gap-xxl-6{gap:55px!important}
+.gap-xxl-7{gap:89px!important}
+.row-gap-xxl-1{row-gap:5px!important}
+.row-gap-xxl-2{row-gap:8px!important}
+.row-gap-xxl-3{row-gap:13px!important}
+.row-gap-xxl-4{row-gap:21px!important}
+.row-gap-xxl-5{row-gap:34px!important}
+.row-gap-xxl-6{row-gap:55px!important}
+.row-gap-xxl-7{row-gap:89px!important}
+.column-gap-xxl-1{column-gap:5px!important}
+.column-gap-xxl-2{column-gap:8px!important}
+.column-gap-xxl-3{column-gap:13px!important}
+.column-gap-xxl-4{column-gap:21px!important}
+.column-gap-xxl-5{column-gap:34px!important}
+.column-gap-xxl-6{column-gap:55px!important}
+.column-gap-xxl-7{column-gap:89px!important}
+.g-xxl-1{--bs-gutter-x:5px;--bs-gutter-y:5px}
+.g-xxl-2{--bs-gutter-x:8px;--bs-gutter-y:8px}
+.g-xxl-3{--bs-gutter-x:13px;--bs-gutter-y:13px}
+.g-xxl-4{--bs-gutter-x:21px;--bs-gutter-y:21px}
+.g-xxl-5{--bs-gutter-x:34px;--bs-gutter-y:34px}
+.g-xxl-6{--bs-gutter-x:55px;--bs-gutter-y:55px}
+.g-xxl-7{--bs-gutter-x:89px;--bs-gutter-y:89px}
+.gx-xxl-1{--bs-gutter-x:5px}
+.gx-xxl-2{--bs-gutter-x:8px}
+.gx-xxl-3{--bs-gutter-x:13px}
+.gx-xxl-4{--bs-gutter-x:21px}
+.gx-xxl-5{--bs-gutter-x:34px}
+.gx-xxl-6{--bs-gutter-x:55px}
+.gx-xxl-7{--bs-gutter-x:89px}
+.gy-xxl-1{--bs-gutter-y:5px}
+.gy-xxl-2{--bs-gutter-y:8px}
+.gy-xxl-3{--bs-gutter-y:13px}
+.gy-xxl-4{--bs-gutter-y:21px}
+.gy-xxl-5{--bs-gutter-y:34px}
+.gy-xxl-6{--bs-gutter-y:55px}
+.gy-xxl-7{--bs-gutter-y:89px}
+}
+
+/* Tarjeta de plato de la carta (TarjetaPlato), algo más pequeña: 4 por fila
+   desde xl (CartaCliente) y foto 16:9 en vez de 16:10. El detalle del plato
+   (modal) conserva su tamaño. */
+.tarjeta-plato .plato-foto {
+  aspect-ratio: 16 / 9;
+  font-size: 2.5rem;
+}
