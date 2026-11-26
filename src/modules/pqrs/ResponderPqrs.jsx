@@ -1,13 +1,19 @@
 import { useState } from 'react'
 
+<<<<<<< HEAD
 import { fechaCorta } from '../../utils/format'
 import Modal from '../../components/ui/Modal'
 
+=======
+import Modal from '../../components/ui/Modal'
+import { fechaCorta } from '../../utils/format'
+>>>>>>> origin/main
 import { ESTADOS, iconoDe } from './esquema'
 
 const ID_FORMULARIO = 'formulario-respuesta'
 
 /**
+<<<<<<< HEAD
  * Respuesta del administrador a una PQRS: se añade la respuesta y se actualiza el estado.
  * Lo que escribió el cliente se muestra como texto de solo lectura, y `onGuardar` solo recibe
  * `respuesta` y `estado`.
@@ -16,6 +22,18 @@ export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
   const [respuesta, setRespuesta] = useState(pqrs.respuesta ?? '')
   // Responder suele cerrar el caso: se propone "Resuelto" si aún no lo estaba.
   const [estado, setEstado] = useState(pqrs.respuesta ? pqrs.estado : 'Resuelto')
+=======
+ * Respuesta del administrador a una PQRS.
+ *
+ * "Modificar" una PQRS desde administración es RESPONDERLA: lo que escribió el
+ * cliente no se toca (es el registro de lo que pidió); se añade la respuesta
+ * del local y se actualiza el estado. El cliente la lee en "Mis solicitudes".
+ */
+export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
+  const [respuesta, setRespuesta] = useState(pqrs.respuesta ?? '')
+  // Responder suele cerrar el caso: se propone "Resuelta" si aún no lo estaba.
+  const [estado, setEstado] = useState(pqrs.respuesta ? pqrs.estado : 'Resuelta')
+>>>>>>> origin/main
   const [error, setError] = useState(null)
 
   const enviar = (evento) => {
@@ -46,6 +64,7 @@ export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
         </>
       }
     >
+<<<<<<< HEAD
       <section className="modal-resumen mb-4" aria-label="Solicitud del cliente">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <small className="text-secondary">
@@ -66,6 +85,18 @@ export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
           {pqrs.texto}
         </p>
       </section>
+=======
+      <div className="modal-resumen mb-4">
+        <small className="text-secondary d-block mb-1">
+          <i className={`fa-solid ${iconoDe(pqrs.tipo)} me-1`} />
+          {pqrs.tipo} de {pqrs.nombre || 'un cliente'} · {fechaCorta(pqrs.fecha)}
+        </small>
+        <strong className="d-block">{pqrs.asunto}</strong>
+        <p className="small mb-0" style={{ whiteSpace: 'pre-line' }}>
+          {pqrs.texto}
+        </p>
+      </div>
+>>>>>>> origin/main
 
       <form id={ID_FORMULARIO} onSubmit={enviar} noValidate className="d-grid gap-3">
         <div>

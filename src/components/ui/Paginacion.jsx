@@ -1,6 +1,18 @@
 /**
+<<<<<<< HEAD
  * Paginación de una lista ya recortada en el cliente. Muestra una ventana de cinco números
  * alrededor de la página actual, más Anterior y Siguiente.
+=======
+ * Paginación de una lista ya recortada en el cliente.
+ *
+ * Usa `page-item`, la clase que Bootstrap espera. La versión anterior escribía
+ * `page-insumo` —un renombrado de más al aplicar R65— y sin esa clase los
+ * botones perdían su forma y el estado `disabled` no desactivaba nada: se podía
+ * seguir pulsando "Anterior" en la primera página.
+ *
+ * La ventana de números está acotada: con 40 páginas no se pintan 40 botones,
+ * se pintan los cinco de alrededor y se deja que los extremos hagan el resto.
+>>>>>>> origin/main
  */
 
 const VENTANA = 5

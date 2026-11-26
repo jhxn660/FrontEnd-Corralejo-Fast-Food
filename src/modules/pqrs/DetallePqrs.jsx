@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { fechaCorta } from '../../utils/format'
 import Modal from '../../components/ui/Modal'
 
@@ -8,6 +9,22 @@ import { COLOR_ESTADO, ESTADOS, ICONO_ESTADO, colorDe, iconoDe } from './esquema
  * `onResponder` (administración) abre solo la respuesta: nadie edita lo que escribió el cliente.
  */
 export default function DetallePqrs({ pqrs, onResponder, onCerrar }) {
+=======
+import Modal from '../../components/ui/Modal'
+import { fechaCorta } from '../../utils/format'
+import { COLOR_ESTADO, ESTADOS, ICONO_ESTADO, colorDe, iconoDe } from './esquema'
+
+/**
+ * Consulta de una PQRS ya enviada.
+ *
+ * Es una pieza aparte del formulario porque ver y editar son dos cosas
+ * distintas: antes el panel del cliente abría el formulario con los campos en
+ * `readOnly`, y un cuadro de texto gris con un botón "Cerrar" al lado parece un
+ * formulario que no responde. Aquí el texto es texto, y el seguimiento del
+ * estado se ve como lo que es: una línea de tiempo con tres pasos.
+ */
+export default function DetallePqrs({ pqrs, onEditar, onCerrar }) {
+>>>>>>> origin/main
   const pasoActual = ESTADOS.indexOf(pqrs.estado)
 
   return (
@@ -21,10 +38,17 @@ export default function DetallePqrs({ pqrs, onResponder, onCerrar }) {
           <button className="btn btn-outline-secondary me-auto" onClick={onCerrar}>
             Cerrar
           </button>
+<<<<<<< HEAD
           {onResponder && (
             <button className="btn btn-primary" onClick={() => onResponder(pqrs)}>
               <i className="fa-solid fa-reply me-2" />
               {pqrs.respuesta ? 'Editar respuesta' : 'Responder'}
+=======
+          {onEditar && pqrs.estado !== 'Resuelta' && (
+            <button className="btn btn-primary" onClick={() => onEditar(pqrs)}>
+              <i className="fa-solid fa-pen me-2" />
+              Editar solicitud
+>>>>>>> origin/main
             </button>
           )}
         </>

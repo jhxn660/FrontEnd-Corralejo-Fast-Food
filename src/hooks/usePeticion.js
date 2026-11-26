@@ -1,11 +1,23 @@
 import { useCallback, useRef, useState } from 'react'
 
 /**
+<<<<<<< HEAD
  * Envoltura de una escritura: { ejecutar, enviando, error, limpiar }. Complementa useRecurso.
  *
  * - `enviando` bloquea el doble envío (dos clics en Guardar no crean dos registros).
  * - `ejecutar` devuelve { ok, datos, error } en vez de lanzar: la pantalla escribe
  *   `if (ok) cerrar()` sin try/catch.
+=======
+ * Envoltura de una escritura: expone { ejecutar, enviando, error, limpiar }.
+ * Complementa useRecurso, que solo sabe leer.
+ *
+ * Dos cosas que no son obvias:
+ * - `enviando` bloquea el doble envío. Sin él, dos clics seguidos en "Guardar"
+ *   crean dos registros, y con json-server no hay restricción que lo impida.
+ * - `ejecutar` devuelve { ok, datos, error } en vez de lanzar, para que la
+ *   pantalla escriba `if (ok) cerrar()` sin un try/catch en cada handler. El
+ *   error ya quedó en el estado del hook.
+>>>>>>> origin/main
  */
 export function usePeticion(accion) {
   const [enviando, setEnviando] = useState(false)

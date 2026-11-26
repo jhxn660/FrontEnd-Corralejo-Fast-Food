@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
+<<<<<<< HEAD
 import { useRecurso } from '../../hooks/useRecurso'
 import { fechaCorta } from '../../utils/format'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
@@ -17,14 +18,46 @@ import { COLOR_ESTADO, ESTADOS, ICONO_ESTADO, NOMBRES_TIPO, colorDe, iconoDe } f
 export default function PqrsEmpleado() {
   const cargar = useCallback(() => pqrsApi.listar(), [])
   const { datos: solicitudes, cargando, error, recargar } = useRecurso(cargar, [])
+=======
+import { api } from '../../services/api'
+import { useRecurso } from '../../hooks/useRecurso'
+import { usePeticion } from '../../hooks/usePeticion'
+import { useConfirmacion } from '../../hooks/useConfirmacion'
+import { useAvisos } from '../../context/AvisosContext'
+import { fechaCorta } from '../../utils/format'
+import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
+import {
+  COLOR_ESTADO,
+  ESTADOS,
+  ICONO_ESTADO,
+  NOMBRES_TIPO,
+  colorDe,
+  iconoDe,
+  pqrsVacia,
+} from './esquema'
+import FormularioPqrs from './FormularioPqrs'
+import DetallePqrs from './DetallePqrs'
+
+export default function EmpleadoPqrs() {
+  const cargar = useCallback(() => api.list('pqrs'), [])
+  const { datos: solicitudes, cargando, error, recargar } = useRecurso(cargar, [])
+  const avisos = useAvisos()
+>>>>>>> origin/main
 
   const [filtroEstado, setFiltroEstado] = useState('Todas')
   const [filtroTipo, setFiltroTipo] = useState('Todos')
   const [busqueda, setBusqueda] = useState('')
+<<<<<<< HEAD
   // El id y no el registro: si otro rol lo cambia, el detalle abierto se
   // actualiza con la siguiente sincronización.
   const [detalleId, setDetalleId] = useState(null)
   const detalle = solicitudes.find((registro) => registro.id === detalleId) ?? null
+=======
+  const [formulario, setFormulario] = useState(null)
+  const [detalle, setDetalle] = useState(null)
+>>>>>>> origin/main
 
   const visibles = useMemo(() => {
     const texto = busqueda.toLowerCase().trim()
@@ -54,16 +87,104 @@ export default function PqrsEmpleado() {
     [solicitudes]
   )
 
+<<<<<<< HEAD
   return (
     <>
       <EncabezadoPagina
         titulo="PQRS de clientes"
         descripcion="Consulta las peticiones, quejas, reclamos y sugerencias que enviaron los clientes."
+=======
+  const guardado = usePeticion(
+    useCallback(
+      async (valores) => {
+        const payload = {
+          ...valores,
+          asunto: valores.asunto.trim(),
+          texto: valores.texto.trim(),
+          nombre: valores.nombre?.trim() ?? '',
+          fecha: valores.fecha ?? new Date().toISOString(),
+        }
+        if (valores.id) await api.update('pqrs', valores.id, payload)
+        else await api.create('pqrs', payload)
+        await recargar()
+      },
+      [recargar]
+    )
+  )
+
+  // El empleado cambia el estado sin abrir el formulario completo: es la acción
+  // que repite docenas de veces al día.
+  const cambioEstado = usePeticion(
+    useCallback(
+      async (registro, estado) => {
+        await api.patch('pqrs', registro.id, { estado })
+        await recargar()
+        return estado
+      },
+      [recargar]
+    )
+  )
+
+  const guardar = async (valores) => {
+    const editando = Boolean(valores.id)
+    const { ok, error: fallo } = await guardado.ejecutar(valores)
+
+    if (!ok) {
+      avisos.fallo(editando ? 'No se pudo guardar' : 'No se pudo registrar', fallo)
+      return
+    }
+
+    setFormulario(null)
+    setDetalle(null)
+    avisos.exito(
+      editando ? 'Solicitud actualizada' : 'Solicitud registrada',
+      `${valores.tipo} de ${valores.nombre?.trim() || 'un cliente'} quedó guardada.`
+    )
+  }
+
+  const cambiarEstado = async (registro, estado) => {
+    const { ok, error: fallo } = await cambioEstado.ejecutar(registro, estado)
+    if (!ok) {
+      avisos.fallo('No se pudo cambiar el estado', fallo)
+      return
+    }
+    avisos.exito('Estado actualizado', `"${registro.asunto}" pasó a ${estado.toLowerCase()}.`)
+  }
+
+  // RNF-01: borrar la PQRS de un cliente es irreversible, así que se confirma
+  // con casilla además del botón.
+  const eliminacion = useConfirmacion((solicitud) => api.remove('pqrs', solicitud.id), {
+    alTerminar: () => {
+      recargar()
+      setDetalle(null)
+    },
+  })
+
+  const eliminar = async () => {
+    const asunto = eliminacion.objetivo?.asunto
+    if (await eliminacion.confirmar()) {
+      avisos.error('Solicitud eliminada', `"${asunto}" salió del listado.`)
+    }
+  }
+
+  return (
+    <>
+      <EncabezadoPagina
+        titulo="Gestión de PQRS"
+        descripcion="Administra las peticiones, quejas, reclamos y sugerencias recibidas."
+>>>>>>> origin/main
       >
         <button className="btn btn-outline-secondary" onClick={recargar} disabled={cargando}>
           <i className="fa-solid fa-rotate me-2" />
           Actualizar
         </button>
+<<<<<<< HEAD
+=======
+        <button className="btn btn-primary" onClick={() => setFormulario(pqrsVacia())}>
+          <i className="fa-solid fa-plus me-2" />
+          Registrar solicitud
+        </button>
+>>>>>>> origin/main
       </EncabezadoPagina>
 
       <MensajeError texto={error} onReintentar={recargar} />
@@ -195,6 +316,7 @@ export default function PqrsEmpleado() {
                   {fechaCorta(registro.fecha)}
                 </small>
 
+<<<<<<< HEAD
                 <span className={`badge bg-${COLOR_ESTADO[registro.estado] ?? 'secondary'} ms-auto`}>
                   {registro.estado}
                 </span>
@@ -202,17 +324,91 @@ export default function PqrsEmpleado() {
                 <button
                   className="btn btn-sm btn-outline-secondary"
                   onClick={() => setDetalleId(registro.id)}
+=======
+                <select
+                  className="form-select form-select-sm ms-auto"
+                  style={{ width: 'auto' }}
+                  value={registro.estado}
+                  onChange={(evento) => cambiarEstado(registro, evento.target.value)}
+                  disabled={cambioEstado.enviando}
+                  aria-label={`Estado de ${registro.asunto}`}
+                >
+                  {ESTADOS.map((estado) => (
+                    <option key={estado}>{estado}</option>
+                  ))}
+                </select>
+
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setDetalle(registro)}
+>>>>>>> origin/main
                   aria-label={`Ver ${registro.asunto}`}
                 >
                   <i className="fa-solid fa-eye" />
                 </button>
+<<<<<<< HEAD
+=======
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => setFormulario(registro)}
+                  aria-label={`Editar ${registro.asunto}`}
+                >
+                  <i className="fa-solid fa-pen" />
+                </button>
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={() => eliminacion.pedir(registro)}
+                  aria-label={`Eliminar ${registro.asunto}`}
+                >
+                  <i className="fa-solid fa-trash-can" />
+                </button>
+>>>>>>> origin/main
               </div>
             </article>
           </div>
         ))}
       </div>
 
+<<<<<<< HEAD
       {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalleId(null)} />}
+=======
+      {detalle && !formulario && (
+        <DetallePqrs
+          pqrs={detalle}
+          onEditar={(registro) => {
+            setDetalle(null)
+            setFormulario(registro)
+          }}
+          onCerrar={() => setDetalle(null)}
+        />
+      )}
+
+      {formulario && (
+        <FormularioPqrs
+          pqrs={formulario}
+          gestion
+          enviando={guardado.enviando}
+          onGuardar={guardar}
+          onCerrar={() => setFormulario(null)}
+        />
+      )}
+
+      {eliminacion.objetivo && (
+        <ConfirmarEliminacion
+          entidad="la solicitud de"
+          nombre={eliminacion.objetivo.nombre || 'un cliente'}
+          consecuencias={[
+            `Asunto: ${eliminacion.objetivo.asunto}`,
+            'El cliente dejará de ver su solicitud y su estado.',
+          ]}
+          requiereCasilla
+          enviando={eliminacion.enviando}
+          error={eliminacion.error}
+          onConfirmar={eliminar}
+          onCancelar={eliminacion.cancelar}
+        />
+      )}
+>>>>>>> origin/main
     </>
   )
 }

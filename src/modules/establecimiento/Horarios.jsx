@@ -2,9 +2,13 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { useRecurso } from '../../hooks/useRecurso'
 import { Cargando, MensajeError } from '../../components/ui/Estado'
+<<<<<<< HEAD
 import { imagenDe, tieneImagen } from '../products/esquema'
 
 import { destacadosApi } from './api'
+=======
+import { imagenDe, tieneImagen } from '../menu/esquema'
+>>>>>>> origin/main
 import {
   DIAS_SEMANA,
   MESES,
@@ -17,6 +21,7 @@ import {
   partesDe,
 } from './calendario'
 import { estadoDelLocal, indiceDelDia, normalizarHorario, resumenDelDia } from './horario'
+<<<<<<< HEAD
 import { useFicha } from './useFicha'
 
 const hoy = new Date()
@@ -25,6 +30,15 @@ const hoy = new Date()
 const SIN_FECHAS_ESPECIALES = []
 
 // Años del desplegable: el próximo y los dieciséis anteriores.
+=======
+import { destacadosApi, establecimientoApi } from './api'
+
+const hoy = new Date()
+
+// Años que ofrece el desplegable: el próximo y los dieciséis anteriores. Es el
+// rango con el que tiene sentido consultar días especiales; el calendario sigue
+// avanzando mes a mes con las flechas aunque se salga de esta lista.
+>>>>>>> origin/main
 const AÑOS = Array.from({ length: 18 }, (_, i) => hoy.getFullYear() + 1 - i)
 
 /** "2026-03-04" → Date local, sin pasar por UTC (ver calendario.js). */
@@ -34,6 +48,7 @@ const fechaDe = (iso) => {
 }
 
 /**
+<<<<<<< HEAD
  * Sección «Horarios» de las portadas (solo consulta).
  *
  * A la izquierda, el calendario del mes con los cierres marcados y un día seleccionable; a la
@@ -41,16 +56,48 @@ const fechaDe = (iso) => {
  * contra la ficha, ver horario.js). «Marzo» y «2026» abren los selectores de mes y de año.
  */
 export default function Horarios() {
+=======
+ * Sección «Horarios» de la portada del cliente.
+ *
+ * Dos lecturas de lo mismo, como en el wireframe: a la izquierda el calendario
+ * del mes —con los cierres marcados y un día seleccionable que abre su ficha—,
+ * a la derecha el horario de apertura de la semana con la insignia de Abierto /
+ * Cerrado, que se calcula con la hora del navegador contra el horario de la
+ * ficha (ver `horario.js`).
+ *
+ * El título del calendario no es texto: «Marzo» abre el selector de mes y
+ * «2026» el de año, que son las dos sub-vistas del wireframe. Así se salta a
+ * cualquier fecha sin pulsar la flecha doce veces.
+ *
+ * Es solo consulta: los días especiales se crean y se borran en la pantalla del
+ * administrador.
+ */
+export default function Horarios() {
+  const cargarFicha = useCallback(() => establecimientoApi.ficha(), [])
+  const cargarDias = useCallback(() => establecimientoApi.listarDiasEspeciales(), [])
+
+>>>>>>> origin/main
   const {
     datos: ficha,
     cargando: cargandoFicha,
     error: errorFicha,
     recargar: recargarFicha,
+<<<<<<< HEAD
   } = useFicha()
 
   // El backend no guarda fechas sueltas: los avisos salen del horario semanal (nota de cada día).
   const dias = SIN_FECHAS_ESPECIALES
   const avisosHorario = (ficha?.horarioSemanal ?? []).filter((dia) => dia.nota)
+=======
+  } = useRecurso(cargarFicha, null)
+
+  const {
+    datos: dias,
+    cargando: cargandoDias,
+    error: errorDias,
+    recargar: recargarDias,
+  } = useRecurso(cargarDias, [])
+>>>>>>> origin/main
 
   const [mes, setMes] = useState({ año: hoy.getFullYear(), mes: hoy.getMonth() })
   const [selector, setSelector] = useState(null) // 'mes' | 'año' | null
@@ -95,6 +142,10 @@ export default function Horarios() {
     return indexados
   }, [dias, mes])
 
+<<<<<<< HEAD
+=======
+  const especiales = Object.keys(delMes).sort((a, b) => a - b)
+>>>>>>> origin/main
   const indiceHoy = indiceDelDia(hoy)
 
   const irA = (cambios) => {
@@ -160,6 +211,10 @@ export default function Horarios() {
   return (
     <>
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
+<<<<<<< HEAD
+=======
+      <MensajeError texto={errorDias} onReintentar={recargarDias} />
+>>>>>>> origin/main
 
       <div className="row g-3">
         <div className="col-12 col-xl-6">
@@ -320,6 +375,7 @@ export default function Horarios() {
                 </div>
               </article>
 
+<<<<<<< HEAD
               <h4 className="h6 fw-bold mt-3">Avisos del horario</h4>
               {avisosHorario.length === 0 ? (
                 <p className="text-secondary small fst-italic mb-0">No hay avisos en el horario.</p>
@@ -336,6 +392,43 @@ export default function Horarios() {
                       </span>
                     </li>
                   ))}
+=======
+              <h4 className="h6 fw-bold mt-3">Días especiales este mes</h4>
+              {cargandoDias && <Cargando texto="Cargando días especiales…" />}
+
+              {!cargandoDias && especiales.length === 0 ? (
+                <p className="text-secondary small fst-italic mb-0">
+                  No hay días especiales este mes.
+                </p>
+              ) : (
+                <ul className="list-group list-group-flush">
+                  {especiales.map((numero) => {
+                    const especial = delMes[numero]
+                    const tipo = TIPOS_DIA[especial.tipo] ?? {}
+
+                    return (
+                      <li
+                        key={especial.id}
+                        className="list-group-item d-flex align-items-center gap-2 px-0"
+                      >
+                        <span className={`badge bg-${tipo.color ?? 'secondary'} flex-shrink-0`}>
+                          <i className={`fa-solid ${tipo.icono ?? 'fa-circle'} me-1`} />
+                          {tipo.etiqueta ?? especial.tipo}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm text-start text-decoration-none small flex-grow-1 min-width-0 p-0"
+                          onClick={() => setSeleccion(especial.fecha)}
+                        >
+                          <span className="d-block fw-semibold">
+                            {fechaLegible(especial.fecha)}
+                          </span>
+                          <span className="text-secondary">{especial.motivo}</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+>>>>>>> origin/main
                 </ul>
               )}
             </div>

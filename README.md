@@ -238,3 +238,4 @@ respalda, así un botón solo aparece a quien el backend le va a aceptar la peti
   reabriendo el pedido (eso elimina la venta y el backend devuelve los insumos).
 - **La gráfica de Pedidos agrupa por nombre de producto:** si se renombra un producto, sus
   ventas antiguas caen en "Otros".
+>>>>>>> origin/main

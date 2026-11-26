@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Corralejo · Califica tu pedido</title>
+
+<!--
+  PROTOTIPO APARTE — Calificar un pedido a partir del QR del ticket.
+
+  POR QUÉ EXISTE
+  En la aplicación principal se retiró la calificación de productos porque
+  cualquiera con sesión podía puntuar un plato sin haberlo comprado: las ventas
+  no guardan a qué cliente pertenecen. El QR del ticket sí lo resuelve — es la
+  prueba de la compra —, y este index demuestra ese flujo de punta a punta.
+
+  QUÉ ES Y QUÉ NO ES
+  Es front-end puro: no hay backend, no hay Supabase y nada viaja a ningún
+  servidor. Las cuentas y los tickets son de mentira y están escritos aquí
+  abajo, a la vista. Los comentarios se guardan en el localStorage del
+  navegador, así que sobreviven a una recarga y se borran con el botón de
+  reiniciar. Cuando haya API, lo único que cambia es de dónde salen TICKETS y
+  dónde se guardan los comentarios.
+
+  CÓMO SE ABRE
+  Con el proyecto levantado (`npm run dev`), en /qr/. También funciona abriendo
+  este archivo directamente en el navegador.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+<style>
+  /* Mismos tokens que src/styles/theme.css, para que el prototipo no parezca
+     otra aplicación pegada al lado. */
+  :root {
+    --cff-naranja: #ff8a00;
+    --cff-naranja-oscuro: #c96400;
+    --cff-naranja-tenue: #fff3e3;
+    --cff-carbon: #16181d;
+    --cff-carbon-claro: #2a2e38;
+    --cff-fondo: #e9ebf0;
+    --cff-borde: #d6d9e0;
+    --cff-tinta-suave: #596070;
+    --cff-sombra-1: 0 1px 2px rgba(22, 24, 29, .06), 0 2px 8px rgba(22, 24, 29, .06);
+    --cff-sombra-2: 0 4px 12px rgba(22, 24, 29, .1), 0 12px 28px rgba(22, 24, 29, .1);
+
+    --bs-primary: var(--cff-naranja);
+    --bs-primary-rgb: 255, 138, 0;
+    --bs-body-color: var(--cff-carbon);
+    --bs-body-font-family: 'Albert Sans', system-ui, sans-serif;
+    --bs-border-radius: .75rem;
+    --bs-border-radius-sm: .5rem;
+    --bs-border-radius-lg: 1rem;
+    --bs-border-color: var(--cff-borde);
+    --bs-secondary-color: var(--cff-tinta-suave);
+  }
+
+  body {
+    background-color: var(--cff-fondo);
+    background-image: radial-gradient(1200px 600px at 100% -5%, #fdf0df 0%, transparent 60%);
+    background-attachment: fixed;
+    font-family: var(--bs-body-font-family);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 { letter-spacing: -.015em; }
+
+  .btn { --bs-btn-font-weight: 600; }
+  .btn-primary {
+    --bs-btn-bg: var(--cff-naranja);
+    --bs-btn-border-color: var(--cff-naranja);
+    --bs-btn-color: #fff;
+    --bs-btn-hover-bg: var(--cff-naranja-oscuro);
+    --bs-btn-hover-border-color: var(--cff-naranja-oscuro);
+    --bs-btn-active-bg: var(--cff-naranja-oscuro);
+    --bs-btn-active-border-color: var(--cff-naranja-oscuro);
+    --bs-btn-disabled-bg: var(--cff-naranja);
+    --bs-btn-disabled-border-color: var(--cff-naranja);
+  }
+  .btn-outline-primary {
+    --bs-btn-color: var(--cff-naranja-oscuro);
+    --bs-btn-border-color: var(--cff-naranja);
+    --bs-btn-hover-bg: var(--cff-naranja);
+    --bs-btn-hover-border-color: var(--cff-naranja);
+    --bs-btn-hover-color: #fff;
+  }
+
+  .text-brand { color: var(--cff-naranja-oscuro) !important; }
+  .bg-brand { background-color: var(--cff-naranja) !important; }
+  .badge.bg-brand { color: #fff; }
+
+  .card { border-radius: var(--bs-border-radius-lg); box-shadow: var(--cff-sombra-1); }
+  .card-header.bg-white { box-shadow: inset 3px 0 0 var(--cff-naranja); }
+
+  .app-header {
+    background: var(--cff-carbon);
+    min-height: 72px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .app-header .text-brand { color: var(--cff-naranja-claro, #ffb24d) !important; }
+
+  .icon-tile {
+    width: 3rem; height: 3rem;
+    border-radius: .75rem;
+    background: var(--cff-naranja-tenue);
+    color: var(--cff-naranja-oscuro);
+    font-size: 1.1rem;
+  }
+  .icon-tile-sm { width: 2.25rem; height: 2.25rem; font-size: .85rem; }
+
+  .min-width-0 { min-width: 0; }
+  .cinta-superior { box-shadow: inset 0 4px 0 var(--cff-naranja); }
+
+  /* Estrellas interactivas: aquí sí se vota, porque el QR demuestra la compra. */
+  .estrella {
+    border: 0; background: none; padding: 0 .15rem;
+    font-size: 1.9rem; line-height: 1; color: #c3c8d2;
+    cursor: pointer; transition: transform .1s ease, color .1s ease;
+  }
+  .estrella.activa { color: #f5a623; }
+  .estrella:hover:not(:disabled) { transform: scale(1.15); }
+  .estrella:focus-visible { outline: 2px solid var(--cff-naranja); border-radius: .25rem; }
+  .estrella:disabled { cursor: default; }
+
+  .cuenta-demo { cursor: pointer; text-align: left; width: 100%; border: 1px solid var(--cff-borde); background: #fff; }
+  .cuenta-demo:hover { border-color: var(--cff-naranja); box-shadow: var(--cff-sombra-2); }
+  .cuenta-demo.activa { border-color: var(--cff-naranja); background: var(--cff-naranja-tenue); }
+
+  .qr-marco {
+    border: 2px dashed var(--cff-borde);
+    border-radius: 1rem;
+    background: #fff;
+  }
+
+  .avisos { position: fixed; top: 1rem; right: 1rem; z-index: 1080; max-width: min(22rem, calc(100vw - 2rem)); }
+
+  /* Oculta todas las pantallas menos la activa. */
+  .pantalla { display: none; }
+  .pantalla.activa { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .estrella, .cuenta-demo { transition: none; }
+  }
+</style>
+</head>
+
+<body>
+
+<header class="app-header d-flex align-items-center px-3 px-lg-4 gap-3 text-white">
+  <span class="icon-tile d-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true">
+    <i class="fa-solid fa-qrcode"></i>
+  </span>
+  <!-- En móvil la cabecera va justa: el subtítulo se esconde para que la marca
+       y la insignia del rol quepan en una línea. -->
+  <h1 class="h5 mb-0 me-auto min-width-0">
+    Corralejo <span class="text-brand">Fast Food</span>
+    <small class="d-none d-sm-inline text-secondary ms-sm-2 fs-6">Califica tu pedido</small>
+  </h1>
+  <div id="barra-sesion" class="d-none align-items-center gap-2">
+    <span class="d-none d-md-inline small text-white-50" id="sesion-correo"></span>
+    <span class="badge bg-brand" id="sesion-rol"></span>
+    <button class="btn btn-outline-light btn-sm" id="btn-salir">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      <span class="d-none d-sm-inline ms-2">Salir</span>
+    </button>
+  </div>
+</header>
+
+<div class="avisos" id="avisos" aria-live="polite" aria-atomic="false"></div>
+
+<main class="container py-4" style="max-width: 60rem;">
+
+  <!-- ====================== 1. INICIAR SESIÓN ====================== -->
+  <section class="pantalla activa" id="pantalla-login" aria-labelledby="t-login">
+    <div class="text-center mb-4">
+      <h2 class="h3 fw-bold mb-1" id="t-login">Entra para calificar</h2>
+      <p class="text-secondary mb-0">
+        Solo quien compró puede comentar: el QR de tu ticket es la prueba.
+      </p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-7">
+        <div class="card border-0">
+          <div class="card-header bg-white">
+            <h3 class="h6 fw-bold mb-0"><i class="fa-solid fa-users text-brand me-2"></i>Cuentas de demostración</h3>
+          </div>
+          <div class="card-body d-grid gap-2" id="cuentas-demo"></div>
+          <div class="card-footer bg-white">
+            <p class="small text-secondary mb-0">
+              Son cuentas ficticias de este prototipo. No existen en Supabase ni en ningún
+              servidor: pulsa una para rellenar el formulario.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="card border-0 h-100">
+          <div class="card-body">
+            <form id="form-login" novalidate>
+              <label class="form-label fw-semibold" for="correo">Correo electrónico</label>
+              <input class="form-control mb-3" type="email" id="correo" autocomplete="username"
+                     placeholder="tucorreo@gmail.com" required />
+
+              <label class="form-label fw-semibold" for="clave">Contraseña</label>
+              <input class="form-control mb-3" type="password" id="clave" autocomplete="current-password"
+                     placeholder="••••••••" required />
+
+              <button class="btn btn-primary w-100" type="submit">
+                <i class="fa-solid fa-right-to-bracket me-2"></i>Iniciar sesión
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 2. ESCANEAR EL QR ====================== -->
+  <section class="pantalla" id="pantalla-qr" aria-labelledby="t-qr">
+    <div class="text-center mb-4">
+      <h2 class="h3 fw-bold mb-1" id="t-qr">Escanea el QR de tu ticket</h2>
+      <p class="text-secondary mb-0">
+        Lo encuentras al pie del tiquete que te entregamos con el pedido.
+      </p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="card border-0 h-100">
+          <div class="card-body text-center d-flex flex-column">
+            <div class="qr-marco p-4 mb-3 mx-auto" style="width: 11rem; height: 11rem;">
+              <i class="fa-solid fa-qrcode" style="font-size: 7rem; color: var(--cff-carbon-claro);" aria-hidden="true"></i>
+            </div>
+
+            <form id="form-qr" class="mt-auto" novalidate>
+              <label class="form-label fw-semibold" for="codigo-qr">Código del ticket</label>
+              <input class="form-control text-center mb-3" id="codigo-qr" placeholder="QR-V0-000000000"
+                     autocomplete="off" spellcheck="false" />
+              <button class="btn btn-primary w-100" type="submit">
+                <i class="fa-solid fa-magnifying-glass me-2"></i>Buscar mi pedido
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <div class="card border-0 h-100">
+          <div class="card-header bg-white">
+            <h3 class="h6 fw-bold mb-0"><i class="fa-solid fa-receipt text-brand me-2"></i>Tickets de prueba</h3>
+          </div>
+          <div class="card-body d-grid gap-2" id="tickets-demo"></div>
+          <div class="card-footer bg-white">
+            <p class="small text-secondary mb-0">
+              Pulsa uno para simular el escaneo. Fíjate en que hay un ticket a nombre de
+              otra persona: ese el sistema lo rechaza.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 3. ESCRIBIR LA VALORACIÓN ====================== -->
+  <section class="pantalla" id="pantalla-comentario" aria-labelledby="t-comentario">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <button class="btn btn-outline-secondary btn-sm" id="btn-volver-qr">
+        <i class="fa-solid fa-arrow-left me-2"></i>Otro ticket
+      </button>
+    </div>
+
+    <div class="card border-0">
+      <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="h6 fw-bold mb-0" id="t-comentario">
+          <i class="fa-solid fa-star text-brand me-2"></i>¿Cómo te fue con tu pedido?
+        </h2>
+        <span class="badge bg-secondary" id="comentario-ticket"></span>
+      </div>
+
+      <div class="card-body">
+        <form id="form-comentario" novalidate>
+          <fieldset class="mb-4">
+            <legend class="form-label fw-semibold">Valoración</legend>
+            <div class="d-flex align-items-center flex-wrap gap-3">
+              <div id="estrellas" role="radiogroup" aria-label="Tu valoración de 1 a 5 estrellas"
+                   class="d-inline-flex"></div>
+              <span class="text-secondary small" id="estrellas-texto">Toca una estrella</span>
+            </div>
+          </fieldset>
+
+          <label class="form-label fw-semibold" for="descripcion">Descripción</label>
+          <textarea class="form-control" id="descripcion" rows="5" maxlength="300"
+                    placeholder="Cuéntanos qué tal estuvo la comida, el servicio y la entrega."></textarea>
+          <div class="form-text mb-4" id="contador">0/300 caracteres · mínimo 10</div>
+
+          <!-- Lo comprado, en pequeño: es la prueba de que esta valoración
+               corresponde a un pedido real y no a un plato que nunca se probó. -->
+          <div class="border rounded p-3 mb-4 bg-body-tertiary">
+            <p class="small fw-semibold text-uppercase text-secondary mb-2">
+              <i class="fa-solid fa-basket-shopping me-2"></i>Lo que pediste en este ticket
+            </p>
+            <ul class="list-unstyled small mb-2" id="productos-ticket"></ul>
+            <p class="small text-secondary mb-0" id="resumen-ticket"></p>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-end gap-2">
+            <button class="btn btn-outline-secondary" type="button" id="btn-cancelar">Cancelar</button>
+            <button class="btn btn-primary" type="submit" id="btn-publicar">
+              <i class="fa-solid fa-paper-plane me-2"></i>Registrar comentario
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 4. REGISTRADO ====================== -->
+  <section class="pantalla" id="pantalla-hecho" aria-labelledby="t-hecho">
+    <div class="card border-0 text-center">
+      <div class="card-body p-4 p-md-5">
+        <i class="fa-solid fa-circle-check text-success mb-3" style="font-size: 3.5rem;" aria-hidden="true"></i>
+        <h2 class="h3 fw-bold mb-2" id="t-hecho">Comentario registrado</h2>
+        <p class="text-secondary mb-4" id="hecho-detalle"></p>
+
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+          <button class="btn btn-primary" id="btn-ver-muro">
+            <i class="fa-solid fa-comments me-2"></i>Ver cómo quedó
+          </button>
+          <button class="btn btn-outline-primary" id="btn-otro-ticket">
+            <i class="fa-solid fa-qrcode me-2"></i>Calificar otro pedido
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== 5. MURO ====================== -->
+  <section class="pantalla" id="pantalla-muro" aria-labelledby="t-muro">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+      <div>
+        <h2 class="h3 fw-bold mb-1" id="t-muro">Valoraciones de los clientes</h2>
+        <p class="text-secondary mb-0" id="muro-subtitulo"></p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-primary btn-sm" id="btn-ir-qr">
+          <i class="fa-solid fa-qrcode me-2"></i>Calificar un pedido
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="btn-reiniciar">
+          <i class="fa-solid fa-rotate-left me-2"></i>Reiniciar demo
+        </button>
+      </div>
+    </div>
+
+    <!-- Cambiar de rol sin volver a entrar: es lo que permite comprobar de un
+         vistazo que el mismo comentario se ve desde las tres cuentas. -->
+    <div class="card border-0 mb-3">
+      <div class="card-body py-3 d-flex flex-wrap align-items-center gap-2">
+        <span class="small fw-semibold me-2"><i class="fa-solid fa-eye text-brand me-2"></i>Ver esta pantalla como:</span>
+        <div class="btn-group btn-group-sm flex-wrap" role="group" id="selector-rol"></div>
+      </div>
+    </div>
+
+    <div id="muro-lista" class="row row-cols-1 row-cols-md-2 g-3"></div>
+    <div id="muro-vacio" class="card border-0 d-none">
+      <div class="card-body text-center text-secondary py-5">
+        <i class="fa-solid fa-comments opacity-25 d-block mb-3" style="font-size: 3rem;" aria-hidden="true"></i>
+        <p class="mb-0">Todavía no hay valoraciones registradas.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="container pb-5" style="max-width: 60rem;">
+  <p class="small text-secondary text-center mb-0">
+    Prototipo de front-end. Los datos viven en este navegador; nada se envía a ningún servidor.
+  </p>
+</footer>
+
+<script>
+(() => {
+  'use strict'
+
+  // ---------------------------------------------------------------- DATOS
+
+  /**
+   * Cuentas del prototipo. Ficticias y a la vista a propósito: no hay registro
+   * ni servidor contra el que autenticar, así que esconderlas no protegería
+   * nada y sí dificultaría probar el flujo.
+   */
+  const CUENTAS = [
+    {
+      correo: 'cliente.corralejo@gmail.com',
+      clave: 'Cliente2026*',
+      nombre: 'Camilo Perdomo',
+      rol: 'cliente',
+      etiqueta: 'Cliente con pedidos',
+      descripcion: 'Compró en el local. Tiene tickets con QR, así que puede calificar.',
+      icono: 'fa-user-check',
+    },
+    {
+      correo: 'usuario.corralejo@gmail.com',
+      clave: 'Usuario2026*',
+      nombre: 'Juan Bai',
+      rol: 'usuario',
+      etiqueta: 'Usuario normal',
+      descripcion: 'Registrado, pero no ha comprado. Puede leer; sin QR propio no comenta.',
+      icono: 'fa-user',
+    },
+    {
+      correo: 'admin.corralejo@gmail.com',
+      clave: 'Admin2026*',
+      nombre: 'Administración Corralejo',
+      rol: 'administrador',
+      etiqueta: 'Administrador',
+      descripcion: 'Ve cada valoración con el ticket que la respalda y puede ocultarla.',
+      icono: 'fa-user-shield',
+    },
+  ]
+
+  /**
+   * Tickets con su QR. Salen de ventas reales de server/db.json; lo único que
+   * se les añadió es el campo `cliente`, que es justamente lo que le falta a la
+   * aplicación principal para poder comprobar la compra.
+   */
+  const TICKETS = [
+    {
+      qr: 'QR-V4-9304A73B46', ticket: '#T-0004', fecha: '2026-11-09', hora: '10:40 AM',
+      total: 134000, entrega: 'Local / Mostrador', cliente: 'cliente.corralejo@gmail.com',
+      items: [
+        { producto: 'Perro Especial', cantidad: 3, precio: 10000 },
+        { producto: 'Salchipapa Especial', cantidad: 4, precio: 13000 },
+        { producto: 'Salchipapa Pollo', cantidad: 2, precio: 12000 },
+        { producto: 'Perro Clásico', cantidad: 2, precio: 8000 },
+        { producto: 'Perro Ranchero', cantidad: 1, precio: 12000 },
+      ],
+    },
+    {
+      qr: 'QR-V8-H00000008', ticket: '#T-0008', fecha: '2025-11-01', hora: '05:22 PM',
+      total: 66000, entrega: 'Local / Mostrador', cliente: 'cliente.corralejo@gmail.com',
+      items: [
+        { producto: 'Hamburguesa Doble (combo)', cantidad: 1, precio: 24000 },
+        { producto: 'Salchipapa Especial', cantidad: 2, precio: 16000 },
+        { producto: 'Cerveza Coronita', cantidad: 2, precio: 5000 },
+      ],
+    },
+    {
+      qr: 'QR-V7-H00000007', ticket: '#T-0007', fecha: '2025-11-01', hora: '05:33 PM',
+      total: 86000, entrega: 'Domicilio', cliente: 'cliente.corralejo@gmail.com',
+      items: [
+        { producto: 'Burrito de Carne (combo)', cantidad: 1, precio: 24000 },
+        { producto: 'Porción de Papa Francesa', cantidad: 2, precio: 5000 },
+        { producto: 'Pechuga en Salsa de Champiñones', cantidad: 2, precio: 26000 },
+      ],
+    },
+    {
+      // A nombre de otra persona: sirve para ver el rechazo en acción.
+      qr: 'QR-V1-94040A405D', ticket: '#T-0001', fecha: '2026-10-05', hora: '08:55 AM',
+      total: 26500, entrega: 'Local / Mostrador', cliente: 'otro.cliente@gmail.com',
+      items: [
+        { producto: 'Perro Ranchero', cantidad: 2, precio: 12000 },
+        { producto: 'Agua Botella', cantidad: 1, precio: 2500 },
+      ],
+    },
+  ]
+
+  const LARGO_MINIMO = 10
+  const LARGO_MAXIMO = 300
+  const CLAVE_ALMACEN = 'corralejo-qr-comentarios'
+
+  // ---------------------------------------------------------------- ESTADO
+
+  let sesion = null          // cuenta con la que se entró
+  let rolVisto = null        // rol desde el que se mira el muro
+  let ticketActivo = null
+  let valoracion = 0
+  let comentarios = leerComentarios()
+
+  // ---------------------------------------------------------------- UTILIDADES
+
+  const $ = (id) => document.getElementById(id)
+
+  const moneda = (valor) =>
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+      .format(Number(valor) || 0)
+
+  const fechaLegible = (iso) => {
+    const fecha = new Date(`${iso}T12:00:00`)
+    return Number.isNaN(fecha.getTime())
+      ? iso
+      : fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  const iniciales = (nombre) =>
+    String(nombre || '').trim().split(/\s+/).slice(0, 2)
+      .map((parte) => parte[0]?.toUpperCase() ?? '').join('') || '?'
+
+  /** El texto del usuario se pinta como texto, nunca como HTML. */
+  const escapar = (texto) =>
+    String(texto ?? '').replace(/[&<>"']/g, (caracter) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[caracter])
+
+  const cuentaDe = (correo) => CUENTAS.find((cuenta) => cuenta.correo === correo) ?? null
+  const ticketDe = (qr) => TICKETS.find((ticket) => ticket.qr === qr) ?? null
+
+  /**
+   * localStorage puede fallar (ventana privada, datos bloqueados, file://), y
+   * el prototipo tiene que seguir funcionando en memoria si eso pasa.
+   */
+  function leerComentarios() {
+    try {
+      const guardado = window.localStorage.getItem(CLAVE_ALMACEN)
+      const datos = guardado ? JSON.parse(guardado) : []
+      return Array.isArray(datos) ? datos : []
+    } catch {
+      return []
+    }
+  }
+
+  function guardarComentarios() {
+    try {
+      window.localStorage.setItem(CLAVE_ALMACEN, JSON.stringify(comentarios))
+    } catch {
+      /* Sin almacenamiento: los comentarios viven mientras la pestaña esté abierta. */
+    }
+  }
+
+  function aviso(tipo, titulo, mensaje = '') {
+    const tonos = { exito: 'success', error: 'danger', info: 'primary' }
+    const iconos = { exito: 'fa-circle-check', error: 'fa-triangle-exclamation', info: 'fa-circle-info' }
+
+    const nodo = document.createElement('div')
+    nodo.className = `alert alert-${tonos[tipo]} shadow-sm d-flex gap-2 align-items-start`
+    nodo.setAttribute('role', tipo === 'error' ? 'alert' : 'status')
+    nodo.innerHTML =
+      `<i class="fa-solid ${iconos[tipo]} mt-1"></i>` +
+      `<span><strong class="d-block">${escapar(titulo)}</strong>` +
+      `${mensaje ? `<span class="small">${escapar(mensaje)}</span>` : ''}</span>`
+
+    $('avisos').append(nodo)
+    setTimeout(() => nodo.remove(), 4000)
+  }
+
+  function mostrar(idPantalla) {
+    document.querySelectorAll('.pantalla').forEach((seccion) => {
+      seccion.classList.toggle('activa', seccion.id === idPantalla)
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // ---------------------------------------------------------------- LOGIN
+
+  function pintarCuentas() {
+    $('cuentas-demo').innerHTML = CUENTAS.map((cuenta) => `
+      <button type="button" class="cuenta-demo card-clickable rounded p-3 d-flex gap-3 align-items-start"
+              data-correo="${cuenta.correo}">
+        <span class="icon-tile d-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true">
+          <i class="fa-solid ${cuenta.icono}"></i>
+        </span>
+        <span class="min-width-0">
+          <strong class="d-block">${escapar(cuenta.etiqueta)}</strong>
+          <span class="d-block small text-secondary">${escapar(cuenta.descripcion)}</span>
+          <code class="d-block small mt-1">${escapar(cuenta.correo)}</code>
+          <code class="d-block small">${escapar(cuenta.clave)}</code>
+        </span>
+      </button>
+    `).join('')
+
+    $('cuentas-demo').querySelectorAll('.cuenta-demo').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const cuenta = cuentaDe(boton.dataset.correo)
+        $('correo').value = cuenta.correo
+        $('clave').value = cuenta.clave
+        $('cuentas-demo').querySelectorAll('.cuenta-demo')
+          .forEach((otro) => otro.classList.toggle('activa', otro === boton))
+        $('clave').focus()
+      })
+    })
+  }
+
+  $('form-login').addEventListener('submit', (evento) => {
+    evento.preventDefault()
+    const correo = $('correo').value.trim().toLowerCase()
+    const clave = $('clave').value
+
+    const cuenta = cuentaDe(correo)
+    if (!cuenta || cuenta.clave !== clave) {
+      aviso('error', 'No pudimos entrar', 'Revisa el correo y la contraseña, o pulsa una de las cuentas de ejemplo.')
+      return
+    }
+
+    sesion = cuenta
+    rolVisto = cuenta.rol
+    $('barra-sesion').classList.replace('d-none', 'd-flex')
+    $('sesion-correo').textContent = cuenta.correo
+    $('sesion-rol').textContent = cuenta.etiqueta
+    aviso('exito', `Hola, ${cuenta.nombre}`, cuenta.etiqueta)
+
+    if (cuenta.rol === 'cliente') irAQr()
+    else irAlMuro()
+  })
+
+  $('btn-salir').addEventListener('click', () => {
+    sesion = null
+    rolVisto = null
+    ticketActivo = null
+    $('barra-sesion').classList.replace('d-flex', 'd-none')
+    $('form-login').reset()
+    $('cuentas-demo').querySelectorAll('.cuenta-demo').forEach((b) => b.classList.remove('activa'))
+    mostrar('pantalla-login')
+  })
+
+  // ---------------------------------------------------------------- QR
+
+  function pintarTickets() {
+    $('tickets-demo').innerHTML = TICKETS.map((ticket) => {
+      const ajeno = ticket.cliente !== 'cliente.corralejo@gmail.com'
+      const unidades = ticket.items.reduce((suma, item) => suma + item.cantidad, 0)
+
+      return `
+        <button type="button" class="cuenta-demo rounded p-3 d-flex gap-3 align-items-center"
+                data-qr="${ticket.qr}">
+          <span class="icon-tile icon-tile-sm d-flex align-items-center justify-content-center flex-shrink-0" aria-hidden="true">
+            <i class="fa-solid fa-qrcode"></i>
+          </span>
+          <span class="min-width-0 flex-grow-1">
+            <strong class="d-block small">Ticket ${escapar(ticket.ticket)} · ${fechaLegible(ticket.fecha)}</strong>
+            <code class="d-block small">${escapar(ticket.qr)}</code>
+            <span class="d-block small text-secondary">${unidades} producto(s) · ${moneda(ticket.total)}</span>
+          </span>
+          ${ajeno ? '<span class="badge bg-secondary flex-shrink-0">De otra persona</span>' : ''}
+        </button>
+      `
+    }).join('')
+
+    $('tickets-demo').querySelectorAll('[data-qr]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        $('codigo-qr').value = boton.dataset.qr
+        buscarTicket(boton.dataset.qr)
+      })
+    })
+  }
+
+  function irAQr() {
+    ticketActivo = null
+    $('codigo-qr').value = ''
+    mostrar('pantalla-qr')
+  }
+
+  $('form-qr').addEventListener('submit', (evento) => {
+    evento.preventDefault()
+    buscarTicket($('codigo-qr').value.trim().toUpperCase())
+  })
+
+  /**
+   * Las tres puertas que tiene que pasar un QR. En este orden: que el ticket
+   * exista, que sea de quien está en sesión, y que no se haya comentado ya.
+   * La segunda es la que faltaba en la aplicación principal.
+   */
+  function buscarTicket(qr) {
+    if (!qr) {
+      aviso('error', 'Escribe un código', 'O pulsa uno de los tickets de prueba.')
+      return
+    }
+
+    const ticket = ticketDe(qr)
+    if (!ticket) {
+      aviso('error', 'No encontramos ese ticket', `El código ${qr} no corresponde a ninguna compra.`)
+      return
+    }
+
+    if (ticket.cliente !== sesion.correo) {
+      aviso('error', 'Ese ticket no está a tu nombre',
+        'Solo puede calificar el pedido quien lo compró. Escanea el QR de tu propio tiquete.')
+      return
+    }
+
+    const yaComentado = comentarios.find((comentario) => comentario.qr === qr)
+    if (yaComentado) {
+      aviso('info', 'Ya calificaste este pedido', `Lo comentaste el ${fechaLegible(yaComentado.fecha)}.`)
+      irAlMuro()
+      return
+    }
+
+    ticketActivo = ticket
+    abrirFormulario()
+  }
+
+  // ---------------------------------------------------------------- COMENTARIO
+
+  const TEXTOS_ESTRELLAS = ['Toca una estrella', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente']
+
+  /**
+   * Los botones se crean UNA vez y nunca se vuelven a generar.
+   *
+   * Rehacer el innerHTML en cada `mouseenter` parecía más simple, pero destruye
+   * el botón que está bajo el cursor antes de que el clic termine de ocurrir:
+   * el `click` no llega a dispararse y la valoración se queda en cero. Al pasar
+   * el cursor solo se cambian clases e iconos sobre los mismos nodos.
+   */
+  function construirEstrellas() {
+    $('estrellas').innerHTML = [1, 2, 3, 4, 5].map((posicion) => `
+      <button type="button" role="radio" class="estrella" data-valor="${posicion}"
+              aria-checked="false" aria-label="${posicion} estrella${posicion > 1 ? 's' : ''}">
+        <i class="fa-regular fa-star"></i>
+      </button>
+    `).join('')
+
+    $('estrellas').querySelectorAll('.estrella').forEach((boton) => {
+      const valor = Number(boton.dataset.valor)
+      boton.addEventListener('click', () => { valoracion = valor; pintarEstrellas(valor) })
+      boton.addEventListener('mouseenter', () => pintarEstrellas(valor))
+      boton.addEventListener('focus', () => pintarEstrellas(valor))
+    })
+
+    $('estrellas').addEventListener('mouseleave', () => pintarEstrellas(valoracion))
+  }
+
+  function pintarEstrellas(activas = 0) {
+    $('estrellas').querySelectorAll('.estrella').forEach((boton) => {
+      const valor = Number(boton.dataset.valor)
+      const encendida = valor <= activas
+      boton.classList.toggle('activa', encendida)
+      boton.setAttribute('aria-checked', String(valoracion === valor))
+      boton.firstElementChild.className = `fa-${encendida ? 'solid' : 'regular'} fa-star`
+    })
+
+    $('estrellas-texto').textContent = TEXTOS_ESTRELLAS[activas] ?? TEXTOS_ESTRELLAS[0]
+  }
+
+  function abrirFormulario() {
+    valoracion = 0
+    $('descripcion').value = ''
+    actualizarContador()
+    pintarEstrellas(0)
+
+    $('comentario-ticket').textContent = `Ticket ${ticketActivo.ticket} · ${fechaLegible(ticketActivo.fecha)}`
+
+    $('productos-ticket').innerHTML = ticketActivo.items.map((item) => `
+      <li class="d-flex justify-content-between gap-2 border-bottom py-1">
+        <span class="min-width-0">
+          <span class="badge bg-secondary me-2">${item.cantidad}×</span>${escapar(item.producto)}
+        </span>
+        <span class="text-secondary flex-shrink-0">${moneda(item.cantidad * item.precio)}</span>
+      </li>
+    `).join('')
+
+    const unidades = ticketActivo.items.reduce((suma, item) => suma + item.cantidad, 0)
+    $('resumen-ticket').textContent =
+      `${unidades} producto(s) · ${ticketActivo.entrega} · Total ${moneda(ticketActivo.total)} · ${ticketActivo.hora}`
+
+    mostrar('pantalla-comentario')
+  }
+
+  function actualizarContador() {
+    const largo = $('descripcion').value.length
+    const suficiente = $('descripcion').value.trim().length >= LARGO_MINIMO
+    $('contador').textContent =
+      `${largo}/${LARGO_MAXIMO} caracteres${suficiente ? '' : ` · mínimo ${LARGO_MINIMO}`}`
+    $('contador').className = `form-text mb-4 ${suficiente ? 'text-success' : ''}`
+  }
+
+  $('descripcion').addEventListener('input', actualizarContador)
+  $('btn-volver-qr').addEventListener('click', irAQr)
+  $('btn-cancelar').addEventListener('click', irAQr)
+
+  $('form-comentario').addEventListener('submit', (evento) => {
+    evento.preventDefault()
+
+    if (valoracion === 0) {
+      aviso('error', 'Falta la valoración', 'Toca entre 1 y 5 estrellas.')
+      return
+    }
+
+    const descripcion = $('descripcion').value.trim()
+    if (descripcion.length < LARGO_MINIMO) {
+      aviso('error', 'Comentario muy corto', `Escribe al menos ${LARGO_MINIMO} caracteres.`)
+      $('descripcion').focus()
+      return
+    }
+
+    comentarios.unshift({
+      id: `c-${Date.now()}`,
+      qr: ticketActivo.qr,
+      ticket: ticketActivo.ticket,
+      autor: sesion.nombre,
+      correo: sesion.correo,
+      valoracion,
+      descripcion,
+      productos: ticketActivo.items.map((item) => ({ ...item })),
+      fecha: new Date().toISOString().slice(0, 10),
+      visible: true,
+    })
+    guardarComentarios()
+
+    $('hecho-detalle').textContent =
+      `${valoracion} de 5 estrellas para el ticket ${ticketActivo.ticket}. ` +
+      'Ya se ve desde las tres cuentas: cliente, usuario y administrador.'
+
+    aviso('exito', '¡Gracias por tu valoración!', `Quedó registrada con ${valoracion} de 5 estrellas.`)
+    mostrar('pantalla-hecho')
+  })
+
+  $('btn-ver-muro').addEventListener('click', irAlMuro)
+  $('btn-otro-ticket').addEventListener('click', irAQr)
+
+  // ---------------------------------------------------------------- MURO
+
+  const SUBTITULOS = {
+    cliente: 'Como lo ve un cliente: las valoraciones publicadas y, marcada, la suya.',
+    usuario: 'Como lo ve un usuario registrado que no ha comprado: solo puede leer.',
+    administrador: 'Como lo ve la administración: con el ticket que respalda cada valoración.',
+  }
+
+  function irAlMuro() {
+    rolVisto = rolVisto ?? sesion.rol
+    pintarMuro()
+    mostrar('pantalla-muro')
+  }
+
+  function pintarSelectorRol() {
+    $('selector-rol').innerHTML = CUENTAS.map((cuenta) => `
+      <button type="button" class="btn ${cuenta.rol === rolVisto ? 'btn-primary' : 'btn-outline-secondary'}"
+              data-rol="${cuenta.rol}" aria-pressed="${cuenta.rol === rolVisto}">
+        <i class="fa-solid ${cuenta.icono} me-2"></i>${escapar(cuenta.etiqueta)}
+      </button>
+    `).join('')
+
+    $('selector-rol').querySelectorAll('[data-rol]').forEach((boton) => {
+      boton.addEventListener('click', () => { rolVisto = boton.dataset.rol; pintarMuro() })
+    })
+  }
+
+  function pintarMuro() {
+    pintarSelectorRol()
+    $('muro-subtitulo').textContent = SUBTITULOS[rolVisto] ?? ''
+    // Solo se ofrece calificar si quien entró es cliente Y está mirando la
+    // pantalla desde su propio rol.
+    $('btn-ir-qr').classList.toggle(
+      'd-none',
+      !(sesion?.rol === 'cliente' && rolVisto === 'cliente')
+    )
+
+    const esAdmin = rolVisto === 'administrador'
+    // Mirando desde otro rol, las marcas personales ("Tu valoración") no deben
+    // aparecer: la gracia del selector es ver la pantalla como la vería esa
+    // otra persona, no la tuya con otra etiqueta.
+    const soyYo = rolVisto === sesion?.rol
+    // El administrador ve también las ocultas; los demás, solo las visibles.
+    const lista = esAdmin ? comentarios : comentarios.filter((comentario) => comentario.visible)
+
+    $('muro-vacio').classList.toggle('d-none', lista.length > 0)
+    $('muro-lista').innerHTML = lista.map((comentario) => {
+      const mio = soyYo && comentario.correo === sesion?.correo
+      const unidades = comentario.productos.reduce((suma, item) => suma + item.cantidad, 0)
+
+      return `
+        <div class="col">
+          <article class="card border-0 h-100 cinta-superior">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="icon-tile icon-tile-sm d-flex align-items-center justify-content-center flex-shrink-0 rounded-circle fw-bold"
+                      aria-hidden="true">${escapar(iniciales(comentario.autor))}</span>
+                <span class="min-width-0 flex-grow-1">
+                  <strong class="d-block small text-truncate">${escapar(comentario.autor)}</strong>
+                  <small class="text-secondary">Publicado: ${fechaLegible(comentario.fecha)}</small>
+                </span>
+                <span class="text-warning flex-shrink-0" aria-label="${comentario.valoracion} de 5 estrellas">
+                  ${'★'.repeat(comentario.valoracion)}${'☆'.repeat(5 - comentario.valoracion)}
+                </span>
+              </div>
+
+              ${mio ? '<span class="badge bg-brand mb-2">Tu valoración</span>' : ''}
+              ${!comentario.visible ? '<span class="badge bg-secondary mb-2">Oculta</span>' : ''}
+
+              <p class="small mb-3">${escapar(comentario.descripcion)}</p>
+
+              <!-- Lo comprado, en pequeño: respalda la valoración. -->
+              <p class="small text-secondary mb-1">
+                <i class="fa-solid fa-basket-shopping me-2"></i>${esAdmin
+                  ? `Compró en el ticket ${escapar(comentario.ticket)}:`
+                  : 'Compró en este pedido:'}
+              </p>
+              <p class="small text-secondary mb-0">
+                ${comentario.productos.map((item) =>
+                  `${item.cantidad}× ${escapar(item.producto)}`).join(' · ')}
+              </p>
+
+              ${esAdmin ? `
+                <div class="border-top mt-3 pt-3">
+                  <p class="small text-secondary mb-2">
+                    <i class="fa-solid fa-qrcode me-2"></i><code>${escapar(comentario.qr)}</code>
+                    · ${escapar(comentario.correo)} · ${unidades} producto(s)
+                  </p>
+                  <button class="btn btn-sm btn-outline-secondary" data-ocultar="${comentario.id}">
+                    <i class="fa-solid fa-eye${comentario.visible ? '-slash' : ''} me-2"></i>
+                    ${comentario.visible ? 'Ocultar' : 'Volver a publicar'}
+                  </button>
+                </div>` : ''}
+            </div>
+          </article>
+        </div>
+      `
+    }).join('')
+
+    $('muro-lista').querySelectorAll('[data-ocultar]').forEach((boton) => {
+      boton.addEventListener('click', () => {
+        const comentario = comentarios.find((c) => c.id === boton.dataset.ocultar)
+        comentario.visible = !comentario.visible
+        guardarComentarios()
+        aviso('info', comentario.visible ? 'Valoración publicada' : 'Valoración oculta',
+          comentario.visible ? 'Vuelve a verse en el muro.' : 'Deja de verse para clientes y usuarios.')
+        pintarMuro()
+      })
+    })
+  }
+
+  $('btn-ir-qr').addEventListener('click', irAQr)
+
+  $('btn-reiniciar').addEventListener('click', () => {
+    comentarios = []
+    guardarComentarios()
+    aviso('info', 'Demo reiniciada', 'Se borraron las valoraciones guardadas en este navegador.')
+    pintarMuro()
+  })
+
+  // ---------------------------------------------------------------- ARRANQUE
+
+  pintarCuentas()
+  pintarTickets()
+  construirEstrellas()
+})()
+</script>
+
+</body>
+</html>

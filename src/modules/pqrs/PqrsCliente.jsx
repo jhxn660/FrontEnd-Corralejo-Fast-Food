@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
+<<<<<<< HEAD
 import { useAuth } from '../../context/AuthContext'
 import { useAvisos } from '../../context/AvisosContext'
 import { usePeticion } from '../../hooks/usePeticion'
@@ -13,6 +14,19 @@ import DetallePqrs from './DetallePqrs'
 import {
   COLOR_ESTADO,
   ESTADOS,
+=======
+import { api } from '../../services/api'
+import { useRecurso } from '../../hooks/useRecurso'
+import { usePeticion } from '../../hooks/usePeticion'
+import { useAvisos } from '../../context/AvisosContext'
+import { useAuth } from '../../context/AuthContext'
+import { fechaCorta } from '../../utils/format'
+import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+import PieContacto from '../../components/ui/PieContacto'
+import {
+  COLOR_ESTADO,
+>>>>>>> origin/main
   ICONO_ESTADO,
   NOMBRES_TIPO,
   ayudaDe,
@@ -21,6 +35,7 @@ import {
   pqrsVacia,
 } from './esquema'
 import FormularioPqrs from './FormularioPqrs'
+<<<<<<< HEAD
 
 /**
  * PQRS del cliente: CREAR y LEER, nada más. Una PQRS es el registro de lo que se pidió: si se
@@ -44,15 +59,73 @@ export default function PqrsCliente() {
   // Ya filtradas por el backend; aquí solo se ordenan de la más reciente a la más antigua.
   const mias = useMemo(() => [...todas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)), [todas])
   const detalle = mias.find((registro) => registro.id === detalleId) ?? null
+=======
+import DetallePqrs from './DetallePqrs'
+
+/**
+ * PQRS del cliente: CREAR y LEER, nada más.
+ *
+ * El cliente no edita ni elimina sus solicitudes: una PQRS es un registro de lo
+ * que se pidió, y si se pudiera reescribir o borrar después, la respuesta del
+ * local quedaría sin contexto. Por eso esta pantalla no tiene botones de editar
+ * ni de eliminar, y el formulario solo se abre para solicitudes nuevas.
+ *
+ * Es una restricción de interfaz (R17): impedirlo de verdad le corresponde al
+ * back, que debe rechazar PUT y DELETE sobre PQRS con rol cliente.
+ */
+export default function ClientePqrs() {
+  // La sesión se toma del contexto: ningún componente la consulta por su cuenta (R5, R8).
+  const { usuario } = useAuth()
+  const avisos = useAvisos()
+
+  // El filtro por usuario viaja a la API (?usuario=correo): las PQRS de otros
+  // clientes ya no llegan a este navegador. Sin correo no se pide nada.
+  const correo = usuario?.email ?? null
+  const cargar = useCallback(
+    () => (correo ? api.list('pqrs', { usuario: correo }) : Promise.resolve([])),
+    [correo]
+  )
+  const { datos: todas, cargando, error, recargar } = useRecurso(cargar, [])
+
+  const [nueva, setNueva] = useState(null) // solicitud en creación
+  const [detalle, setDetalle] = useState(null)
+
+  // Segundo seguro en el cliente: aunque la API ignorara el filtro, aquí solo
+  // pasan las del usuario. DEUDA (R17): json-server no comprueba quién pregunta;
+  // el back real debe filtrar por el token, no por un parámetro.
+  const mias = useMemo(
+    () =>
+      todas
+        .filter((registro) => Boolean(usuario?.email) && registro.usuario === usuario.email)
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
+    [todas, usuario]
+  )
+>>>>>>> origin/main
 
   const envio = usePeticion(
     useCallback(
       async (valores) => {
+<<<<<<< HEAD
         // El autor y el estado ("Pendiente") los pone el backend, nunca el cliente.
         await pqrsApi.crear(valores)
         await recargar()
       },
       [recargar]
+=======
+        await api.create('pqrs', {
+          tipo: valores.tipo,
+          asunto: valores.asunto.trim(),
+          texto: valores.texto.trim(),
+          nombre: usuario?.email ?? 'Cliente',
+          usuario: usuario?.email ?? null,
+          fecha: new Date().toISOString(),
+          // El estado lo decide el local, nunca el cliente.
+          estado: 'Pendiente',
+        })
+        await recargar()
+      },
+      [recargar, usuario]
+>>>>>>> origin/main
     )
   )
 
@@ -111,7 +184,11 @@ export default function PqrsCliente() {
           <h2 className="h6 fw-bold mb-0">Mis solicitudes</h2>
           {mias.length > 0 && (
             <div className="d-flex flex-wrap gap-2">
+<<<<<<< HEAD
               {ESTADOS.map((estado) => (
+=======
+              {['Pendiente', 'En revisión', 'Resuelta'].map((estado) => (
+>>>>>>> origin/main
                 <span className={`badge bg-${COLOR_ESTADO[estado]}`} key={estado}>
                   {porEstado(estado)} {estado.toLowerCase()}
                 </span>
@@ -123,7 +200,16 @@ export default function PqrsCliente() {
         {cargando && mias.length === 0 && <Cargando texto="Cargando solicitudes…" />}
 
         {!cargando && mias.length === 0 && (
+<<<<<<< HEAD
           <Vacio texto="Aún no has enviado ninguna PQRS." icono="fa-inbox" />
+=======
+          <Vacio texto="Aún no has enviado ninguna PQRS." icono="fa-inbox">
+            <button className="btn btn-primary" onClick={() => setNueva(pqrsVacia('Petición'))}>
+              <i className="fa-solid fa-plus me-2" />
+              Enviar la primera
+            </button>
+          </Vacio>
+>>>>>>> origin/main
         )}
 
         {mias.length > 0 && (
@@ -162,7 +248,11 @@ export default function PqrsCliente() {
 
                 <button
                   className="btn btn-sm btn-outline-secondary flex-shrink-0"
+<<<<<<< HEAD
                   onClick={() => setDetalleId(registro.id)}
+=======
+                  onClick={() => setDetalle(registro)}
+>>>>>>> origin/main
                 >
                   <i className="fa-solid fa-eye me-2" />
                   Ver
@@ -173,7 +263,13 @@ export default function PqrsCliente() {
         )}
       </div>
 
+<<<<<<< HEAD
       {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalleId(null)} />}
+=======
+      <PieContacto />
+
+      {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalle(null)} />}
+>>>>>>> origin/main
 
       {nueva && (
         <FormularioPqrs

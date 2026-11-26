@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom'
 
+<<<<<<< HEAD
 import { rutaPorDefecto } from '../../config/navegacion'
 import { useAuth } from '../../context/AuthContext'
 
 /** Ruta comodín: una URL desconocida nunca deja la pantalla en blanco. */
+=======
+import { useAuth } from '../../context/AuthContext'
+import { rutaPorDefecto } from '../../config/navegacion'
+
+/** Ruta comodín (R12): una URL desconocida nunca deja la pantalla en blanco. */
+>>>>>>> origin/main
 export default function NoEncontrado() {
   const { usuario, rol } = useAuth()
 
@@ -14,6 +21,7 @@ export default function NoEncontrado() {
       <p className="text-secondary mb-2" style={{ maxWidth: '26rem' }}>
         La dirección que escribiste no corresponde a ninguna pantalla de Corralejo Fast Food.
       </p>
+<<<<<<< HEAD
       <div className="d-flex flex-wrap justify-content-center gap-2">
         <Link className="btn btn-primary" to={rutaPorDefecto(rol)}>
           {usuario ? 'Ir a mi panel' : 'Ir al inicio'}
@@ -24,6 +32,17 @@ export default function NoEncontrado() {
           </Link>
         )}
       </div>
+=======
+      {usuario ? (
+        <Link className="btn btn-primary" to={rutaPorDefecto(rol)}>
+          Ir a mi panel
+        </Link>
+      ) : (
+        <Link className="btn btn-primary" to="/login">
+          Ir a iniciar sesión
+        </Link>
+      )}
+>>>>>>> origin/main
     </div>
   )
 }

@@ -11,7 +11,15 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import { AvisosProvider } from './context/AvisosContext'
 
+<<<<<<< HEAD
 // AvisosProvider envuelve a AuthProvider: el login y el registro (sin sesión) también avisan.
+=======
+// BrowserRouter por fuera de AuthProvider: así el contexto puede usar hooks
+// del router si llega a necesitarlos; al revés no sería posible.
+//
+// AvisosProvider envuelve a AuthProvider porque el login y el registro —que
+// viven por fuera de cualquier sesión— también confirman con un aviso.
+>>>>>>> origin/main
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
