@@ -1,4 +1,4 @@
-// Paletas de las gráficas (R23, R24, R28).
+// Paletas de las gráficas.
 // Los valores hexadecimales viven en styles/theme.css; aquí solo se citan las
 // variables, de modo que ningún color se escriba fuera del tema.
 

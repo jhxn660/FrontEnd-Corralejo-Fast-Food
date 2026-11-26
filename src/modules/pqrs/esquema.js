@@ -1,8 +1,6 @@
-// Esquema único de PQRS, compartido por el panel del cliente y el del empleado.
-// Antes cada pantalla guardaba campos distintos sobre la misma colección
-// (asunto/descripcion vs nombre/texto), así que los registros no se veían entre sí.
-//
-// Registro: { id, tipo, nombre, asunto, texto, fecha (ISO), estado, usuario }
+// Esquema de PQRS de la pantalla, compartido por los paneles del cliente, el empleado y la
+// administración. Registro (ver aPqrsUi en api.js):
+//   { id, tipo, nombre, asunto, texto, fecha (ISO), estado, usuario, respuesta, fechaRespuesta }
 
 /** Cada tipo con su icono y la frase que explica para qué sirve. */
 const TIPOS = {
@@ -53,7 +51,6 @@ export const ayudaDe = (tipo) => TIPOS[tipo]?.ayuda ?? ''
 
 export const pqrsVacia = (tipo = 'Petición') => ({
   tipo,
-  nombre: '',
   asunto: '',
   texto: '',
   estado: 'Pendiente',
@@ -63,14 +60,10 @@ const LARGO_MINIMO_TEXTO = 15
 export const LARGO_MAXIMO_TEXTO = 1000
 
 /**
- * Validación de experiencia, no de seguridad: la API no valida nada (R61).
- * Se ejecuta antes de la llamada de red para no gastar un viaje y para poder
- * señalar el campo exacto que falta.
- *
- * `conSolicitante` solo lo pide el panel del empleado, que registra la PQRS en
- * nombre de alguien; en el del cliente el nombre sale de su propia sesión.
+ * Revisa la PQRS antes de enviarla y devuelve los errores por campo (vacío = válida).
+ * Se hace antes de la petición para señalar el campo exacto; el backend también valida.
  */
-export const validarPqrs = (valores, { conSolicitante = false } = {}) => {
+export const validarPqrs = (valores) => {
   const fallos = {}
   const asunto = valores.asunto?.trim() ?? ''
   const texto = valores.texto?.trim() ?? ''
@@ -83,23 +76,7 @@ export const validarPqrs = (valores, { conSolicitante = false } = {}) => {
     fallos.texto = `Al menos ${LARGO_MINIMO_TEXTO} caracteres para poder atenderlo.`
   }
 
-  if (conSolicitante && !valores.nombre?.trim()) {
-    fallos.nombre = 'Indica de parte de quién es la solicitud.'
-  }
-
   return fallos
 }
 
 export const hayFallos = (fallos) => Object.keys(fallos).length > 0
-
-/**
- * Nombre que se muestra en el muro público. Cuando el cliente no escribe un
- * nombre, la solicitud guarda su correo como nombre; publicarlo tal cual sería
- * exponer el correo de alguien, así que se recorta y se enmascara.
- */
-export const nombrePublico = (nombre) => {
-  const texto = String(nombre ?? '').trim()
-  if (!texto) return 'Cliente'
-  if (!texto.includes('@')) return texto
-  return `${texto.split('@')[0].slice(0, 3)}***`
-}

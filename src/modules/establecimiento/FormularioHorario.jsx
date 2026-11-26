@@ -2,10 +2,9 @@ import { useState } from 'react'
 
 import Modal from '../../components/ui/Modal'
 
-const ID_FORMULARIO = 'formulario-horario'
+import { DIAS_HORARIO } from './horario'
 
-/** Días que acepta el backend (enum `dia` del modelo Horario), en orden de la semana. */
-export const DIAS_HORARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+const ID_FORMULARIO = 'formulario-horario'
 
 /** Horario nuevo: el primer día que todavía no tiene horario, de 2:00 p. m. a 9:30 p. m. */
 export const horarioVacio = (ocupados = []) => ({
@@ -17,7 +16,7 @@ export const horarioVacio = (ocupados = []) => ({
 })
 
 /**
- * Alta y edición del horario de UN día de la semana (lo que antes eran los "días especiales").
+ * Alta y edición del horario de UN día de la semana.
  * En el backend cada día es un registro de /api/horarios:
  *   { dia, horaApertura, horaCierre, estaAbierto, estadoNota }
  * `estadoNota` es el texto que lee el cliente (p. ej. "Cerrado por inventario").

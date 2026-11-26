@@ -1,21 +1,15 @@
 import { useAvisos } from '../../context/AvisosContext'
-import { esMapaDeGoogle } from '../../utils/seguridad'
 import { soloDigitos } from '../../utils/format'
-import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+import { esMapaDeGoogle } from '../../utils/seguridad'
 import { PUNTOS_CLAVE } from '../../data/contenido'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+
 import { useFicha } from './useFicha'
 
 /**
- * Sección «Ubicación» de la portada del cliente: dónde está el local, cómo se
- * llega y cómo contactarlo.
- *
- * Es solo consulta. La edición de la ficha vive en la pantalla del
- * administrador (`Establecimiento` con `editable`), que es la única que
- * escribe: así el cliente y el administrador leen el mismo dato y nadie puede
- * cambiarlo desde aquí ni escribiendo la URL a mano (R44).
- *
- * Los puntos de referencia y los tiempos salen de la ficha (`referencias` y
- * `tiempos` en la API); si la ficha no los trae, su tarjeta no se pinta.
+ * Sección «Ubicación» de las portadas: dónde está el local, cómo llegar y cómo contactarlo.
+ * Solo consulta: la ficha se edita en Gestión del Establecimiento. Los puntos de referencia
+ * salen de `referencia` (una línea por cada « · »); si no hay, su tarjeta no se pinta.
  */
 export default function Ubicacion() {
   const { datos: ficha, cargando, error, recargar } = useFicha()
@@ -36,7 +30,6 @@ export default function Ubicacion() {
 
   const direccionCompleta = [ficha.direccion, ficha.ciudad].filter(Boolean).join(', ')
   const referencias = ficha.referencias ?? []
-  const tiempos = ficha.tiempos ?? []
   const whatsapp = soloDigitos(ficha.whatsapp)
 
   // Enlace de indicaciones de Google Maps por dirección. No se usa la URL del
@@ -65,8 +58,6 @@ export default function Ubicacion() {
     <>
       <MensajeError texto={error} onReintentar={recargar} />
 
-      {/* Bloque principal del wireframe: texto y acciones a la izquierda,
-          mapa a la derecha. */}
       <div className="card border-0 shadow-sm mb-3">
         <div className="row g-0">
           <div className="col-12 col-lg-aureo-mayor">
@@ -129,8 +120,7 @@ export default function Ubicacion() {
           </div>
 
           <div className="col-12 col-lg-aureo-menor">
-            {/* Solo se incrusta un mapa de Google: la URL viene de la API y se
-                pinta en el panel de todos los clientes (ver utils/seguridad.js). */}
+            {/* Solo se incrusta un mapa de Google (ver utils/seguridad.js). */}
             {esMapaDeGoogle(ficha.mapa) ? (
               <div className="ratio ratio-4x3 h-100">
                 <iframe
@@ -173,36 +163,6 @@ export default function Ubicacion() {
           </div>
         )}
 
-        {tiempos.length > 0 && (
-          <div className="col-12 col-lg">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-header bg-white">
-                <h2 className="h6 fw-bold mb-0">
-                  <i className="fa-solid fa-stopwatch text-brand me-2" />
-                  Tiempos aproximados
-                </h2>
-              </div>
-              <ul className="list-group list-group-flush">
-                {tiempos.map(({ id, icono, medio, texto }) => (
-                  <li
-                    className="list-group-item d-flex align-items-center gap-2 small"
-                    key={id}
-                  >
-                    <i className={`fa-solid ${icono ?? 'fa-clock'} text-brand`} />
-                    <span className="min-width-0">{medio}</span>
-                    <strong className="ms-auto text-nowrap">{texto}</strong>
-                  </li>
-                ))}
-              </ul>
-              <div className="card-footer bg-white">
-                <p className="small text-secondary mb-0">
-                  Son estimaciones; en horas pico pueden variar.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="col-12 col-lg">
           <div className="card border-0 shadow-sm h-100">
             <div className="card-header bg-white">
@@ -223,8 +183,6 @@ export default function Ubicacion() {
         </div>
       </div>
 
-      {/* Misión, visión y narrativa: en el botón "Información" del menú
-          lateral (modules/establecimiento/InformacionCasa.jsx). */}
     </>
   )
 }

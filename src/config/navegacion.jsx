@@ -1,61 +1,56 @@
-// LO QUE VE CADA ROL. Única fuente de verdad del control de acceso (R16).
+// LO QUE VE CADA ROL: única fuente del control de acceso.
 //
-// Cada entrada reúne lo que define una pantalla: su ruta, cómo se llama en el
-// menú, su icono y el componente que se renderiza. Si una vista no está en el
-// menú de un rol, ese rol no la ve ni puede navegar hacia ella, ni escribiendo
-// la URL a mano.
+// Cada entrada define una pantalla: `modulo`, `vista`, `ruta`, `etiqueta` del menú, `icono` y
+// `elemento`. Si una vista no está en el menú de un rol, ese rol no la ve ni puede abrirla
+// escribiendo la URL.
 //
-// HERENCIA (config/roles.js)
-// `MENU_PROPIO` declara solo lo que cada rol aporta. El menú efectivo se
-// compone recorriendo la cadena del rol: owner → admin → empleado. Cada entrada
-// lleva un `modulo`; cuando dos roles de la cadena tienen el mismo módulo, gana
-// el más alto. Así el admin hereda Pedidos y Ventas del empleado, pero su Menú
-// sigue siendo el editable y su PQRS la Moderación (que no permite modificar lo
-// que escribió el cliente), no el formulario completo del empleado.
+// HERENCIA: `MENU_PROPIO` declara lo que aporta cada rol, y el menú final recorre la cadena
+// Owner → Administrador → Empleado. Si dos roles tienen el mismo `modulo`, gana el más alto
+// (por eso el Menú del Administrador sigue siendo el editable).
+// VISITANTE: el menú del cliente sin las entradas con `requiereCuenta`.
+// ORDEN: la primera entrada de cada rol es donde aterriza al iniciar sesión.
 //
-// VISITANTE (rol 'usuario', sin sesión)
-// Se deriva del cliente quitando las entradas con `requiereCuenta: true`.
-//
-// El orden importa: la primera entrada de cada rol es donde aterriza al
-// iniciar sesión (rutaPorDefecto). Las heredadas van detrás de las propias.
-//
-// Cada pantalla se carga bajo demanda (React.lazy): un rol solo descarga el
-// código de las vistas que abre. El <Suspense> que las espera está en Layout
-// (paneles) y en App (rutas públicas).
+// Las pantallas se cargan bajo demanda (React.lazy); el <Suspense> está en Layout y en App.
 
 import { lazy } from 'react'
 
-import { ROL, cadenaDe } from './roles'
+import { ROLES, cadenaDe } from './roles.config'
 
 const Establecimiento = lazy(() => import('../modules/establecimiento/Establecimiento'))
-const Menu = lazy(() => import('../modules/menu/Menu'))
-const Inventario = lazy(() => import('../modules/inventario/Inventario'))
-const Indicadores = lazy(() => import('../modules/indicadores/Indicadores'))
-const Pedidos = lazy(() => import('../modules/pedidos/Pedidos'))
-const Ventas = lazy(() => import('../modules/ventas/Ventas'))
+const Menu = lazy(() => import('../modules/products/Menu'))
+const Inventario = lazy(() => import('../modules/supplies/Inventario'))
+const Recetas = lazy(() => import('../modules/recipes/Recetas'))
+const Indicadores = lazy(() => import('../modules/indicators/Indicadores'))
+const Pedidos = lazy(() => import('../modules/orders/Pedidos'))
+const Ventas = lazy(() => import('../modules/sales/Ventas'))
 const PqrsEmpleado = lazy(() => import('../modules/pqrs/PqrsEmpleado'))
 const PqrsCliente = lazy(() => import('../modules/pqrs/PqrsCliente'))
 const PqrsModeracion = lazy(() => import('../modules/pqrs/PqrsModeracion'))
+const ModeracionComentarios = lazy(() => import('../modules/comments/ModeracionComentarios'))
 const InicioCliente = lazy(() => import('../modules/establecimiento/InicioCliente'))
-const CalificarQr = lazy(() => import('../modules/establecimiento/CalificarQr'))
-const InicioVisitante = lazy(() => import('../modules/visitante/InicioVisitante'))
-const GestionUsuarios = lazy(() => import('../modules/usuarios/GestionUsuarios'))
+const CalificarQr = lazy(() => import('../modules/comments/CalificarQr'))
+const InicioVisitante = lazy(() => import('../modules/establecimiento/InicioVisitante'))
+const GestionUsuarios = lazy(() => import('../modules/users/GestionUsuarios'))
+
+/**
+ * GESTIÓN DE USUARIOS (módulo `users`): una sola vista para Owner y Administrador. Cambian
+ * los permisos de baja (roles.config.js): el Owner da de baja administradores y empleados; el
+ * Administrador, solo empleados.
+ */
+const GESTION_DE_USUARIOS = {
+  modulo: 'users',
+  vista: 'gestion-usuarios',
+  ruta: '/admin/usuarios',
+  etiqueta: 'Gestión de Usuarios',
+  icono: 'fa-people-line',
+  elemento: <GestionUsuarios />,
+}
 
 const MENU_PROPIO = {
-  // Lo único propio del Owner; el resto lo hereda del administrador. Es su
-  // primera entrada, así que es donde aterriza al iniciar sesión.
-  [ROL.OWNER]: [
-    {
-      modulo: 'usuarios',
-      vista: 'owner-usuarios',
-      ruta: '/owner/usuarios',
-      etiqueta: 'Gestión de Usuarios',
-      icono: 'fa-user-shield',
-      elemento: <GestionUsuarios />,
-    },
-  ],
+  // El Owner hereda todo del Administrador; repite Gestión de Usuarios solo para aterrizar ahí.
+  [ROLES.OWNER]: [GESTION_DE_USUARIOS],
 
-  [ROL.ADMIN]: [
+  [ROLES.ADMIN]: [
     {
       modulo: 'establecimiento',
       vista: 'admin-establecimiento',
@@ -65,7 +60,7 @@ const MENU_PROPIO = {
       elemento: <Establecimiento editable />,
     },
     {
-      modulo: 'inventario',
+      modulo: 'supplies',
       vista: 'admin-inventario',
       ruta: '/admin/inventario',
       etiqueta: 'Gestión de Inventario',
@@ -73,37 +68,47 @@ const MENU_PROPIO = {
       elemento: <Inventario />,
     },
     {
-      modulo: 'menu',
+      modulo: 'products',
       vista: 'admin-menu',
       ruta: '/admin/menu',
       etiqueta: 'Gestión de Menú',
       icono: 'fa-utensils',
       elemento: <Menu editable />,
     },
-    // Empleados y administradores son USUARIOS del backend (/api/users) con su rol: se
-    // gestionan en una sola pantalla. El Owner tiene la misma (módulo 'usuarios') en su ruta.
+    // Recetas con CRUD completo (Owner y Administrador): POST/PATCH/DELETE /recipes
     {
-      modulo: 'usuarios',
-      vista: 'admin-usuarios',
-      ruta: '/admin/usuarios',
-      etiqueta: 'Gestión de Usuarios',
-      icono: 'fa-people-line',
-      elemento: <GestionUsuarios />,
+      modulo: 'recipes',
+      vista: 'admin-recetas',
+      ruta: '/admin/recetas',
+      etiqueta: 'Gestión de Recetas',
+      icono: 'fa-flask',
+      elemento: <Recetas editable />,
     },
+    GESTION_DE_USUARIOS,
     {
-      modulo: 'indicadores',
+      modulo: 'indicators',
       vista: 'admin-indicadores',
       ruta: '/admin/indicadores',
       etiqueta: 'Gestión de Indicadores',
       icono: 'fa-chart-pie',
       elemento: <Indicadores />,
     },
+    // Comentarios (módulo `comments`) y PQRS (módulo `pqrs`) son módulos APARTE, cada uno con
+    // su vista: los comentarios son públicos y tienen "me gusta"; las PQRS son privadas.
+    {
+      modulo: 'comments',
+      vista: 'admin-comentarios',
+      ruta: '/admin/comentarios',
+      etiqueta: 'Moderación de Comentarios',
+      icono: 'fa-comments',
+      elemento: <ModeracionComentarios />,
+    },
     {
       modulo: 'pqrs',
       vista: 'admin-pqrs',
       ruta: '/admin/pqrs',
       etiqueta: 'Moderación de PQRS',
-      icono: 'fa-comments',
+      icono: 'fa-users-rectangle',
       // Sustituye a la PQRS del empleado EN SU SITIO: va dentro del bloque
       // heredado (Pedidos, Ventas, PQRS), no con las vistas propias del admin.
       enPosicionHeredada: true,
@@ -111,9 +116,9 @@ const MENU_PROPIO = {
     },
   ],
 
-  [ROL.EMPLEADO]: [
+  [ROLES.EMPLOYEE]: [
     {
-      modulo: 'pedidos',
+      modulo: 'orders',
       vista: 'empleado-pedidos',
       ruta: '/empleado/pedidos',
       etiqueta: 'Gestión de Pedidos',
@@ -121,7 +126,7 @@ const MENU_PROPIO = {
       elemento: <Pedidos />,
     },
     {
-      modulo: 'menu',
+      modulo: 'products',
       vista: 'empleado-menu',
       listaTop: true,
       ruta: '/empleado/menu',
@@ -131,8 +136,18 @@ const MENU_PROPIO = {
       // WhatsApp ni datos de contacto.
       elemento: <Menu vitrina />,
     },
+    // Recetas (módulo `recipes`): el Empleado solo las consulta, igual que en el backend
+    // (GET /recipes). El Administrador tiene su propia entrada editable.
     {
-      modulo: 'ventas',
+      modulo: 'recipes',
+      vista: 'empleado-recetas',
+      ruta: '/empleado/recetas',
+      etiqueta: 'Recetas',
+      icono: 'fa-flask',
+      elemento: <Recetas />,
+    },
+    {
+      modulo: 'sales',
       vista: 'empleado-ventas',
       ruta: '/empleado/ventas',
       etiqueta: 'Gestión de Ventas',
@@ -149,13 +164,10 @@ const MENU_PROPIO = {
     },
   ],
 
-  [ROL.CLIENTE]: [
-    // Tres accesos en la barra lateral, como los otros dos roles. Antes era
-    // una sola vista con pestañas: dos navegaciones para lo mismo.
+  [ROLES.CLIENT]: [
     {
-      modulo: 'inicio',
+      modulo: 'establecimiento',
       vista: 'cliente-inicio',
-      // Mismo orden que el Inicio del visitante: bienvenida, ficha, Lista Top.
       listaTopEnPagina: true,
       ruta: '/cliente/inicio',
       etiqueta: 'Inicio',
@@ -163,7 +175,7 @@ const MENU_PROPIO = {
       elemento: <InicioCliente />,
     },
     {
-      modulo: 'menu',
+      modulo: 'products',
       vista: 'cliente-menu',
       listaTop: true,
       ruta: '/cliente/menu',
@@ -183,23 +195,21 @@ const MENU_PROPIO = {
     },
   ],
 
-  // Panel del visitante. Sus propias rutas (/visitante/*) sustituyen a las del
-  // cliente con el mismo `modulo`; cualquier vista nueva del cliente sin
-  // `requiereCuenta` le llega sola (ver componerMenuVisitante).
-  [ROL.USUARIO]: [
+  // Panel del visitante: sus rutas sustituyen a las del cliente con el mismo `modulo`
+  // (ver componerMenuVisitante).
+  [ROLES.VISITOR]: [
     {
-      modulo: 'inicio',
+      modulo: 'establecimiento',
       vista: 'visitante-inicio',
       ruta: '/visitante/inicio',
       etiqueta: 'Inicio',
       icono: 'fa-house',
-      // La pantalla coloca su propia Lista Top (tercera, tras la bienvenida y
-      // la ficha del local); Layout no la pinta encima en esta vista.
+      // La pantalla coloca su propia Lista Top; Layout no la pinta encima.
       listaTopEnPagina: true,
       elemento: <InicioVisitante />,
     },
     {
-      modulo: 'menu',
+      modulo: 'products',
       vista: 'visitante-menu',
       listaTop: true,
       ruta: '/visitante/menu',
@@ -207,8 +217,6 @@ const MENU_PROPIO = {
       icono: 'fa-utensils',
       elemento: <Menu />,
     },
-    // Sin "Mi ticket": la calificación se hace al escanear el QR del tiquete
-    // (/calificar/:qr, RUTAS_PUBLICAS), no escribiendo el código en un panel.
   ],
 }
 
@@ -253,37 +261,30 @@ const componerMenu = (rol) => {
 /** Visitante: sus vistas, más las del cliente que no exigen cuenta (nunca PQRS). */
 const componerMenuVisitante = () =>
   unirPorModulo(
-    MENU_PROPIO[ROL.USUARIO],
-    MENU_PROPIO[ROL.CLIENTE].filter((item) => !item.requiereCuenta)
+    MENU_PROPIO[ROLES.VISITOR],
+    MENU_PROPIO[ROLES.CLIENT].filter((item) => !item.requiereCuenta)
   )
 
 export const MENU = {
-  [ROL.OWNER]: componerMenu(ROL.OWNER),
-  [ROL.ADMIN]: componerMenu(ROL.ADMIN),
-  [ROL.EMPLEADO]: componerMenu(ROL.EMPLEADO),
-  [ROL.CLIENTE]: componerMenu(ROL.CLIENTE),
-  [ROL.USUARIO]: componerMenuVisitante(),
+  [ROLES.OWNER]: componerMenu(ROLES.OWNER),
+  [ROLES.ADMIN]: componerMenu(ROLES.ADMIN),
+  [ROLES.EMPLOYEE]: componerMenu(ROLES.EMPLOYEE),
+  [ROLES.CLIENT]: componerMenu(ROLES.CLIENT),
+  [ROLES.VISITOR]: componerMenuVisitante(),
 }
 
 /**
- * RUTAS SIN SESIÓN NI LAYOUT. La otra mitad de la tabla de acceso.
- *
- * `MENU` dice qué ve cada rol (incluido el visitante, dentro del Layout); esto
- * son pantallas sueltas con su propio cascarón. Están juntas a propósito: el
- * control de acceso se lee en un archivo (R16), y una ruta pública que naciera
- * suelta en App.jsx sería justo el agujero que esta tabla existe para evitar.
- *
- * Abren el QR del tiquete: el visitante que escanea no tiene cuenta, y pedirle
- * que se registre para puntuar su pedido dejaba fuera a todo el que compra en
- * el mostrador. Lo que la protege es el propio código del ticket, que es su
- * comprobante de compra (ver modules/establecimiento/api.js).
+ * RUTAS SIN SESIÓN NI LAYOUT, cada una con su propio cascarón. Van en esta tabla (y no sueltas
+ * en App.jsx) para que todo el control de acceso se lea en un solo archivo.
+ * Son las del QR del tiquete: quien lo escanea no necesita cuenta, porque el código del
+ * tiquete es su comprobante de compra.
  */
 export const RUTAS_PUBLICAS = [
   { vista: 'publico-calificar', ruta: '/calificar', elemento: <CalificarQr /> },
   { vista: 'publico-calificar-qr', ruta: '/calificar/:qr', elemento: <CalificarQr /> },
 ]
 
-/** Roles que tienen cada vista en su menú: vista → ['owner', 'admin', …]. */
+/** Roles que tienen cada vista en su menú: vista → ['Owner', 'Administrador', …]. */
 const ROLES_DE_VISTA = Object.entries(MENU).reduce((indice, [rol, items]) => {
   items.forEach(({ vista }) => indice.set(vista, [...(indice.get(vista) ?? []), rol]))
   return indice

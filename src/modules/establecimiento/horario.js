@@ -1,28 +1,15 @@
-// Horario de atención: contrato semanal, formato de horas y estado del local.
+// Horario de atención: formato de horas y estado del local (funciones puras, sin React).
 //
-// Vive aparte de la pantalla porque son funciones puras —se pueden razonar y
-// probar sin React— y porque las usan tres piezas: la pestaña de Horarios, la
-// insignia de "Abierto / Cerrado" y el calendario de días especiales.
-//
-// CONTRATO (ficha del establecimiento, campo `horarioSemanal`):
+// CONTRATO (`horarioSemanal` de la ficha):
 //   [{ dia: 'Lunes', abre: null,    cierra: null    },   // cerrado todo el día
 //    { dia: 'Martes', abre: '14:00', cierra: '21:30' }, … ]
-// Siete entradas, SIEMPRE de lunes a domingo y en ese orden. `abre`/`cierra` en
-// formato de 24 horas "HH:MM"; `null` en cualquiera de los dos significa que
-// ese día no se abre. El horario vive solo en la API: un día que la ficha
-// no traiga se trata como cerrado, no se inventa en el navegador.
+// Siempre siete entradas, de lunes a domingo. Horas en formato 24 h «HH:MM»; `null` significa
+// que ese día no se abre. Un día que la ficha no traiga se trata como cerrado.
 
 import { partesDe } from './calendario'
 
-const DIAS_LARGOS = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-  'Domingo',
-]
+/** Días que acepta el backend (enum `dia` del modelo Horario), de lunes a domingo. */
+export const DIAS_HORARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
 /** "14:00" → 840. Devuelve null si la hora no es válida. */
 const aMinutos = (hora) => {
@@ -33,13 +20,10 @@ const aMinutos = (hora) => {
 }
 
 /**
- * "14:00" → "2:00 p. m.", como lo escribe es-CO.
- *
- * Ojo al escribir frases con esto: la cadena YA termina en punto, así que una
- * frase que acabe en una hora no lleva otro ("abrimos a las 2:00 p. m.", no
- * "…p. m..").
+ * «14:00» → «2:00 p. m.» (es-CO). La cadena ya termina en punto: una frase que acabe en una
+ * hora no lleva otro.
  */
-const hora12 = (hora) => {
+export const horaLegible = (hora) => {
   const minutos = aMinutos(hora)
   if (minutos === null) return '—'
   const h = Math.floor(minutos / 60)
@@ -58,7 +42,7 @@ export const indiceDelDia = (fecha = new Date()) => (fecha.getDay() + 6) % 7
  * como CERRADO en vez de dejar un hueco en la tabla.
  */
 export const normalizarHorario = (horarioSemanal) =>
-  DIAS_LARGOS.map((dia, indice) => {
+  DIAS_HORARIO.map((dia, indice) => {
     const guardado = Array.isArray(horarioSemanal)
       ? horarioSemanal.find((entrada) => entrada?.dia === dia) ?? horarioSemanal[indice]
       : null
@@ -73,8 +57,8 @@ export const normalizarHorario = (horarioSemanal) =>
       abre: cerrado ? null : abre,
       cierra: cerrado ? null : cierra,
       cerrado,
-      // Lo que se pinta en la columna derecha de la tabla del wireframe.
-      texto: cerrado ? 'CERRADO' : `${hora12(abre)} - ${hora12(cierra)}`,
+      // Texto de la columna derecha de la tabla de horarios.
+      texto: cerrado ? 'CERRADO' : `${horaLegible(abre)} - ${horaLegible(cierra)}`,
     }
   })
 
@@ -93,17 +77,10 @@ const diaEspecialDe = (diasEspeciales, fecha = new Date()) => {
 }
 
 /**
- * Qué pasa un día CONCRETO del calendario, sea pasado o futuro.
- *
- * No confundir con `estadoDelLocal`, que responde "¿está abierto AHORA?" y por
- * tanto mira la hora. Esto responde "¿abre ese día y en qué franja?", que es lo
- * que necesita el calendario para pintar cada celda y la tarjeta del día que se
- * selecciona.
- *
- * `cierreSemanal` y `cerrado` son cosas distintas a propósito: el primero es
- * "los lunes no abrimos" y el segundo incluye además los días especiales. El
- * calendario los pinta diferente porque un lunes cerrado es la norma y una
- * Nochebuena cerrada es una excepción que conviene que salte a la vista.
+ * Qué pasa un día CONCRETO del calendario: ¿abre y en qué franja? No mira la hora (para
+ * «¿está abierto AHORA?» está `estadoDelLocal`).
+ * `cierreSemanal` («los lunes no abrimos») y `cerrado` (que incluye los días especiales) se
+ * pintan distinto: un cierre especial debe saltar a la vista.
  */
 export const resumenDelDia = ({ horarioSemanal, diasEspeciales, fecha } = {}) => {
   const dia = normalizarHorario(horarioSemanal)[indiceDelDia(fecha)]
@@ -129,13 +106,8 @@ export const resumenDelDia = ({ horarioSemanal, diasEspeciales, fecha } = {}) =>
 }
 
 /**
- * ¿Está abierto el local ahora mismo?
- *
- * El orden de las comprobaciones importa: un día especial marcado como
- * "cerrado" manda sobre el horario semanal —para eso existe—, y solo después se
- * mira la franja del día. Devuelve siempre un motivo legible, porque la
- * insignia sin explicación ("Cerrado" a las tres de la tarde de un martes)
- * genera más dudas de las que resuelve.
+ * ¿Está abierto el local ahora mismo? Un día especial cerrado manda sobre el horario semanal.
+ * Devuelve siempre un motivo legible para la insignia.
  */
 export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Date() } = {}) => {
   const semana = normalizarHorario(horarioSemanal)
@@ -153,12 +125,14 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
   }
 
   if (hoy.cerrado) {
-    const siguiente = semana.find((dia) => dia.indice > hoy.indice && !dia.cerrado) ?? semana.find((dia) => !dia.cerrado)
+    // El próximo día abierto de esta semana; si no queda ninguno, el primero de la siguiente
+    const siguiente =
+      semana.find((dia) => dia.indice > hoy.indice && !dia.cerrado) ?? semana.find((dia) => !dia.cerrado)
     return {
       abierto: false,
       etiqueta: 'Cerrado',
       detalle: siguiente
-        ? `Los ${hoy.dia.toLowerCase()} no abrimos. Volvemos el ${siguiente.dia.toLowerCase()} a las ${hora12(siguiente.abre)}`
+        ? `Los ${hoy.dia.toLowerCase()} no abrimos. Volvemos el ${siguiente.dia.toLowerCase()} a las ${horaLegible(siguiente.abre)}`
         : `Los ${hoy.dia.toLowerCase()} no abrimos.`,
       hoy,
       especial,
@@ -173,7 +147,7 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
     return {
       abierto: false,
       etiqueta: 'Cerrado',
-      detalle: `Hoy abrimos a las ${hora12(hoy.abre)}`,
+      detalle: `Hoy abrimos a las ${horaLegible(hoy.abre)}`,
       hoy,
       especial,
     }
@@ -183,7 +157,7 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
     return {
       abierto: false,
       etiqueta: 'Cerrado',
-      detalle: `Hoy atendimos hasta las ${hora12(hoy.cierra)}`,
+      detalle: `Hoy atendimos hasta las ${horaLegible(hoy.cierra)}`,
       hoy,
       especial,
     }
@@ -194,8 +168,8 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
     etiqueta: 'Abierto ahora',
     detalle:
       especial?.tipo === 'evento' && especial.motivo
-        ? `${especial.motivo} Cerramos a las ${hora12(hoy.cierra)}`
-        : `Cerramos a las ${hora12(hoy.cierra)}`,
+        ? `${especial.motivo} Cerramos a las ${horaLegible(hoy.cierra)}`
+        : `Cerramos a las ${horaLegible(hoy.cierra)}`,
     hoy,
     especial,
   }

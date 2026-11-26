@@ -1,21 +1,17 @@
 import { useState } from 'react'
 
-import Modal from '../../components/ui/Modal'
-import { CAMPOS_INFO } from '../../data/local'
 import { esMapaDeGoogle } from '../../utils/seguridad'
+import { CAMPOS_INFO } from '../../data/local'
+import Modal from '../../components/ui/Modal'
 
 const ID_FORMULARIO = 'formulario-ficha'
 
 /**
  * Edición de la ficha del establecimiento.
  *
- * QUÉ CAMBIA
- * El modal anterior era una columna de siete inputs sin tipo ni ayuda: el
- * teléfono se escribía en un campo de texto, la URL del mapa en otro idéntico y
- * nada avisaba de que tenía que ser una dirección de inserción de Google Maps
- * (si se pegaba el enlace de "compartir", el iframe quedaba en blanco y no se
- * sabía por qué). Ahora cada campo lleva su tipo, su ayuda y su icono, los
- * datos van agrupados, y el mapa se puede comprobar antes de guardar.
+ * Los campos salen de CAMPOS_INFO (data/local.js): cada uno trae su tipo, su ayuda y si es
+ * obligatorio. La URL del mapa debe ser la de "Insertar un mapa" de Google Maps (la de
+ * "compartir" deja el mapa en blanco), por eso se valida y se muestra una vista previa.
  */
 export default function FormularioFicha({ ficha, enviando, onGuardar, onCerrar }) {
   const [valores, setValores] = useState(ficha)
@@ -28,8 +24,13 @@ export default function FormularioFicha({ ficha, enviando, onGuardar, onCerrar }
 
   const validar = () => {
     const fallos = {}
-    if (!valores.nombre?.trim()) fallos.nombre = 'El local necesita un nombre.'
-    if (!valores.direccion?.trim()) fallos.direccion = 'Indica la dirección del local.'
+
+    // Los mismos obligatorios que la ubicación del backend (titulo, direccion, telefono y
+    // descripcion): así el error se ve en el campo y no como un 400 al guardar.
+    CAMPOS_INFO.forEach(({ campo, requerido }) => {
+      if (requerido && !valores[campo]?.trim()) fallos[campo] = requerido
+    })
+    if (!valores.descripcion?.trim()) fallos.descripcion = 'Describe el local en una o dos frases.'
 
     // Un enlace de "compartir" de Google Maps no funciona dentro de un iframe:
     // hace falta el de "insertar un mapa". Y se exige el dominio de Google, no
@@ -123,14 +124,22 @@ export default function FormularioFicha({ ficha, enviando, onGuardar, onCerrar }
           </label>
           <textarea
             id="ficha-descripcion"
-            className="form-control"
+            className={`form-control ${errores.descripcion ? 'is-invalid' : ''}`}
             rows="3"
             maxLength={400}
             value={valores.descripcion ?? ''}
             onChange={cambiar('descripcion')}
+            aria-invalid={Boolean(errores.descripcion)}
+            aria-describedby={errores.descripcion ? 'ficha-descripcion-error' : undefined}
             disabled={enviando}
           />
-          <div className="form-text">{(valores.descripcion ?? '').length}/400 caracteres</div>
+          {errores.descripcion ? (
+            <div className="invalid-feedback d-block" id="ficha-descripcion-error" role="alert">
+              {errores.descripcion}
+            </div>
+          ) : (
+            <div className="form-text">{(valores.descripcion ?? '').length}/400 caracteres</div>
+          )}
         </div>
 
         {/* Comprobación del mapa sin salir del modal. */}

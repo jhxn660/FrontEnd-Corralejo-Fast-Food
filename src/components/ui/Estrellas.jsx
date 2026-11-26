@@ -12,15 +12,9 @@ const iconoDe = (posicion, medias) => {
 /**
  * Estrellas sobre una base de 5, con medias estrellas.
  *
- * SOLO LECTURA (sin `onCalificar`): `valor` va de 0 a 5 y se redondea a la
- * media estrella más cercana (3.4 → 3½★). Lo usan la Lista Top, el podio y
- * las tarjetas de opiniones (valoración 1-10 / 2).
- *
- * SELECTOR (con `onCalificar`): puntuación ENTERA de 1 a 10, donde cada unidad
- * es media estrella. Cada estrella tiene dos mitades pulsables: la izquierda
- * vale 2n-1 y la derecha 2n. `miVoto` es la puntuación elegida (1-10).
- * Solo se monta en la calificación por QR: el ticket demuestra la compra.
- * Nunca junto a un plato de un listado público.
+ * SOLO LECTURA (sin `onCalificar`): `valor` de 0 a 5, redondeado a la media estrella (3.4 → 3½★).
+ * SELECTOR (con `onCalificar`): puntuación entera de 1 a 10, donde cada unidad es media
+ * estrella; `miVoto` es la elegida. Solo se usa al calificar una compra con el QR del tiquete.
  */
 export default function Estrellas({ valor = 0, miVoto = 0, onCalificar, deshabilitado = false }) {
   const [sobre, setSobre] = useState(0)

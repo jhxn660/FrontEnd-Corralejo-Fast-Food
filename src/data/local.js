@@ -1,12 +1,10 @@
-// Campos editables de la ficha del establecimiento. La ficha en sí —dirección,
-// teléfono, WhatsApp, horario, referencias y tiempos— vive en la API
-// (colección "establecimiento"), no aquí: así el administrador la edita y
-// todos los roles ven el mismo valor (R25).
+// Campos editables de la ficha del local: los mismos que guarda una ubicación en el backend
+// (/ubicaciones): nombre → titulo · ciudad · direccion · telefono · referencia · mapa → enlaceMapa.
+// El teléfono es también el WhatsApp del local; el horario se edita aparte (/horarios).
 
 /**
- * Campos editables de la ficha. Cada entrada lleva además su tipo de input, su
- * icono, el ancho de columna y la ayuda que hace falta para no equivocarse: el
- * formulario los recorre y no decide nada por su cuenta (R24).
+ * Cada campo con su tipo de input, icono, ancho de columna y ayuda: el formulario los recorre.
+ * `requerido` es el mensaje que se muestra si un campo obligatorio queda vacío.
  */
 export const CAMPOS_INFO = [
   {
@@ -14,6 +12,7 @@ export const CAMPOS_INFO = [
     etiqueta: 'Nombre del restaurante',
     icono: 'fa-store',
     columna: 'col-12 col-sm-8',
+    requerido: 'El local necesita un nombre.',
   },
   { campo: 'ciudad', etiqueta: 'Ciudad', icono: 'fa-city', columna: 'col-12 col-sm-4' },
   {
@@ -22,27 +21,23 @@ export const CAMPOS_INFO = [
     icono: 'fa-location-dot',
     columna: 'col-12',
     ayuda: 'Como debe leerla quien llega por primera vez.',
+    requerido: 'Indica la dirección del local.',
   },
   {
     campo: 'telefono',
     etiqueta: 'Teléfono',
     tipo: 'tel',
     icono: 'fa-phone',
-    columna: 'col-12 col-sm-6',
-  },
-  {
-    campo: 'whatsapp',
-    etiqueta: 'WhatsApp',
-    tipo: 'tel',
-    icono: 'fa-comment-sms',
-    columna: 'col-12 col-sm-6',
-  },
-  {
-    campo: 'horario',
-    etiqueta: 'Horario de atención',
-    icono: 'fa-clock',
     columna: 'col-12',
-    ayuda: 'Ej. Martes a domingo de 2 pm a 10 pm.',
+    ayuda: 'También es el WhatsApp del local: los botones "WhatsApp" y "Pedir por WhatsApp" usan este número.',
+    requerido: 'Indica el teléfono del local.',
+  },
+  {
+    campo: 'referencia',
+    etiqueta: 'Cómo ubicarnos',
+    icono: 'fa-map-pin',
+    columna: 'col-12',
+    ayuda: 'Puntos de referencia separados por « · ». Ej.: Cerca de la estación Restrepo · Junto a la Alcaldía Local',
   },
   {
     campo: 'mapa',

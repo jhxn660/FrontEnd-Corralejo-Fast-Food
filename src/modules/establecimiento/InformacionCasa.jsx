@@ -1,14 +1,15 @@
 import { useCallback, useState } from 'react'
 
-import Modal from '../../components/ui/Modal'
-import { Cargando, MensajeError } from '../../components/ui/Estado'
-import { useRecurso } from '../../hooks/useRecurso'
-import { usePeticion } from '../../hooks/usePeticion'
+import { PERMISO } from '../../config/roles.config'
 import { useAuth } from '../../context/AuthContext'
 import { useAvisos } from '../../context/AvisosContext'
-import { PERMISO } from '../../config/roles'
+import { usePeticion } from '../../hooks/usePeticion'
+import { useRecurso } from '../../hooks/useRecurso'
 import { PILARES } from '../../data/contenido'
-import { informacionApi } from './api'
+import { Cargando, MensajeError } from '../../components/ui/Estado'
+import Modal from '../../components/ui/Modal'
+
+import { establecimientoApi } from './api'
 import FormularioInformacion from './FormularioInformacion'
 
 const INICIAL = { id: null, mision: '', vision: '', historias: [] }
@@ -20,7 +21,7 @@ const INICIAL = { id: null, mision: '', vision: '', historias: [] }
  *
  * Tres vistas en el mismo modal: el resumen, la lectura de una historia (con
  * Anterior/Siguiente y "Volver") y, solo con PERMISO.EDITAR_INFORMACION, la
- * edición. Los textos salen de la API (informacionApi); de
+ * edición. Los textos salen de la API (establecimientoApi.informacion); de
  * data/contenido.js solo llegan el título y el icono de cada pilar.
  */
 export default function InformacionCasa({ onCerrar }) {
@@ -28,7 +29,7 @@ export default function InformacionCasa({ onCerrar }) {
   const avisos = useAvisos()
   const puedeEditar = puede(PERMISO.EDITAR_INFORMACION)
 
-  const cargar = useCallback(() => informacionApi.obtener(), [])
+  const cargar = useCallback(() => establecimientoApi.informacion(), [])
   const { datos: informacion, cargando, error, recargar } = useRecurso(cargar, INICIAL)
 
   const [indice, setIndice] = useState(null)
@@ -37,7 +38,7 @@ export default function InformacionCasa({ onCerrar }) {
   const guardado = usePeticion(
     useCallback(
       async (cambios) => {
-        await informacionApi.guardar({ id: informacion.id, ...cambios })
+        await establecimientoApi.guardarInformacion({ id: informacion.id, ...cambios })
         await recargar()
       },
       [informacion.id, recargar]

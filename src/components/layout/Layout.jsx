@@ -1,26 +1,26 @@
 import { Fragment, Suspense, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
-import logo from '../../assets/logo.png'
 import { MENU } from '../../config/navegacion'
-import { ROL, ROLES_VITRINA, TITULO_PANEL, tieneNivel } from '../../config/roles'
+import { ROLES, ROLES_VITRINA, TITULO_PANEL, tieneNivel } from '../../config/roles.config'
 import { useAuth } from '../../context/AuthContext'
 import { useAvisos } from '../../context/AvisosContext'
+import logo from '../../assets/logo.png'
+import { Cargando } from '../ui/Estado'
 import InformacionCasa from '../../modules/establecimiento/InformacionCasa'
 import ListaTop from '../../modules/establecimiento/ListaTop'
-import { Cargando } from '../ui/Estado'
+
 import LimiteDeError from './LimiteDeError'
 
 // Ancla del bloque de opiniones (OpinionesClientes) en la portada de cada panel.
 const ANCLA_OPINIONES = 'muro-comentarios'
-const MODULOS_PORTADA = ['inicio', 'establecimiento']
+const MODULOS_PORTADA = ['establecimiento']
 
 /**
- * Cascarón común a los tres paneles: header, menú lateral y área de contenido.
+ * Cascarón común a todos los paneles: cabecera, menú lateral y contenido.
  *
- * `cff-aero` solo se añade para el cliente: es la estética translúcida de
- * theme.css. El administrador y el empleado trabajan con tablas y formularios
- * densos, donde el cristal resta legibilidad; el cliente viene a mirar.
+ * `cff-aero` (la estética translúcida de theme.css) solo se añade para cliente y visitante:
+ * en las tablas y formularios densos del personal el efecto cristal resta legibilidad.
  */
 export default function Layout({ children }) {
   const { usuario, rol, cerrarSesion } = useAuth()
@@ -35,18 +35,15 @@ export default function Layout({ children }) {
   const portada = opciones.find((item) => MODULOS_PORTADA.includes(item.modulo))?.ruta
   const rutaComentarios = portada ? `${portada}#${ANCLA_OPINIONES}` : null
 
-  // Lista Top: solo donde cuadra, marcado en config/navegacion.jsx:
-  // - `listaTop` (Establecimiento del admin y las cartas de cliente, visitante
-  //   y empleado): Layout la pone encima de la pantalla.
-  // - `listaTopEnPagina` (Inicio del visitante y del cliente): la pantalla la
-  //   coloca ella misma, tras la bienvenida y la ficha del local.
-  // Las pantallas de gestión (inventario, pedidos, ventas, indicadores,
-  // empleados, usuarios, gestión de menú, PQRS) no la llevan.
+  // Lista Top (marcado en config/navegacion.jsx):
+  // - `listaTop`: Layout la pone encima de la pantalla.
+  // - `listaTopEnPagina`: la pantalla la coloca ella misma.
+  // Las pantallas de gestión no la llevan.
   const vistaActual = opciones.find((item) => item.ruta === pathname)
   const listaTopArriba = vistaActual?.listaTop === true
 
   // "Ver nuestro menú" solo en la Lista Top de Inicio (la portada del rol).
-  const rutaMenu = opciones.find((item) => item.modulo === 'menu')?.ruta ?? null
+  const rutaMenu = opciones.find((item) => item.modulo === 'products')?.ruta ?? null
   const enPortada = MODULOS_PORTADA.includes(vistaActual?.modulo)
 
   const abrirInformacion = () => {
@@ -67,9 +64,9 @@ export default function Layout({ children }) {
   // - Admin y Owner: "Gestión de Información", justo después de Establecimiento.
   // - Empleado: al final, detrás de sus pantallas de trabajo.
   // - Visitante y Cliente: justo después de "Menú" (el tercero).
-  const esAdministracion = tieneNivel(rol, ROL.ADMIN)
-  const informacionAlFinal = rol === ROL.EMPLEADO
-  const informacionTras = esAdministracion ? 'establecimiento' : 'menu'
+  const esAdministracion = tieneNivel(rol, ROLES.ADMIN)
+  const informacionAlFinal = rol === ROLES.EMPLOYEE
+  const informacionTras = esAdministracion ? 'establecimiento' : 'products'
   const botonInformacion = (
     <li className="nav-item">
       <button type="button" className="nav-link" onClick={abrirInformacion}>
@@ -79,7 +76,7 @@ export default function Layout({ children }) {
     </li>
   )
 
-  // Capa 2 del control de acceso (R14): solo se dibuja el menú del rol activo.
+  // Capa 2 del control de acceso: solo se dibuja el menú del rol activo.
   const navegacion = (
     <ul className="nav nav-panel flex-column gap-1">
       {opciones.map(({ vista, ruta, etiqueta, icono, modulo }) => (
@@ -138,9 +135,6 @@ export default function Layout({ children }) {
       <div className="container-fluid px-3 px-lg-4 py-4">
         <div className="d-flex gap-4 align-items-start">
           <aside className={`app-sidebar ${menuAbierto ? '' : 'd-none d-lg-block'}`}>
-            {/* Escritorio: el <aside> es sticky bajo la cabecera y acompaña el
-                scroll en ambos sentidos. Móvil: abierto, flota fijo bajo la
-                cabecera (theme.css). */}
             <div className="app-sidebar-inner card border-0 shadow-sm p-3 d-flex flex-column">
               <h2 className="h6 text-secondary text-uppercase mb-3">{TITULO_PANEL[rol]}</h2>
               {navegacion}
@@ -151,14 +145,10 @@ export default function Layout({ children }) {
               header y el menú siguen en pie y hay por dónde salir. */}
           <main className="flex-grow-1 min-width-0">
             <LimiteDeError clave={pathname}>
-              {/* Lista Top encima del título, solo en las vistas con `listaTop`.
-                  Ver el comentario de `listaTopArriba`. */}
               {listaTopArriba && (
                 <ListaTop rutaComentarios={rutaComentarios} rutaMenu={enPortada ? rutaMenu : null} />
               )}
-              {/* La pantalla llega bajo demanda: mientras baja su código, el
-                  menú y la cabecera siguen en pie. Si la descarga falla, lo
-                  recoge LimiteDeError. */}
+              {/* La pantalla llega bajo demanda; si la descarga falla, la recoge LimiteDeError. */}
               <Suspense fallback={<Cargando texto="Cargando pantalla…" />}>{children}</Suspense>
             </LimiteDeError>
           </main>

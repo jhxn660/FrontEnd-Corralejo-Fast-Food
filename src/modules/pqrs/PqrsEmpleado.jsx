@@ -4,9 +4,10 @@ import { useRecurso } from '../../hooks/useRecurso'
 import { fechaCorta } from '../../utils/format'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
-import { COLOR_ESTADO, ESTADOS, ICONO_ESTADO, NOMBRES_TIPO, colorDe, iconoDe } from './esquema'
+
 import { pqrsApi } from './api'
 import DetallePqrs from './DetallePqrs'
+import { COLOR_ESTADO, ESTADOS, ICONO_ESTADO, NOMBRES_TIPO, colorDe, iconoDe } from './esquema'
 
 /**
  * PQRS para el EMPLEADO: consulta todas las que enviaron los clientes (filtros, búsqueda y

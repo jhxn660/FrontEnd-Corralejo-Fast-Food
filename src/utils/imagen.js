@@ -1,17 +1,9 @@
-// Lectura y reducción de las imágenes que sube el administrador.
+// Lectura y reducción de las imágenes que sube la administración.
 //
-// POR QUÉ SE REDUCE ANTES DE GUARDAR
-// La imagen viaja dentro del registro del plato, así que una foto de teléfono
-// de 4 MB se convertiría en unos 5,5 MB de texto base64 en la base de datos, y el
-// navegador tendría que descargarla entera cada vez que alguien abre la carta.
-// Reducirla a 800 px de ancho la deja en unas decenas de kilobytes, que a
-// tamaño de tarjeta se ve igual.
-//
-// POR QUÉ SIEMPRE SALE JPEG
-// Se aceptan JPG y PNG de entrada, pero se guarda JPEG: reencodear como PNG una
-// fotografía la deja en varios cientos de kilobytes. Un PNG con transparencia
-// pierde el canal alfa, así que antes de dibujarlo se pinta el lienzo de blanco
-// —si no, las zonas transparentes saldrían negras—.
+// Se reduce a 800 px de ancho antes de guardar: la imagen viaja dentro del producto (base64), y
+// una foto de teléfono serían megabytes que el navegador descargaría con la carta.
+// Siempre sale JPEG (un PNG fotográfico pesa mucho más). Como el JPEG no tiene transparencia, el
+// lienzo se pinta de blanco antes de dibujar (si no, las zonas transparentes saldrían negras).
 
 const TIPOS_ACEPTADOS = ['image/jpeg', 'image/jpg', 'image/png']
 

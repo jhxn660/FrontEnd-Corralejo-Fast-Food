@@ -1,20 +1,14 @@
-import { http } from '../../services/http'
+import { datos } from '../../api/client'
+import { pqrsApi as pqrsBackend } from '../../api/pqrs.api'
 
-// Rutas del módulo PQRS (R48). El backend decide quién ve qué:
-//   - Cliente: GET /pqrs devuelve SOLO sus PQRS y puede crear nuevas.
-//   - Empleado: GET /pqrs devuelve todas (solo consulta).
-//   - Administrador y Owner: además responden, cambian el estado y eliminan.
-// La moderación de comentarios (mostrar u ocultar) también es de administración.
-const RUTAS = {
-  pqrs: '/pqrs',
-  comentarios: '/comments',
-}
+// MÓDULO `pqrs` del backend: peticiones, quejas, reclamos y sugerencias.
+//   pqrs: { _id, usuario: { _id, name, email }, tipo, asunto, descripcion, estado,
+//           respuesta, respondedAt, createdAt }
+//
+// Es un módulo APARTE de los comentarios: una PQRS es privada (solo la ven su autor y el
+// personal) y la responde el restaurante. No tiene "me gusta": eso es de los comentarios del
+// muro público (modules/comments).
 
-/**
- * PQRS del backend → forma de la pantalla.
- * Backend: { _id, usuario: { _id, name, email }, tipo, asunto, descripcion, estado,
- *            respuesta, createdAt, updatedAt }
- */
 const aPqrsUi = (pqrs) => ({
   id: pqrs._id,
   tipo: pqrs.tipo,
@@ -23,46 +17,28 @@ const aPqrsUi = (pqrs) => ({
   nombre: pqrs.usuario?.name ?? 'Cliente',
   usuario: pqrs.usuario?.email ?? null,
   estado: pqrs.estado,
+  // Sin respuesta, el backend no manda el campo: la PQRS está "sin responder"
   respuesta: pqrs.respuesta ?? '',
   fecha: pqrs.createdAt,
-  // Con respuesta, la fecha de la última modificación es la de la respuesta
-  fechaRespuesta: pqrs.respuesta ? pqrs.updatedAt : null,
-})
-
-/** Comentario del backend → fila del buzón de moderación. */
-const aComentarioUi = (comentario) => ({
-  id: comentario._id,
-  texto: comentario.comentario ?? '',
-  nombre: comentario.usuario?.name ?? 'Visitante',
-  usuario: comentario.usuario?.email ?? null,
-  fecha: comentario.createdAt,
-  // isActive = visible en la portada. Los comentarios nacen visibles; el admin puede ocultarlos.
-  visible: comentario.isActive !== false,
-  qr: comentario.codigo ?? null,
-  valoracion: comentario.valoracion ?? 0,
+  // Fecha en que se guardó la respuesta (la registra el backend al responder)
+  fechaRespuesta: pqrs.respondedAt ?? null,
 })
 
 export const pqrsApi = {
-  listar: async ({ senal } = {}) => (await http.get(RUTAS.pqrs, { senal })).map(aPqrsUi),
+  /** Todas las PQRS (personal). */
+  listar: async () => (await datos(pqrsBackend.list())).map(aPqrsUi),
 
-  /** Solo el Cliente crea PQRS; el backend las asocia a su cuenta y las deja "Pendiente". */
-  crear: ({ tipo, asunto, texto }) =>
-    http.post(RUTAS.pqrs, { tipo, asunto: asunto.trim(), descripcion: texto.trim() }),
+  /** Solo las del Cliente que inició sesión: el backend lo reconoce por su token. */
+  listarMias: async () => (await datos(pqrsBackend.listMine())).map(aPqrsUi),
 
-  /** Respuesta y estado en una sola llamada (administración). */
-  responder: (id, { respuesta, estado }) => http.patch(`${RUTAS.pqrs}/${id}`, { respuesta, estado }),
+  /** Solo el Cliente crea PQRS; el backend la asocia a su cuenta y la deja "Pendiente". */
+  crear: ({ tipo, asunto, texto }) => pqrsBackend.create({ tipo, asunto: asunto.trim(), descripcion: texto.trim() }),
 
-  eliminar: (id) => http.delete(`${RUTAS.pqrs}/${id}`),
-}
+  /**
+   * Administración: guarda la respuesta (10-1000 caracteres) y el estado. El backend registra
+   * quién respondió y cuándo, y no deja cambiar lo que escribió el Cliente.
+   */
+  responder: (id, { respuesta, estado }) => pqrsBackend.update(id, { estado, respuesta }),
 
-export const moderacionApi = {
-  /** Solo los comentarios con texto: una puntuación sin texto no tiene nada que moderar. */
-  listarComentarios: async ({ senal } = {}) =>
-    (await http.get(RUTAS.comentarios, { senal }))
-      .map(aComentarioUi)
-      .filter((comentario) => comentario.texto.trim() !== ''),
-
-  cambiarVisibilidad: (id, visible) => http.patch(`${RUTAS.comentarios}/${id}/status`, { isActive: visible }),
-
-  eliminarComentario: (id) => http.delete(`${RUTAS.comentarios}/${id}`),
+  eliminar: (id) => pqrsBackend.remove(id),
 }

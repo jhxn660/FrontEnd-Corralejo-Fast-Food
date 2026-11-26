@@ -5,11 +5,11 @@ import { useRecurso } from '../../hooks/useRecurso'
 import { moneda } from '../../utils/format'
 import { Cargando, Vacio } from '../../components/ui/Estado'
 import Estrellas from '../../components/ui/Estrellas'
-import { imagenDe, tieneImagen } from '../menu/esquema'
+import { imagenDe, tieneImagen } from '../products/esquema'
+
 import { destacadosApi } from './api'
 
-// En escritorio el primero va al centro y más grande, como en el wireframe; en
-// móvil se apilan en orden natural 1, 2, 3.
+// En escritorio el primero va al centro y más grande; en móvil se apilan 1, 2, 3.
 const ORDEN = {
   1: 'order-1 order-md-2',
   2: 'order-2 order-md-1',
@@ -17,18 +17,14 @@ const ORDEN = {
 }
 
 /**
- * «Lista top»: los tres platos mejor calificados de la carta.
+ * «Lista top»: los tres productos mejor calificados (destacadosApi.mejorValorados).
  *
- * La calificación es la que mantiene el administrador; el cliente ya no vota
- * platos (ver components/ui/Estrellas.jsx). El icono de bocadillo de cada
- * tarjeta baja al muro de comentarios, que es donde el cliente sí opina.
+ * Las estrellas las dan los clientes al calificar una compra con el QR del tiquete; el backend
+ * las promedia por producto (`rating` de /products/public). Gana el promedio más alto; si
+ * empatan, el que tiene más valoraciones.
  *
- * La monta Layout encima de TODAS las pantallas de todos los paneles: es lo
- * primero que se ve. `rutaComentarios` llega por props, calculada del menú del
- * rol activo (config/navegacion.jsx): la pantalla con el bloque de opiniones,
- * más el ancla (`/cliente/inicio#muro-comentarios`); sin ella no se pinta el
- * bocadillo. `rutaMenu` pinta "Ver nuestro menú" y solo llega en la Lista Top
- * de Inicio (la portada del rol); en el resto de pantallas no aparece.
+ * `rutaComentarios`: a dónde lleva el bocadillo de cada tarjeta (el muro de la portada del
+ * rol); sin ella no se pinta. `rutaMenu`: muestra «Ver nuestro menú» (solo en la portada).
  */
 export default function ListaTop({ rutaComentarios = null, rutaMenu = null }) {
   const cargar = useCallback(() => destacadosApi.mejorValorados(), [])
@@ -39,7 +35,10 @@ export default function ListaTop({ rutaComentarios = null, rutaMenu = null }) {
   if (top.length === 0) {
     return (
       <div className="card border-0 shadow-sm mb-3">
-        <Vacio texto="Todavía no hay platos calificados en la carta." icono="fa-star" />
+        <Vacio
+          texto="Todavía no hay productos calificados: aparecen aquí cuando los clientes califican su compra con el QR del tiquete."
+          icono="fa-star"
+        />
       </div>
     )
   }
@@ -89,7 +88,12 @@ export default function ListaTop({ rutaComentarios = null, rutaMenu = null }) {
                 />
 
                 <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
-                  <Estrellas valor={plato.calificacion} />
+                  <span className="d-inline-flex align-items-center gap-2">
+                    <Estrellas valor={plato.calificacion} />
+                    <small className="text-secondary">
+                      {plato.calificacion.toLocaleString('es-CO')} · {plato.totalCalificaciones} valoración(es)
+                    </small>
+                  </span>
                   <strong>{moneda(plato.precio)}</strong>
                 </div>
 

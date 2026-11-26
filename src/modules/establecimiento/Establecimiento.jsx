@@ -1,38 +1,31 @@
 import { useCallback, useState } from 'react'
 
-import { useRecurso } from '../../hooks/useRecurso'
-import { usePeticion } from '../../hooks/usePeticion'
-import { useConfirmacion } from '../../hooks/useConfirmacion'
 import { useAvisos } from '../../context/AvisosContext'
+import { useConfirmacion } from '../../hooks/useConfirmacion'
+import { usePeticion } from '../../hooks/usePeticion'
 import { esMapaDeGoogle } from '../../utils/seguridad'
+import { PUNTOS_CLAVE } from '../../data/contenido'
+import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
-import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
-import { PUNTOS_CLAVE } from '../../data/contenido'
+import OpinionesClientes from '../comments/OpinionesClientes'
+
 import { establecimientoApi } from './api'
-import { useFicha } from './useFicha'
-import OpinionesClientes from './OpinionesClientes'
 import FormularioFicha from './FormularioFicha'
-import FormularioHorario, { DIAS_HORARIO, horarioVacio } from './FormularioHorario'
+import FormularioHorario, { horarioVacio } from './FormularioHorario'
+import { DIAS_HORARIO, horaLegible } from './horario'
+import { useFicha } from './useFicha'
 
 // Ficha vacía para el primer alta (base de datos nueva, sin ubicación registrada)
-const FICHA_VACIA = { nombre: '', descripcion: '', ciudad: '', direccion: '', telefono: '', mapa: '' }
+const FICHA_VACIA = { nombre: '', descripcion: '', ciudad: '', direccion: '', telefono: '', referencia: '', mapa: '' }
 
-// "14:00" → "2:00 p. m.", para leer el horario de un vistazo
-const horaLegible = (hora) => {
-  const [h, m] = String(hora ?? '').split(':').map(Number)
-  if (!Number.isFinite(h)) return hora ?? ''
-  return `${h % 12 || 12}:${String(m || 0).padStart(2, '0')} ${h >= 12 ? 'p. m.' : 'a. m.'}`
-}
+// Mismo arreglo vacío en cada render mientras la ficha no ha llegado
+const SIN_HORARIOS = []
 
 /**
- * Ficha del establecimiento: ubicación, horario, días especiales y narrativa.
- * Misma presentación para todos los roles; `editable` es lo único que cambia:
- * el administrador actualiza la ficha y añade, edita o elimina días
- * especiales, el cliente solo consulta (R44).
- *
- * Los formularios y la narrativa son archivos hermanos del módulo: aquí queda
- * la pantalla, que carga, pinta y recoge eventos.
+ * Gestión del Establecimiento (Owner y Administrador): ficha del local, horario de cada día
+ * y muro de comentarios. Los formularios son archivos hermanos del módulo; aquí queda la
+ * pantalla, que carga, pinta y recoge eventos.
  */
 export default function Establecimiento({ editable = false }) {
   const {
@@ -42,13 +35,9 @@ export default function Establecimiento({ editable = false }) {
     recargar: recargarFicha,
   } = useFicha()
 
-  // Horario semanal: un registro por día en el backend (/api/horarios).
-  const {
-    datos: horarios,
-    cargando: cargandoHorarios,
-    error: errorHorarios,
-    recargar: recargarHorarios,
-  } = useRecurso(establecimientoApi.listarHorarios, [])
+  // Horario semanal: un registro por día en el backend (/api/horarios). Llega dentro de la
+  // ficha (módulo establecimiento): una sola lectura y una sola recarga para ubicación y horario.
+  const horarios = ficha?.horarios ?? SIN_HORARIOS
 
   const avisos = useAvisos()
   const [modalFicha, setModalFicha] = useState(null)
@@ -57,20 +46,21 @@ export default function Establecimiento({ editable = false }) {
   const guardadoFicha = usePeticion(
     useCallback(
       async (valores) => {
-        await establecimientoApi.actualizarFicha(valores.id, valores)
+        await establecimientoApi.guardarFicha(valores.id, valores)
         await recargarFicha()
       },
       [recargarFicha]
     )
   )
 
+  // Recargar la ficha también actualiza el horario resumido de "Ubicación y contacto".
   const guardadoHorario = usePeticion(
     useCallback(
       async (valores) => {
         await establecimientoApi.guardarHorario(valores)
-        await recargarHorarios()
+        await recargarFicha()
       },
-      [recargarHorarios]
+      [recargarFicha]
     )
   )
 
@@ -92,12 +82,12 @@ export default function Establecimiento({ editable = false }) {
       return
     }
     setModalHorario(null)
-    avisos.exito(editando ? 'Horario actualizado' : 'Horario añadido', `El horario del ${valores.dia} ya se ve en el calendario.`)
+    const titulo = editando ? 'Horario actualizado' : 'Horario añadido'
+    avisos.exito(titulo, `El horario del ${valores.dia} ya se ve en el calendario.`)
   }
 
-  // RNF-01: un mismo componente confirma todos los borrados de la aplicación.
   const eliminacionHorario = useConfirmacion((horario) => establecimientoApi.eliminarHorario(horario.id), {
-    alTerminar: recargarHorarios,
+    alTerminar: recargarFicha,
   })
 
   const eliminarHorario = async () => {
@@ -107,7 +97,6 @@ export default function Establecimiento({ editable = false }) {
     }
   }
 
-  // Los horarios en el orden de la semana, para la tabla
   const semana = [...horarios].sort((a, b) => DIAS_HORARIO.indexOf(a.dia) - DIAS_HORARIO.indexOf(b.dia))
   const diasOcupados = horarios.map((horario) => horario.dia)
 
@@ -123,23 +112,13 @@ export default function Establecimiento({ editable = false }) {
             : 'Ubicación, horario y todo lo que distingue a Corralejo Fast Food.'
         }
       >
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => {
-            recargarFicha()
-            recargarHorarios()
-          }}
-        >
+        <button className="btn btn-outline-secondary" onClick={recargarFicha}>
           <i className="fa-solid fa-rotate me-2" />
           Actualizar
         </button>
       </EncabezadoPagina>
 
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
-      <MensajeError texto={errorHorarios} onReintentar={recargarHorarios} />
-
-      {/* Sin Lista Top ni podio de más vendidos: esta pantalla es de gestión
-          (Admin y Owner). Empieza directamente por la ficha y el calendario. */}
 
       {!ficha && !cargandoFicha && (
         <div className="card border-0 shadow-sm">
@@ -165,8 +144,7 @@ export default function Establecimiento({ editable = false }) {
                   Ubicación y contacto
                 </h2>
               </div>
-              {/* Solo se incrusta un mapa de Google: la URL viene de la API y
-                  se pinta en el panel de todos los clientes. */}
+              {/* Solo se incrusta un mapa de Google (ver utils/seguridad.js). */}
               {esMapaDeGoogle(ficha.mapa) ? (
                 <div className="ratio ratio-21x9">
                   <iframe
@@ -191,15 +169,18 @@ export default function Establecimiento({ editable = false }) {
                 <ul className="list-unstyled small mb-3">
                   {[
                     { icono: 'fa-solid fa-location-dot', texto: `${ficha.direccion} — ${ficha.ciudad}` },
-                    { icono: 'fa-solid fa-phone', texto: ficha.telefono },
-                    { icono: 'fa-brands fa-whatsapp', texto: ficha.whatsapp },
+                    // Un solo número en el backend: el teléfono es también el WhatsApp del local
+                    { icono: 'fa-brands fa-whatsapp', texto: `${ficha.telefono} · teléfono y WhatsApp` },
+                    { icono: 'fa-solid fa-map-pin', texto: ficha.referencia },
                     { icono: 'fa-solid fa-clock', texto: ficha.horario },
-                  ].map(({ icono, texto }) => (
-                    <li className="mb-2 d-flex gap-2" key={icono}>
-                      <i className={`${icono} text-brand mt-1`} />
-                      <span>{texto}</span>
-                    </li>
-                  ))}
+                  ]
+                    .filter(({ texto }) => texto)
+                    .map(({ icono, texto }) => (
+                      <li className="mb-2 d-flex gap-2" key={icono}>
+                        <i className={`${icono} text-brand mt-1`} />
+                        <span>{texto}</span>
+                      </li>
+                    ))}
                 </ul>
 
                 <strong className="small text-uppercase">Puntos clave</strong>
@@ -212,7 +193,6 @@ export default function Establecimiento({ editable = false }) {
                   ))}
                 </ul>
 
-                {/* Editar la ficha va junto a lo que edita, debajo de Puntos clave. */}
                 {editable && (
                   <button className="btn btn-primary mt-3" onClick={() => setModalFicha({ ...ficha })}>
                     <i className="fa-solid fa-pen me-2" />
@@ -241,9 +221,7 @@ export default function Establecimiento({ editable = false }) {
                 )}
               </div>
               <div className="card-body">
-                {cargandoHorarios && <Cargando texto="Cargando horario…" />}
-
-                {!cargandoHorarios && semana.length === 0 ? (
+                {semana.length === 0 ? (
                   <p className="text-secondary small fst-italic mb-0">
                     No hay horarios configurados.
                     {editable && ' Pulsa "Añadir horario" para crear el de cada día.'}
@@ -292,9 +270,8 @@ export default function Establecimiento({ editable = false }) {
         </div>
       )}
 
-      {/* Comentarios aprobados + valoraciones por QR en un solo bloque. El
-          Admin y Owner ven además los productos calificados (VER_DETALLE_OPINIONES).
-          Misión, visión y narrativa: botón "Información" del menú lateral. */}
+      {/* Comentarios y valoraciones por QR en un solo bloque. Misión, visión y narrativa están en
+         el botón «Información» del menú lateral. */}
       <OpinionesClientes puedeComentar={!editable} />
 
       {modalFicha && (

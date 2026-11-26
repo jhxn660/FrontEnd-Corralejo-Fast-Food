@@ -2,35 +2,20 @@ import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 /**
- * Pila de modales abiertos; el último es el que está encima. Hace falta porque
- * hay modales que abren otro encima (el detalle de un insumo abre la
- * confirmación de borrado). Sin la pila, los dos escuchaban el teclado a la
- * vez: un Escape cerraba ambos, la trampa de foco del de abajo le robaba el
- * Tab al de arriba, y al cerrarse el de arriba se liberaba el scroll de la
- * página aunque el de abajo siguiera abierto.
+ * Pila de modales abiertos (el último está encima). Cuando un modal abre otro (detalle →
+ * confirmar borrado), solo el de arriba atiende el teclado, y el scroll de la página se libera
+ * al cerrar el último.
  */
 const pila = []
 const bloqueo = { paddingPrevio: '' }
 
 /**
- * Modal con estilos de Bootstrap pero controlado por React (R30).
- * Se monta en document.body para que ningún contenedor con overflow o z-index
- * (como el header fijo) lo recorte.
+ * Modal con estilos de Bootstrap controlado por React. Se monta en document.body (portal)
+ * para que ningún contenedor con overflow o z-index lo recorte.
  *
- * POR QUÉ LA CLASE `modal` ES IMPRESCINDIBLE
- * Bootstrap 5.3 declara TODAS las variables --bs-modal-* dentro de `.modal`:
- * el fondo de `.modal-content`, el relleno de la cabecera y del cuerpo, el
- * radio, la sombra y el ancho que `modal-lg` solo redefine. Un portal que
- * pinta `.modal-dialog` sin un ancestro `.modal` deja esas variables sin
- * valor, y una propiedad que resuelve a una variable inexistente es inválida:
- * el diálogo sale transparente, sin relleno y sin ancho. Por eso el contenedor
- * lleva `modal` (más `d-block`, porque `.modal` nace en display:none).
- *
- * Además:
- * - Devuelve el foco al elemento que abrió el modal, y lo atrapa dentro
- *   mientras está abierto: tabular no debe llevar a la página de detrás.
- * - Compensa el ancho de la barra de desplazamiento al bloquear el scroll, para
- *   que la página no dé un salto lateral al abrirse.
+ * El contenedor lleva la clase `modal` (y `d-block`): Bootstrap declara ahí las variables
+ * --bs-modal-*, y sin ella el diálogo sale transparente y sin ancho.
+ * Atrapa el foco mientras está abierto, lo devuelve al cerrar y compensa la barra de scroll.
  *
  * @param {string}  titulo       encabezado del diálogo
  * @param {string}  icono        clase de Font Awesome sin el prefijo fa-solid
@@ -53,12 +38,9 @@ export default function Modal({
   const contenido = useRef(null)
   const idTitulo = useId()
 
-  // `onClose` se guarda en una ref y el efecto de abajo corre UNA vez. Antes
-  // dependía de `[onClose]`, y casi todos los padres lo pasan como función
-  // inline: cada render del padre creaba una función nueva, el efecto se
-  // deshacía y se rehacía, y el foco saltaba al primer campo. En "Modificar
-  // venta" eso pasaba con cada tecla, así que era imposible escribir en el
-  // segundo o el tercer campo.
+  // `onClose` se guarda en una ref para que el efecto de abajo corra UNA sola vez. Los
+  // padres suelen pasar una función nueva en cada render; si el efecto dependiera de ella,
+  // se repetiría con cada tecla y el foco saltaría al primer campo del formulario.
   const cerrarRef = useRef(onClose)
   useEffect(() => {
     cerrarRef.current = onClose
@@ -79,7 +61,7 @@ export default function Modal({
       ).filter((elemento) => elemento.offsetParent !== null)
 
     // Foco inicial: el primer campo del formulario si hay, y si no el propio
-    // diálogo. Nunca un botón destructivo del pie (R58).
+    // diálogo. Nunca un botón destructivo del pie.
     const candidatos = enfocables()
     const primerCampo = candidatos.find((e) => e.matches('input, select, textarea'))
     ;(primerCampo ?? contenido.current)?.focus()
@@ -111,9 +93,8 @@ export default function Modal({
 
     document.addEventListener('keydown', alPulsarTecla)
 
-    // Bloqueo del scroll compensando la barra: sin el padding, quitar el scroll
-    // ensancha la página y todo se desplaza unos píxeles al abrir el modal. Lo
-    // pone el primer modal de la pila y lo quita el último en cerrarse.
+    // Bloquea el scroll compensando el ancho de la barra (si no, la página da un salto).
+    // Lo pone el primer modal de la pila y lo quita el último en cerrarse.
     if (pila.length === 1) {
       const anchoBarra = window.innerWidth - document.documentElement.clientWidth
       bloqueo.paddingPrevio = document.body.style.paddingRight

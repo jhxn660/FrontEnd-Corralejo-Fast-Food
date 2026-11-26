@@ -1,8 +1,4 @@
-// Calendario de días especiales: tipos, meses y aritmética de fechas.
-//
-// Vive aparte de la pantalla porque lo usan tres piezas del módulo (la
-// pantalla, el formulario del día y el modal de borrado) y porque son funciones
-// puras que se pueden razonar sin React.
+// Calendario: tipos, meses y aritmética de fechas (funciones puras, sin React).
 
 export const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -25,8 +21,6 @@ export const TIPOS_DIA = {
     ayuda: 'Se abre con algo especial: promoción, fiesta, aniversario.',
   },
 }
-
-export const diaVacio = () => ({ fecha: '', tipo: 'cerrado', motivo: '' })
 
 /**
  * "2026-12-24" → { año: 2026, mes: 11, dia: 24 }, SIN pasar por la zona

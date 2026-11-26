@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 
-import { config } from '../services/config'
 import { alCambiar } from '../services/sincronizacion'
 
 // Varias escrituras seguidas (crear + recargar, o un lote) se agrupan en una
@@ -9,10 +8,10 @@ const AGRUPAR_MS = 150
 
 /**
  * Llama a `refrescar` cuando los datos pueden haber cambiado en la API:
- * - otra pantalla, pestaña o rol escribió (services/sincronizacion.js);
- * - la pestaña vuelve a estar visible o recupera el foco;
- * - cada `config.sincronizacionMs` mientras la pestaña está visible (cambios
- *   hechos desde otro dispositivo).
+ * - otra pantalla o pestaña de este navegador escribió (services/sincronizacion.js);
+ * - la pestaña vuelve a estar visible o recupera el foco (así se ven los cambios hechos
+ *   desde otro dispositivo).
+ * No hay sondeo con temporizador: solo se pide lo que el uso real del sistema provoca.
  *
  * `refrescar` debe ser silencioso (sin spinner): lo usan useRecurso y useMenu.
  */
@@ -34,12 +33,10 @@ export function useSincronizar(refrescar) {
     const dejarDeEscuchar = alCambiar(programar)
     document.addEventListener('visibilitychange', siVisible)
     window.addEventListener('focus', siVisible)
-    const intervalo = config.sincronizacionMs > 0 ? setInterval(siVisible, config.sincronizacionMs) : null
 
     return () => {
       dejarDeEscuchar()
       clearTimeout(temporizador)
-      clearInterval(intervalo)
       document.removeEventListener('visibilitychange', siVisible)
       window.removeEventListener('focus', siVisible)
     }

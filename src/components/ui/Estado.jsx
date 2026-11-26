@@ -1,11 +1,6 @@
 /**
  * Mensajes de carga, error y lista vacía, con el mismo aspecto en toda la app.
- *
- * El mensaje de error se llama `MensajeError` y no `Error`: exportar `Error`
- * tapaba el constructor global en cada archivo que lo importaba, y donde se
- * escribía `new Error('…')` se construía el componente de React en su lugar. El
- * resultado era un objeto sin `message`, así que el modal de borrado mostraba
- * un texto genérico en vez del motivo real del fallo.
+ * Se llama `MensajeError` y no `Error` para no tapar el constructor global `Error` de JavaScript.
  */
 
 export function Cargando({ texto = 'Cargando…' }) {

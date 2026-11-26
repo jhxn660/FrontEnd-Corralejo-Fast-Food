@@ -1,9 +1,6 @@
 /**
  * Un aviso flotante. Lo pinta la pila de AvisosContext; no se usa suelto.
- *
- * El color no es decorativo: verde confirma, rojo informa de un borrado o de un
- * fallo, y el icono acompaña al color para que el mensaje no dependa solo de
- * distinguir tonos.
+ * Verde confirma, rojo informa de un borrado o de un fallo; el icono acompaña al color.
  */
 
 const ESTILOS = {

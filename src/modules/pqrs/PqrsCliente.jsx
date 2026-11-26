@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import { pqrsApi } from './api'
-import { useRecurso } from '../../hooks/useRecurso'
-import { usePeticion } from '../../hooks/usePeticion'
-import { useAvisos } from '../../context/AvisosContext'
 import { useAuth } from '../../context/AuthContext'
+import { useAvisos } from '../../context/AvisosContext'
+import { usePeticion } from '../../hooks/usePeticion'
+import { useRecurso } from '../../hooks/useRecurso'
 import { fechaCorta } from '../../utils/format'
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
 import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+
+import { pqrsApi } from './api'
+import DetallePqrs from './DetallePqrs'
 import {
   COLOR_ESTADO,
   ESTADOS,
@@ -19,27 +21,19 @@ import {
   pqrsVacia,
 } from './esquema'
 import FormularioPqrs from './FormularioPqrs'
-import DetallePqrs from './DetallePqrs'
 
 /**
- * PQRS del cliente: CREAR y LEER, nada más.
- *
- * El cliente no edita ni elimina sus solicitudes: una PQRS es un registro de lo
- * que se pidió, y si se pudiera reescribir o borrar después, la respuesta del
- * local quedaría sin contexto. Por eso esta pantalla no tiene botones de editar
- * ni de eliminar, y el formulario solo se abre para solicitudes nuevas.
- *
- * Es una restricción de interfaz (R17): la API acepta PUT y DELETE de
- * cualquiera.
+ * PQRS del cliente: CREAR y LEER, nada más. Una PQRS es el registro de lo que se pidió: si se
+ * pudiera reescribir o borrar, la respuesta del local quedaría sin contexto. El backend lo
+ * garantiza: el Cliente solo crea (POST /pqrs) y lee las suyas (GET /pqrs/mine).
  */
 export default function PqrsCliente() {
-  // La sesión se toma del contexto: ningún componente la consulta por su cuenta (R5, R8).
   const { usuario } = useAuth()
   const avisos = useAvisos()
 
-  // El backend reconoce al cliente por su token y le devuelve SOLO sus PQRS.
+  // El backend reconoce al cliente por su token y le devuelve SOLO sus PQRS (GET /pqrs/mine).
   const correo = usuario?.email ?? null
-  const cargar = useCallback(() => (correo ? pqrsApi.listar() : Promise.resolve([])), [correo])
+  const cargar = useCallback(() => (correo ? pqrsApi.listarMias() : Promise.resolve([])), [correo])
   const { datos: todas, cargando, error, recargar } = useRecurso(cargar, [])
 
   const [nueva, setNueva] = useState(null) // solicitud en creación

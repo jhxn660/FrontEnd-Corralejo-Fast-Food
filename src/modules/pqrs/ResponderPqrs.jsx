@@ -1,21 +1,16 @@
 import { useState } from 'react'
 
-import Modal from '../../components/ui/Modal'
 import { fechaCorta } from '../../utils/format'
+import Modal from '../../components/ui/Modal'
+
 import { ESTADOS, iconoDe } from './esquema'
 
 const ID_FORMULARIO = 'formulario-respuesta'
 
 /**
- * Respuesta del administrador a una PQRS.
- *
- * "Modificar" una PQRS desde administración es RESPONDERLA: lo que escribió el
- * cliente no se toca (es el registro de lo que pidió); se añade la respuesta
- * del local y se actualiza el estado. El cliente la lee en "Mis solicitudes".
- *
- * El asunto y la descripción se muestran como texto de solo lectura y
- * `onGuardar` solo recibe `respuesta` y `estado`: desde aquí no hay forma de
- * enviar un cambio sobre lo que escribió el cliente.
+ * Respuesta del administrador a una PQRS: se añade la respuesta y se actualiza el estado.
+ * Lo que escribió el cliente se muestra como texto de solo lectura, y `onGuardar` solo recibe
+ * `respuesta` y `estado`.
  */
 export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
   const [respuesta, setRespuesta] = useState(pqrs.respuesta ?? '')
@@ -51,8 +46,6 @@ export default function ResponderPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
         </>
       }
     >
-      {/* Lo que envió el cliente: texto, no campos de formulario. El
-          administrador lo lee para responder, pero no puede cambiarlo. */}
       <section className="modal-resumen mb-4" aria-label="Solicitud del cliente">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <small className="text-secondary">

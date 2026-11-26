@@ -2,7 +2,9 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { useRecurso } from '../../hooks/useRecurso'
 import { Cargando, MensajeError } from '../../components/ui/Estado'
-import { imagenDe, tieneImagen } from '../menu/esquema'
+import { imagenDe, tieneImagen } from '../products/esquema'
+
+import { destacadosApi } from './api'
 import {
   DIAS_SEMANA,
   MESES,
@@ -15,7 +17,6 @@ import {
   partesDe,
 } from './calendario'
 import { estadoDelLocal, indiceDelDia, normalizarHorario, resumenDelDia } from './horario'
-import { destacadosApi } from './api'
 import { useFicha } from './useFicha'
 
 const hoy = new Date()
@@ -23,9 +24,7 @@ const hoy = new Date()
 // Sin fechas especiales en el backend; se conserva la forma que espera el calendario.
 const SIN_FECHAS_ESPECIALES = []
 
-// Años que ofrece el desplegable: el próximo y los dieciséis anteriores. Es el
-// rango con el que tiene sentido consultar días especiales; el calendario sigue
-// avanzando mes a mes con las flechas aunque se salga de esta lista.
+// Años del desplegable: el próximo y los dieciséis anteriores.
 const AÑOS = Array.from({ length: 18 }, (_, i) => hoy.getFullYear() + 1 - i)
 
 /** "2026-03-04" → Date local, sin pasar por UTC (ver calendario.js). */
@@ -35,20 +34,11 @@ const fechaDe = (iso) => {
 }
 
 /**
- * Sección «Horarios» de la portada del cliente.
+ * Sección «Horarios» de las portadas (solo consulta).
  *
- * Dos lecturas de lo mismo, como en el wireframe: a la izquierda el calendario
- * del mes —con los cierres marcados y un día seleccionable que abre su ficha—,
- * a la derecha el horario de apertura de la semana con la insignia de Abierto /
- * Cerrado, que se calcula con la hora del navegador contra el horario de la
- * ficha (ver `horario.js`).
- *
- * El título del calendario no es texto: «Marzo» abre el selector de mes y
- * «2026» el de año, que son las dos sub-vistas del wireframe. Así se salta a
- * cualquier fecha sin pulsar la flecha doce veces.
- *
- * Es solo consulta: los días especiales se crean y se borran en la pantalla del
- * administrador.
+ * A la izquierda, el calendario del mes con los cierres marcados y un día seleccionable; a la
+ * derecha, el horario de la semana con la insignia Abierto / Cerrado (hora del navegador
+ * contra la ficha, ver horario.js). «Marzo» y «2026» abren los selectores de mes y de año.
  */
 export default function Horarios() {
   const {

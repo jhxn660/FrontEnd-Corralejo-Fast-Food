@@ -3,20 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSincronizar } from './useSincronizar'
 
 /**
- * Carga un recurso de la API y expone {datos, cargando, error, recargar}.
+ * Carga un recurso del backend y expone { datos, cargando, error, recargar }.
  *
- * Se mantiene al día solo: cuando cualquier pantalla, pestaña o rol escribe
- * (o pasa el intervalo de sincronización) vuelve a pedir los datos EN SILENCIO,
- * sin spinner ni borrar lo que hay en pantalla (ver useSincronizar).
+ * - Se mantiene al día solo: cuando algo cambia (otra pantalla, pestaña o rol) vuelve a pedir
+ *   los datos en silencio, sin spinner (ver useSincronizar).
+ * - Si dos peticiones se cruzan, gana la última que se lanzó.
+ * - Un refresco silencioso no interrumpe una carga visible (si no, el spinner no se apagaba).
  *
- * Si dos peticiones se cruzan, gana la última que se lanzó: una respuesta
- * vieja que llega tarde no pisa a una nueva.
- *
- * Un refresco silencioso NO se lanza mientras hay una carga visible en curso:
- * esa carga ya trae los datos frescos, y si el refresco le quitaba el turno
- * nadie apagaba `cargando` y la pantalla se quedaba en el spinner.
- *
- * @param {() => Promise<any>} cargar  función que devuelve los datos
+ * @param {() => Promise<any>} cargar  función que devuelve los datos (envuelta en useCallback)
  * @param {any} inicial                valor mientras no haya respuesta
  */
 export function useRecurso(cargar, inicial = null) {

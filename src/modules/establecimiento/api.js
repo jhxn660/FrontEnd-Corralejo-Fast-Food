@@ -1,23 +1,18 @@
-import { http } from '../../services/http'
-import { menuApi } from '../menu/api'
+import { datos } from '../../api/client'
+import { establecimientoApi as backend } from '../../api/establecimiento.api'
+import { salesApi } from '../../api/sales.api'
+import { menuApi } from '../products/api'
 
-// Rutas del backend que usa el módulo Establecimiento. Viven aquí y en ningún otro sitio
-// (R48): ni los hooks ni las pantallas escriben una ruta.
-const RUTAS = {
-  // Ficha del local: dirección, teléfono, ciudad y mapa (un documento)
-  ubicaciones: '/ubicaciones',
-  // Horario de atención: un documento por día de la semana
-  horarios: '/horarios',
-  // Misión, visión y narrativa: un documento por sección (campo `categoria`)
-  informacion: '/establecimiento',
-  ventas: '/sales',
-  comentarios: '/comments',
-  comentariosPublicos: '/comments/public',
-}
+import { DIAS_HORARIO } from './horario'
 
-/* ───────────────────────── Ficha y horarios ───────────────────────── */
+// Módulos del backend que usa Establecimiento:
+//   establecimiento, con sus tres recursos: /ubicaciones (ficha del local), /horarios (uno por
+//   día) y /establecimiento (misión, visión, narrativa). Su lectura es pública.
+//   sales (el más vendido del día).
+// Las opiniones del muro, la calificación por QR y los "me gusta" son del módulo comments
+// (modules/comments), no de este.
 
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+/* ───────────── Ficha: ubicación + horarios ───────────── */
 
 const aHorarioUi = (horario) => ({
   id: horario._id,
@@ -28,14 +23,10 @@ const aHorarioUi = (horario) => ({
   estadoNota: horario.estadoNota ?? '',
 })
 
-/**
- * Horario del backend → `horarioSemanal` de la ficha, el formato que entienden el calendario
- * y el aviso "abierto / cerrado ahora" (ver horario.js): siete días, de lunes a domingo.
- * Un día sin registro o marcado como cerrado queda con abre/cierra en null.
- */
+/** Horario del backend → los siete días de lunes a domingo que usa horario.js. */
 const aHorarioSemanal = (horarios) =>
-  DIAS.map((dia) => {
-    const registro = horarios.find((horario) => horario.dia === dia)
+  DIAS_HORARIO.map((dia) => {
+    const registro = horarios.find((h) => h.dia === dia)
     const abierto = registro && registro.estaAbierto !== false
     return {
       dia,
@@ -45,17 +36,15 @@ const aHorarioSemanal = (horarios) =>
     }
   })
 
-/** Texto corto del horario para la ficha ("Martes: 14:00 – 21:30 · …"). */
-const horarioEnTexto = (semana) =>
-  semana
-    .filter((dia) => dia.abre)
-    .map((dia) => `${dia.dia}: ${dia.abre} – ${dia.cierra}`)
-    .join(' · ')
+/** "Cerca de X · Junto a Y" (un solo texto en el backend) → una línea por referencia. */
+const aReferencias = (referencia = '') =>
+  referencia
+    .split('·')
+    .map((texto) => texto.trim())
+    .filter(Boolean)
+    .map((texto, indice) => ({ id: `referencia-${indice}`, icono: 'fa-location-dot', texto }))
 
-/**
- * Ubicación del backend + horarios → ficha que pintan las pantallas.
- * El backend no tiene WhatsApp aparte: se usa el teléfono del local.
- */
+/** Ubicación + horarios del backend → la ficha que usan las pantallas. */
 const aFichaUi = (ubicacion, horarios) => {
   const horarioSemanal = aHorarioSemanal(horarios)
   return {
@@ -65,61 +54,37 @@ const aFichaUi = (ubicacion, horarios) => {
     ciudad: ubicacion.ciudad ?? '',
     direccion: ubicacion.direccion ?? '',
     telefono: ubicacion.telefono ?? '',
+    // El backend guarda un solo número: el WhatsApp del local es su teléfono.
     whatsapp: ubicacion.telefono ?? '',
+    // El texto tal cual (para editarlo) y partido en líneas (para la tarjeta "Cómo ubicarnos").
+    referencia: ubicacion.referencia ?? '',
+    referencias: aReferencias(ubicacion.referencia),
     mapa: ubicacion.enlaceMapa ?? '',
-    horario: horarioEnTexto(horarioSemanal),
+    // El horario no es un campo de la ubicación: se arma con los registros de /horarios.
+    horario: horarioSemanal.filter((d) => d.abre).map((d) => `${d.dia}: ${d.abre} – ${d.cierra}`).join(' · '),
     horarioSemanal,
-    referencias: ubicacion.referencia
-      ? [{ id: 'referencia', icono: 'fa-location-dot', texto: ubicacion.referencia }]
-      : [],
-    tiempos: [],
+    // Los registros tal cual, para la tabla editable de Gestión del Establecimiento.
+    horarios: horarios.map(aHorarioUi),
   }
 }
 
-// El modelo Ubicacion exige título, descripción, dirección y teléfono.
+/** Ficha del formulario → ubicación del backend: solo los campos que el backend guarda. */
 const aUbicacionApi = (ficha) => ({
-  titulo: ficha.nombre,
-  descripcion: ficha.descripcion || ficha.nombre,
-  direccion: ficha.direccion,
-  telefono: ficha.telefono,
-  ciudad: ficha.ciudad ?? '',
-  enlaceMapa: ficha.mapa ?? '',
+  titulo: (ficha.nombre ?? '').trim(),
+  descripcion: (ficha.descripcion ?? '').trim(),
+  direccion: (ficha.direccion ?? '').trim(),
+  telefono: (ficha.telefono ?? '').trim(),
+  ciudad: (ficha.ciudad ?? '').trim(),
+  referencia: (ficha.referencia ?? '').trim(),
+  enlaceMapa: (ficha.mapa ?? '').trim(),
 })
 
-export const establecimientoApi = {
-  /** La ficha del local, o null si todavía no hay ninguna ubicación registrada. */
-  ficha: async ({ senal } = {}) => {
-    const [ubicaciones, horarios] = await Promise.all([
-      http.get(RUTAS.ubicaciones, { senal }),
-      http.get(RUTAS.horarios, { senal }),
-    ])
-    return ubicaciones[0] ? aFichaUi(ubicaciones[0], horarios) : null
-  },
+/* ───────────── Misión, visión y narrativa ───────────── */
 
-  /** Sin id la crea (primera vez); con id la actualiza. */
-  actualizarFicha: (id, ficha) =>
-    id
-      ? http.patch(`${RUTAS.ubicaciones}/${id}`, aUbicacionApi(ficha))
-      : http.post(RUTAS.ubicaciones, aUbicacionApi(ficha)),
-
-  listarHorarios: async ({ senal } = {}) => (await http.get(RUTAS.horarios, { senal })).map(aHorarioUi),
-
-  /** Sin id lo crea; con id lo actualiza. */
-  guardarHorario: ({ id, ...horario }) =>
-    id ? http.patch(`${RUTAS.horarios}/${id}`, horario) : http.post(RUTAS.horarios, horario),
-
-  eliminarHorario: (id) => http.delete(`${RUTAS.horarios}/${id}`),
-}
-
-/* ───────────────────────── Misión, visión y narrativa ───────────────────────── */
-
-// Secciones que acepta el backend (enum `categoria` del modelo Establecimiento)
 const MISION = 'Misión'
 const VISION = 'Visión'
 const NARRATIVA = 'Narrativa Creativa'
 const SECCIONES_HISTORIA = ['El Origen', 'El Secreto del Banquete', 'La Comunidad Gastronómica', 'El Lema de la Casa']
-
-// El backend no guarda iconos: cada sección tiene el suyo aquí.
 const ICONO_HISTORIA = {
   'El Origen': 'fa-dungeon',
   'El Secreto del Banquete': 'fa-utensils',
@@ -136,204 +101,139 @@ const aHistoriaUi = (seccion) => ({
   texto: seccion.contenido ?? '',
 })
 
-/** Una historia nueva usa su título como sección si coincide con una del backend. */
-const seccionDe = (historia) => (SECCIONES_HISTORIA.includes(historia.titulo) ? historia.titulo : NARRATIVA)
+const esHistoria = (seccion) => seccion.categoria !== MISION && seccion.categoria !== VISION
+
+/* ───────────── El módulo establecimiento completo ───────────── */
+
+// Lectura de la ficha en curso: las pantallas que la piden a la vez esperan la MISMA petición.
+// Al terminar se suelta, así la siguiente lectura (por ejemplo, tras guardar) trae datos nuevos.
+let fichaEnCurso = null
+
+const leerFicha = async () => {
+  const [ubicaciones, horarios] = await Promise.all([datos(backend.ubicaciones.list()), datos(backend.horarios.list())])
+  return ubicaciones[0] ? aFichaUi(ubicaciones[0], horarios) : null
+}
 
 /**
- * Contenido institucional (botón "Información"): misión, visión y las historias.
- * En el backend cada una es un documento de /api/establecimiento.
+ * Un solo adaptador para los tres recursos del módulo establecimiento del backend, como allí:
+ * - ficha (ubicaciones + horarios), guardarFicha, guardarHorario y eliminarHorario.
+ * - informacion y guardarInformacion (/establecimiento: misión, visión y narrativa).
  */
-export const informacionApi = {
-  obtener: async ({ senal } = {}) => {
-    const secciones = await http.get(RUTAS.informacion, { senal })
-    const de = (categoria) => secciones.find((seccion) => seccion.categoria === categoria)
+export const establecimientoApi = {
+  /**
+   * La ficha del local: la ubicación y sus horarios en UNA lectura. Trae el horario resumido
+   * (`horario`), la semana para el calendario (`horarioSemanal`) y los registros (`horarios`).
+   */
+  ficha: () => {
+    fichaEnCurso ??= leerFicha().finally(() => {
+      fichaEnCurso = null
+    })
+    return fichaEnCurso
+  },
+
+  /** Con id actualiza la ubicación; sin id (base de datos nueva) la crea. */
+  guardarFicha: (id, ficha) =>
+    id ? backend.ubicaciones.update(id, aUbicacionApi(ficha)) : backend.ubicaciones.create(aUbicacionApi(ficha)),
+
+  /** Con id actualiza el horario de ese día; sin id lo crea. */
+  guardarHorario: ({ id, ...horario }) => {
+    if (id) return backend.horarios.update(id, horario)
+    return backend.horarios.create(horario)
+  },
+
+  eliminarHorario: (id) => backend.horarios.remove(id),
+
+  informacion: async () => {
+    const secciones = await datos(backend.list())
+    const de = (categoria) => secciones.find((s) => s.categoria === categoria)
     return {
-      // Sin id: la pantalla trata la información como un solo bloque
       id: 'informacion',
       mision: de(MISION)?.contenido ?? '',
       vision: de(VISION)?.contenido ?? '',
-      historias: secciones
-        .filter((seccion) => seccion.categoria !== MISION && seccion.categoria !== VISION)
-        .map(aHistoriaUi),
+      historias: secciones.filter(esHistoria).map(aHistoriaUi),
     }
   },
 
-  /**
-   * Guarda misión, visión e historias comparando con lo que hay en el backend: lo que existe
-   * se actualiza, lo nuevo se crea y las historias que ya no están se borran.
-   */
-  guardar: async ({ mision, vision, historias = [] }) => {
-    const secciones = await http.get(RUTAS.informacion)
-
-    const guardarSeccion = async (categoria, titulo, contenido) => {
+  /** Lo que existe se actualiza, lo nuevo se crea y las historias quitadas se borran. */
+  guardarInformacion: async ({ mision, vision, historias = [] }) => {
+    const secciones = await datos(backend.list())
+    const guardarSeccion = async (categoria, contenido) => {
       if (!contenido?.trim()) return
-      const existente = secciones.find((seccion) => seccion.categoria === categoria)
-      if (existente) await http.patch(`${RUTAS.informacion}/${existente._id}`, { contenido })
-      else await http.post(RUTAS.informacion, { titulo, contenido, categoria })
+      const existente = secciones.find((s) => s.categoria === categoria)
+      if (existente) await backend.update(existente._id, { contenido })
+      else await backend.create({ titulo: categoria, contenido, categoria })
     }
-    await guardarSeccion(MISION, 'Misión', mision)
-    await guardarSeccion(VISION, 'Visión', vision)
+    await guardarSeccion(MISION, mision)
+    await guardarSeccion(VISION, vision)
 
-    const actuales = secciones.filter((seccion) => seccion.categoria !== MISION && seccion.categoria !== VISION)
+    const actuales = secciones.filter(esHistoria)
     for (const historia of historias) {
       const cuerpo = { titulo: historia.titulo, subtitulo: historia.resumen, contenido: historia.texto }
-      const existente = actuales.find((seccion) => String(seccion._id) === String(historia.id))
-      if (existente) await http.patch(`${RUTAS.informacion}/${existente._id}`, cuerpo)
-      else await http.post(RUTAS.informacion, { ...cuerpo, categoria: seccionDe(historia) })
+      const existente = actuales.find((s) => String(s._id) === String(historia.id))
+      if (existente) await backend.update(existente._id, cuerpo)
+      else {
+        // Una historia con título conocido conserva esa categoría; cualquier otra es narrativa
+        const categoria = SECCIONES_HISTORIA.includes(historia.titulo) ? historia.titulo : NARRATIVA
+        await backend.create({ ...cuerpo, categoria })
+      }
     }
-
-    const quedan = new Set(historias.map((historia) => String(historia.id)))
-    for (const seccion of actuales.filter((s) => !quedan.has(String(s._id)))) {
-      await http.delete(`${RUTAS.informacion}/${seccion._id}`)
-    }
+    const quedan = new Set(historias.map((h) => String(h.id)))
+    for (const seccion of actuales.filter((s) => !quedan.has(String(s._id)))) await backend.remove(seccion._id)
   },
 }
 
-/* ───────────────────────── Destacados de la portada ───────────────────────── */
-
-// En pedidos y ventas el combo es un producto aparte ("X (combo)"). Para el
-// más vendido del día cuentan juntos: es el mismo plato.
-const SUFIJO_COMBO = ' (combo)'
-const nombreBase = (producto) => String(producto ?? '').replace(SUFIJO_COMBO, '')
+/* ───────────── Destacados de la portada ───────────── */
 
 export const destacadosApi = {
-  /**
-   * El plato que más se vendió UN día concreto. El filtro va al servidor (?from=día&to=día):
-   * sin él habría que bajar todas las ventas. Para clientes y visitantes el backend solo manda
-   * fecha, estado y productos vendidos. Devuelve null si ese día no hubo ventas.
-   */
-  masVendidoDelDia: async (iso, { senal } = {}) => {
+  /** El plato más vendido de un día. Sin sesión del personal, el backend no da ventas: null. */
+  masVendidoDelDia: async (iso) => {
     if (!iso) return null
-
     const [ventas, { categorias }] = await Promise.all([
-      http.get(RUTAS.ventas, { query: { from: iso, to: iso }, senal }),
-      menuApi.listarCategorias({ soloDisponibles: true, senal }),
+      datos(salesApi.list({ from: iso, to: iso })).catch(() => []),
+      menuApi.listarCategorias({ soloDisponibles: true }),
     ])
 
     const unidades = new Map()
     ventas
       .filter((venta) => venta.estadoPedido !== 'Cancelado')
-      .forEach((venta) =>
-        (venta.detalles ?? []).forEach((detalle) => {
-          const nombre = nombreBase(detalle.producto)
-          unidades.set(nombre, (unidades.get(nombre) ?? 0) + (Number(detalle.cantidad) || 0))
-        })
-      )
+      .forEach((venta) => (venta.detalles ?? []).forEach((d) => {
+        const nombre = String(d.producto ?? '')
+        unidades.set(nombre, (unidades.get(nombre) ?? 0) + (Number(d.cantidad) || 0))
+      }))
 
     const [mejor] = [...unidades.entries()].sort((a, b) => b[1] - a[1])
     if (!mejor) return null
-
-    const plato = categorias
-      .flatMap((categoria) => categoria.productos)
-      .find((candidato) => candidato.nombre === mejor[0])
-
-    return {
-      nombre: mejor[0],
-      cantidad: mejor[1],
-      ventas: ventas.length,
-      // null si ese plato ya no está en la carta: se pinta el logo.
-      imagen: plato?.imagen ?? null,
-    }
+    const plato = categorias.flatMap((c) => c.productos).find((p) => p.nombre === mejor[0])
+    return { nombre: mejor[0], cantidad: mejor[1], ventas: ventas.length, imagen: plato?.imagen ?? null }
   },
 
   /**
-   * La «Lista top»: los tres platos mejor calificados de la carta. Desempate por precio
-   * ascendente: entre dos platos de cinco estrellas, primero el que menos cuesta.
+   * «Lista top»: los tres productos con más estrellas. La calificación (1-5) la calcula el
+   * backend con las valoraciones de las compras (comentarios por QR) que incluían el producto.
+   * Orden: más estrellas primero; si empatan, el que tiene más valoraciones (es más confiable
+   * un 4,5 de 20 clientes que un 5 de uno solo); si siguen empatados, el nombre.
    */
-  mejorValorados: async ({ senal } = {}) => {
-    const { categorias } = await menuApi.listarCategorias({ soloDisponibles: true, senal })
-
+  mejorValorados: async () => {
+    const { categorias } = await menuApi.listarCategorias({ soloDisponibles: true })
     return categorias
-      .flatMap((categoria) =>
-        categoria.productos
-          .filter((plato) => plato.estado !== 'Inhabilitado')
-          .map((plato) => ({ ...plato, categoria: categoria.nombre }))
+      .flatMap((c) => c.productos.map((p) => ({ ...p, categoria: c.nombre })))
+      .filter((p) => p.calificacion > 0)
+      .sort(
+        (a, b) =>
+          b.calificacion - a.calificacion ||
+          b.totalCalificaciones - a.totalCalificaciones ||
+          a.nombre.localeCompare(b.nombre, 'es')
       )
-      .filter((plato) => Number(plato.calificacion) > 0)
-      .sort((a, b) => b.calificacion - a.calificacion || a.precio - b.precio)
       .slice(0, 3)
-      .map((plato, indice) => ({
-        posicion: indice + 1,
-        nombre: plato.nombre,
-        categoria: plato.categoria,
-        descripcion: plato.descripcion,
-        precio: plato.precio,
-        calificacion: Number(plato.calificacion),
-        imagen: plato.imagen ?? null,
+      .map((p, i) => ({
+        posicion: i + 1,
+        nombre: p.nombre,
+        categoria: p.categoria,
+        descripcion: p.descripcion,
+        precio: p.precio,
+        calificacion: p.calificacion,
+        totalCalificaciones: p.totalCalificaciones,
+        imagen: p.imagen ?? null,
       }))
   },
-}
-
-/* ───────────────────────── Opiniones, QR y "me gusta" ───────────────────────── */
-
-/**
- * CALIFICAR UN PEDIDO A PARTIR DEL QR DEL TICKET.
- * El backend no expone la venta a quien no es del personal, así que aquí solo se prepara el
- * código. Las comprobaciones (que el QR exista y que no se haya calificado ya) las hace el
- * backend al registrar la valoración, y su mensaje es el que ve la persona.
- */
-export const ticketsApi = {
-  buscarPorQr: async (qr) => {
-    const codigo = String(qr ?? '').trim().toUpperCase()
-    if (!codigo) throw new Error('Escribe el código del ticket.')
-    return { qr: codigo, ticket: codigo, productos: [], sinDetalle: true }
-  },
-}
-
-/**
- * Valoración desde el QR del ticket (CalificarPedido). `valoracion`: entero 1-10.
- * Los comentarios SOLO se crean así: el QR es la prueba de compra. Si hay sesión, el token
- * viaja solo y el backend asocia el comentario al cliente.
- */
-export const valoracionesApi = {
-  registrar: ({ ticket, valoracion, texto }) =>
-    http.post(RUTAS.comentarios, { codigo: ticket.qr, comentario: texto ?? '', valoracion }),
-}
-
-/** Comentario del backend → tarjeta de "Lo que dicen nuestros clientes". */
-const aOpinionUi = (comentario) => ({
-  id: comentario._id,
-  // Nombre público del autor; null = lo dejó un visitante sin cuenta
-  usuario: comentario.usuario?.name ?? null,
-  nombre: comentario.usuario?.name ?? null,
-  valoracion: comentario.valoracion ?? (comentario.calificacion ? comentario.calificacion * 2 : 0),
-  texto: comentario.comentario ?? '',
-  fecha: comentario.createdAt,
-  likes: comentario.likes ?? 0,
-  meGusta: Boolean(comentario.meGusta),
-  moderando: false,
-})
-
-export const opinionesApi = {
-  /**
-   * Comentarios visibles, del más reciente al más antiguo. `conDetalle` (Admin y Owner)
-   * añade el código QR, el ticket y los productos de la venta, que solo da la ruta del personal.
-   */
-  listar: async ({ conDetalle = false, senal } = {}) => {
-    const publicos = (await http.get(RUTAS.comentariosPublicos, { senal })).map(aOpinionUi)
-    if (!conDetalle) return publicos
-
-    const completos = await http.get(RUTAS.comentarios, { senal })
-    const detalleDe = new Map(completos.map((comentario) => [String(comentario._id), comentario]))
-    return publicos.map((opinion) => {
-      const completo = detalleDe.get(String(opinion.id))
-      return {
-        ...opinion,
-        qr: completo?.codigo ?? null,
-        ticket: completo?.venta?.ticketId ? `#T-${String(completo.venta.ticketId).padStart(4, '0')}` : '',
-        productos: (completo?.venta?.detalles ?? []).map((detalle) => ({
-          producto: detalle.producto,
-          cantidad: detalle.cantidad,
-        })),
-      }
-    })
-  },
-}
-
-/**
- * «Me gusta»: un contador dentro del comentario. El mismo botón lo da o lo quita; el backend
- * sabe quién lo pulsa por el token. Pueden darlo Cliente, Administrador y Owner.
- */
-export const meGustaApi = {
-  alternar: (comentarioId) => http.patch(`${RUTAS.comentarios}/${comentarioId}/like`),
 }
