@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+// Lectura y reducción de las imágenes que sube la administración.
+//
+// Se reduce a 800 px de ancho antes de guardar: la imagen viaja dentro del producto (base64), y
+// una foto de teléfono serían megabytes que el navegador descargaría con la carta.
+// Siempre sale JPEG (un PNG fotográfico pesa mucho más). Como el JPEG no tiene transparencia, el
+// lienzo se pinta de blanco antes de dibujar (si no, las zonas transparentes saldrían negras).
+
+const TIPOS_ACEPTADOS = ['image/jpeg', 'image/jpg', 'image/png']
+=======
 // Lectura y reducción de las imágenes que sube el administrador.
 //
 // POR QUÉ SE REDUCE ANTES DE GUARDAR
@@ -14,11 +24,16 @@
 // —si no, las zonas transparentes saldrían negras—.
 
 export const TIPOS_ACEPTADOS = ['image/jpeg', 'image/jpg', 'image/png']
+>>>>>>> origin/main
 
 /** Lo que se le pasa al `accept` del input, para que el explorador ya filtre. */
 export const ACEPTA = '.jpg,.jpeg,.png,image/jpeg,image/png'
 
+<<<<<<< HEAD
+const MAX_BYTES = 5 * 1024 * 1024
+=======
 export const MAX_BYTES = 5 * 1024 * 1024
+>>>>>>> origin/main
 const ANCHO_MAXIMO = 800
 const CALIDAD = 0.72
 
@@ -31,7 +46,11 @@ const megas = (bytes) => (bytes / (1024 * 1024)).toFixed(1).replace('.', ',')
  * convierte en una imagen, y el `accept` del input es una sugerencia que el
  * arrastre no respeta.
  */
+<<<<<<< HEAD
+const errorDeImagen = (archivo) => {
+=======
 export const errorDeImagen = (archivo) => {
+>>>>>>> origin/main
   if (!archivo) return 'No llegó ningún archivo.'
   if (!TIPOS_ACEPTADOS.includes(archivo.type)) {
     return 'Solo se aceptan imágenes JPG o PNG.'

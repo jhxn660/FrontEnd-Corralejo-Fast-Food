@@ -1,4 +1,19 @@
 import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+<<<<<<< HEAD
+import OpinionesClientes from '../comments/OpinionesClientes'
+
+import Horarios from './Horarios'
+import ListaTop from './ListaTop'
+import Ubicacion from './Ubicacion'
+
+const ANCLA_OPINIONES = 'muro-comentarios'
+
+/**
+ * Portada del cliente, en este orden: bienvenida, ficha del local (Ubicacion), Lista Top con
+ * «Ver nuestro menú», horarios y opiniones. La vista lleva `listaTopEnPagina`
+ * (config/navegacion.jsx), así que Layout no pinta la Lista Top encima.
+ * Solo consulta: la ficha se edita en Gestión del Establecimiento.
+=======
 import PieContacto from '../../components/ui/PieContacto'
 import Horarios from './Horarios'
 import Ubicacion from './Ubicacion'
@@ -18,12 +33,22 @@ import Valoraciones from './Valoraciones'
  * especiales se editan únicamente en la pantalla del administrador (R44). Lo
  * único que el cliente escribe aquí es su valoración y su comentario, dentro de
  * `Valoraciones`.
+>>>>>>> origin/main
  */
 export default function InicioCliente() {
   return (
     <>
       <EncabezadoPagina
         titulo="Bienvenido/a"
+<<<<<<< HEAD
+        descripcion="Lo más pedido, dónde estamos, cuándo abrimos y qué opinan nuestros clientes."
+      />
+
+      <Ubicacion />
+      <ListaTop rutaComentarios={`/cliente/inicio#${ANCLA_OPINIONES}`} rutaMenu="/cliente/menu" />
+      <Horarios />
+      <OpinionesClientes puedeComentar ancla={ANCLA_OPINIONES} />
+=======
         descripcion="Conoce el local, mira cuándo abrimos y cuéntanos qué tal estuvo tu pedido."
       />
 
@@ -31,6 +56,7 @@ export default function InicioCliente() {
       <Horarios />
       <Valoraciones />
       <PieContacto />
+>>>>>>> origin/main
     </>
   )
 }

@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+// Horario de atención: formato de horas y estado del local (funciones puras, sin React).
+//
+// CONTRATO (`horarioSemanal` de la ficha):
+//   [{ dia: 'Lunes', abre: null,    cierra: null    },   // cerrado todo el día
+//    { dia: 'Martes', abre: '14:00', cierra: '21:30' }, … ]
+// Siempre siete entradas, de lunes a domingo. Horas en formato 24 h «HH:MM»; `null` significa
+// que ese día no se abre. Un día que la ficha no traiga se trata como cerrado.
+
+import { partesDe } from './calendario'
+
+/** Días que acepta el backend (enum `dia` del modelo Horario), de lunes a domingo. */
+export const DIAS_HORARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+/** "14:00" → 840. Devuelve null si la hora no es válida. */
+const aMinutos = (hora) => {
+=======
 // Horario de atención: contrato semanal, formato de horas y estado del local.
 //
 // Vive aparte de la pantalla porque son funciones puras —se pueden razonar y
@@ -40,6 +57,7 @@ export const HORARIO_POR_DEFECTO = [
 
 /** "14:00" → 840. Devuelve null si la hora no es válida. */
 export const aMinutos = (hora) => {
+>>>>>>> origin/main
   const [h, m] = String(hora ?? '').split(':').map(Number)
   if (!Number.isInteger(h) || !Number.isInteger(m)) return null
   if (h < 0 || h > 23 || m < 0 || m > 59) return null
@@ -47,6 +65,12 @@ export const aMinutos = (hora) => {
 }
 
 /**
+<<<<<<< HEAD
+ * «14:00» → «2:00 p. m.» (es-CO). La cadena ya termina en punto: una frase que acabe en una
+ * hora no lleva otro.
+ */
+export const horaLegible = (hora) => {
+=======
  * "14:00" → "2:00 p. m.", como lo escribe es-CO.
  *
  * Ojo al escribir frases con esto: la cadena YA termina en punto, así que una
@@ -54,6 +78,7 @@ export const aMinutos = (hora) => {
  * "…p. m..").
  */
 export const hora12 = (hora) => {
+>>>>>>> origin/main
   const minutos = aMinutos(hora)
   if (minutos === null) return '—'
   const h = Math.floor(minutos / 60)
@@ -68,6 +93,19 @@ export const indiceDelDia = (fecha = new Date()) => (fecha.getDay() + 6) % 7
 /**
  * Deja el horario de la ficha en la forma del contrato, pase lo que pase:
  * siete entradas en orden, con `cerrado` ya calculado. Una ficha sin
+<<<<<<< HEAD
+ * `horarioSemanal`, con menos de siete días o con horas inválidas deja ese día
+ * como CERRADO en vez de dejar un hueco en la tabla.
+ */
+export const normalizarHorario = (horarioSemanal) =>
+  DIAS_HORARIO.map((dia, indice) => {
+    const guardado = Array.isArray(horarioSemanal)
+      ? horarioSemanal.find((entrada) => entrada?.dia === dia) ?? horarioSemanal[indice]
+      : null
+
+    const abre = aMinutos(guardado?.abre) === null ? null : guardado.abre
+    const cierra = aMinutos(guardado?.cierra) === null ? null : guardado.cierra
+=======
  * `horarioSemanal`, con menos de siete días o con horas inválidas cae en el
  * horario por defecto para ese día en vez de dejar un hueco en la tabla.
  */
@@ -80,6 +118,7 @@ export const normalizarHorario = (horarioSemanal) =>
 
     const abre = aMinutos(base?.abre) === null ? null : base.abre
     const cierra = aMinutos(base?.cierra) === null ? null : base.cierra
+>>>>>>> origin/main
     const cerrado = abre === null || cierra === null
 
     return {
@@ -88,13 +127,22 @@ export const normalizarHorario = (horarioSemanal) =>
       abre: cerrado ? null : abre,
       cierra: cerrado ? null : cierra,
       cerrado,
+<<<<<<< HEAD
+      // Texto de la columna derecha de la tabla de horarios.
+      texto: cerrado ? 'CERRADO' : `${horaLegible(abre)} - ${horaLegible(cierra)}`,
+=======
       // Lo que se pinta en la columna derecha de la tabla del wireframe.
       texto: cerrado ? 'CERRADO' : `${hora12(abre)} - ${hora12(cierra)}`,
+>>>>>>> origin/main
     }
   })
 
 /** El día especial que cae en una fecha concreta, o null. */
+<<<<<<< HEAD
+const diaEspecialDe = (diasEspeciales, fecha = new Date()) => {
+=======
 export const diaEspecialDe = (diasEspeciales, fecha = new Date()) => {
+>>>>>>> origin/main
   const año = fecha.getFullYear()
   const mes = fecha.getMonth()
   const dia = fecha.getDate()
@@ -108,6 +156,12 @@ export const diaEspecialDe = (diasEspeciales, fecha = new Date()) => {
 }
 
 /**
+<<<<<<< HEAD
+ * Qué pasa un día CONCRETO del calendario: ¿abre y en qué franja? No mira la hora (para
+ * «¿está abierto AHORA?» está `estadoDelLocal`).
+ * `cierreSemanal` («los lunes no abrimos») y `cerrado` (que incluye los días especiales) se
+ * pintan distinto: un cierre especial debe saltar a la vista.
+=======
  * Qué pasa un día CONCRETO del calendario, sea pasado o futuro.
  *
  * No confundir con `estadoDelLocal`, que responde "¿está abierto AHORA?" y por
@@ -119,6 +173,7 @@ export const diaEspecialDe = (diasEspeciales, fecha = new Date()) => {
  * "los lunes no abrimos" y el segundo incluye además los días especiales. El
  * calendario los pinta diferente porque un lunes cerrado es la norma y una
  * Nochebuena cerrada es una excepción que conviene que salte a la vista.
+>>>>>>> origin/main
  */
 export const resumenDelDia = ({ horarioSemanal, diasEspeciales, fecha } = {}) => {
   const dia = normalizarHorario(horarioSemanal)[indiceDelDia(fecha)]
@@ -144,6 +199,10 @@ export const resumenDelDia = ({ horarioSemanal, diasEspeciales, fecha } = {}) =>
 }
 
 /**
+<<<<<<< HEAD
+ * ¿Está abierto el local ahora mismo? Un día especial cerrado manda sobre el horario semanal.
+ * Devuelve siempre un motivo legible para la insignia.
+=======
  * ¿Está abierto el local ahora mismo?
  *
  * El orden de las comprobaciones importa: un día especial marcado como
@@ -151,6 +210,7 @@ export const resumenDelDia = ({ horarioSemanal, diasEspeciales, fecha } = {}) =>
  * mira la franja del día. Devuelve siempre un motivo legible, porque la
  * insignia sin explicación ("Cerrado" a las tres de la tarde de un martes)
  * genera más dudas de las que resuelve.
+>>>>>>> origin/main
  */
 export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Date() } = {}) => {
   const semana = normalizarHorario(horarioSemanal)
@@ -168,12 +228,22 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
   }
 
   if (hoy.cerrado) {
+<<<<<<< HEAD
+    // El próximo día abierto de esta semana; si no queda ninguno, el primero de la siguiente
+    const siguiente =
+      semana.find((dia) => dia.indice > hoy.indice && !dia.cerrado) ?? semana.find((dia) => !dia.cerrado)
+=======
     const siguiente = semana.find((dia) => dia.indice > hoy.indice && !dia.cerrado) ?? semana.find((dia) => !dia.cerrado)
+>>>>>>> origin/main
     return {
       abierto: false,
       etiqueta: 'Cerrado',
       detalle: siguiente
+<<<<<<< HEAD
+        ? `Los ${hoy.dia.toLowerCase()} no abrimos. Volvemos el ${siguiente.dia.toLowerCase()} a las ${horaLegible(siguiente.abre)}`
+=======
         ? `Los ${hoy.dia.toLowerCase()} no abrimos. Volvemos el ${siguiente.dia.toLowerCase()} a las ${hora12(siguiente.abre)}`
+>>>>>>> origin/main
         : `Los ${hoy.dia.toLowerCase()} no abrimos.`,
       hoy,
       especial,
@@ -188,7 +258,11 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
     return {
       abierto: false,
       etiqueta: 'Cerrado',
+<<<<<<< HEAD
+      detalle: `Hoy abrimos a las ${horaLegible(hoy.abre)}`,
+=======
       detalle: `Hoy abrimos a las ${hora12(hoy.abre)}`,
+>>>>>>> origin/main
       hoy,
       especial,
     }
@@ -198,7 +272,11 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
     return {
       abierto: false,
       etiqueta: 'Cerrado',
+<<<<<<< HEAD
+      detalle: `Hoy atendimos hasta las ${horaLegible(hoy.cierra)}`,
+=======
       detalle: `Hoy atendimos hasta las ${hora12(hoy.cierra)}`,
+>>>>>>> origin/main
       hoy,
       especial,
     }
@@ -209,8 +287,13 @@ export const estadoDelLocal = ({ horarioSemanal, diasEspeciales, ahora = new Dat
     etiqueta: 'Abierto ahora',
     detalle:
       especial?.tipo === 'evento' && especial.motivo
+<<<<<<< HEAD
+        ? `${especial.motivo} Cerramos a las ${horaLegible(hoy.cierra)}`
+        : `Cerramos a las ${horaLegible(hoy.cierra)}`,
+=======
         ? `${especial.motivo} Cerramos a las ${hora12(hoy.cierra)}`
         : `Cerramos a las ${hora12(hoy.cierra)}`,
+>>>>>>> origin/main
     hoy,
     especial,
   }

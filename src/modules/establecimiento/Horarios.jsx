@@ -2,7 +2,13 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { useRecurso } from '../../hooks/useRecurso'
 import { Cargando, MensajeError } from '../../components/ui/Estado'
+<<<<<<< HEAD
+import { imagenDe, tieneImagen } from '../products/esquema'
+
+import { destacadosApi } from './api'
+=======
 import { imagenDe, tieneImagen } from '../menu/esquema'
+>>>>>>> origin/main
 import {
   DIAS_SEMANA,
   MESES,
@@ -15,6 +21,16 @@ import {
   partesDe,
 } from './calendario'
 import { estadoDelLocal, indiceDelDia, normalizarHorario, resumenDelDia } from './horario'
+<<<<<<< HEAD
+import { useFicha } from './useFicha'
+
+const hoy = new Date()
+
+// Sin fechas especiales en el backend; se conserva la forma que espera el calendario.
+const SIN_FECHAS_ESPECIALES = []
+
+// Años del desplegable: el próximo y los dieciséis anteriores.
+=======
 import { destacadosApi, establecimientoApi } from './api'
 
 const hoy = new Date()
@@ -22,6 +38,7 @@ const hoy = new Date()
 // Años que ofrece el desplegable: el próximo y los dieciséis anteriores. Es el
 // rango con el que tiene sentido consultar días especiales; el calendario sigue
 // avanzando mes a mes con las flechas aunque se salga de esta lista.
+>>>>>>> origin/main
 const AÑOS = Array.from({ length: 18 }, (_, i) => hoy.getFullYear() + 1 - i)
 
 /** "2026-03-04" → Date local, sin pasar por UTC (ver calendario.js). */
@@ -31,6 +48,15 @@ const fechaDe = (iso) => {
 }
 
 /**
+<<<<<<< HEAD
+ * Sección «Horarios» de las portadas (solo consulta).
+ *
+ * A la izquierda, el calendario del mes con los cierres marcados y un día seleccionable; a la
+ * derecha, el horario de la semana con la insignia Abierto / Cerrado (hora del navegador
+ * contra la ficha, ver horario.js). «Marzo» y «2026» abren los selectores de mes y de año.
+ */
+export default function Horarios() {
+=======
  * Sección «Horarios» de la portada del cliente.
  *
  * Dos lecturas de lo mismo, como en el wireframe: a la izquierda el calendario
@@ -50,11 +76,19 @@ export default function Horarios() {
   const cargarFicha = useCallback(() => establecimientoApi.ficha(), [])
   const cargarDias = useCallback(() => establecimientoApi.listarDiasEspeciales(), [])
 
+>>>>>>> origin/main
   const {
     datos: ficha,
     cargando: cargandoFicha,
     error: errorFicha,
     recargar: recargarFicha,
+<<<<<<< HEAD
+  } = useFicha()
+
+  // El backend no guarda fechas sueltas: los avisos salen del horario semanal (nota de cada día).
+  const dias = SIN_FECHAS_ESPECIALES
+  const avisosHorario = (ficha?.horarioSemanal ?? []).filter((dia) => dia.nota)
+=======
   } = useRecurso(cargarFicha, null)
 
   const {
@@ -63,6 +97,7 @@ export default function Horarios() {
     error: errorDias,
     recargar: recargarDias,
   } = useRecurso(cargarDias, [])
+>>>>>>> origin/main
 
   const [mes, setMes] = useState({ año: hoy.getFullYear(), mes: hoy.getMonth() })
   const [selector, setSelector] = useState(null) // 'mes' | 'año' | null
@@ -107,7 +142,10 @@ export default function Horarios() {
     return indexados
   }, [dias, mes])
 
+<<<<<<< HEAD
+=======
   const especiales = Object.keys(delMes).sort((a, b) => a - b)
+>>>>>>> origin/main
   const indiceHoy = indiceDelDia(hoy)
 
   const irA = (cambios) => {
@@ -173,7 +211,10 @@ export default function Horarios() {
   return (
     <>
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
+<<<<<<< HEAD
+=======
       <MensajeError texto={errorDias} onReintentar={recargarDias} />
+>>>>>>> origin/main
 
       <div className="row g-3">
         <div className="col-12 col-xl-6">
@@ -334,6 +375,24 @@ export default function Horarios() {
                 </div>
               </article>
 
+<<<<<<< HEAD
+              <h4 className="h6 fw-bold mt-3">Avisos del horario</h4>
+              {avisosHorario.length === 0 ? (
+                <p className="text-secondary small fst-italic mb-0">No hay avisos en el horario.</p>
+              ) : (
+                <ul className="list-group list-group-flush">
+                  {avisosHorario.map((dia) => (
+                    <li key={dia.dia} className="list-group-item d-flex align-items-center gap-2 px-0">
+                      <span className={`badge bg-${dia.abre ? 'success' : 'danger'} flex-shrink-0`}>
+                        {dia.abre ? 'Abierto' : 'Cerrado'}
+                      </span>
+                      <span className="small flex-grow-1 min-width-0">
+                        <span className="d-block fw-semibold">{dia.dia}</span>
+                        <span className="text-secondary">{dia.nota}</span>
+                      </span>
+                    </li>
+                  ))}
+=======
               <h4 className="h6 fw-bold mt-3">Días especiales este mes</h4>
               {cargandoDias && <Cargando texto="Cargando días especiales…" />}
 
@@ -369,6 +428,7 @@ export default function Horarios() {
                       </li>
                     )
                   })}
+>>>>>>> origin/main
                 </ul>
               )}
             </div>

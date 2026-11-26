@@ -1,345 +1,241 @@
-
 # Corralejo Fast Food — Frontend
 
-Sistema de gestión para el restaurante Corralejo Fast Food. React 19 + Vite +
-Bootstrap 5 + react-router-dom. La autenticación usa Supabase; el resto de los
-datos vive en una API REST local servida con json-server.
+Aplicación web (SPA) del restaurante Corralejo Fast Food: pedidos, ventas con tiquete y QR,
+carta con combos, recetas, inventario, usuarios, indicadores, comentarios, PQRS y la portada
+pública del local. Cada rol ve su propio panel.
 
-Las reglas de arquitectura del proyecto están en **[ARQUITECTURA.md](ARQUITECTURA.md)**.
+**Todos los datos y la sesión los da el backend** (`Backend-Corralejo-Fast-Food`: Express +
+MongoDB). Este proyecto no guarda datos propios: si algo no está en el backend, no existe.
 
-Si llegas nuevo al proyecto, lee también:
+| Tecnología | Para qué se usa |
+|---|---|
+| **React 19** | Interfaz por componentes y hooks. |
+| **Vite 6** | Servidor de desarrollo y empaquetado. |
+| **react-router-dom 7** | Una URL por pantalla y control de acceso por rol. |
+| **axios** | Cliente HTTP hacia la API del backend (`src/api/client.js`). |
+| **Bootstrap 5** (solo CSS) + **Font Awesome 6** | Estilos e iconos, instalados por npm. |
+| **ESLint 9** *(desarrollo)* | Revisión del código (`npm run lint`). |
 
-- **[docs/GUIA-CODIGO-LEGIBLE.md](docs/GUIA-CODIGO-LEGIBLE.md)**: dónde va cada
-  cosa, cómo ordenar un componente, nombres, comentarios y recetas paso a paso.
-- **[docs/PARTES-COMPLEJAS.md](docs/PARTES-COMPLEJAS.md)**: los flujos que
-  cruzan varios archivos (pedido → venta, indicadores, modales, impresión del
-  ticket) y las trampas ya conocidas.
+### ¿Por dónde empiezo a leer?
+
+1. Este README: instalar, ejecutar y el mapa general.
+2. **[docs/GUIA-CODIGO-LEGIBLE.md](docs/GUIA-CODIGO-LEGIBLE.md)**: el orden recomendado para
+   leer el código por primera vez y cómo escribir código nuevo en el mismo estilo.
+3. **[ARQUITECTURA.md](ARQUITECTURA.md)**: las capas, el flujo de datos y las reglas del
+   proyecto.
+4. **[docs/PARTES-COMPLEJAS.md](docs/PARTES-COMPLEJAS.md)**: los flujos que cruzan varios
+   archivos (sesión, pedido → venta, recetas, combos, calificaciones…).
 
 ---
 
-## Puesta en marcha
+## 1. Instalación
+
+Requisitos: **Node.js 20 o superior** y el backend instalado y en marcha.
 
 ```bash
 npm install
-cp .env.example .env     # completa las credenciales de Supabase
+cp .env.example .env     # en Windows (PowerShell): Copy-Item .env.example .env
 ```
 
-Hacen falta **dos terminales**:
+### Variables de entorno (`.env`)
+
+| Variable | Para qué sirve | Por defecto |
+|---|---|---|
+| `VITE_API_URL` | Dirección del backend, **sin** `/api` (el `/api` lo añade `src/api/client.js`). | `http://localhost:3000` |
+| `VITE_APP_URL` | Dirección pública de la app: es lo que codifica el QR del tiquete. En producción debe ser el dominio real. | el origen actual |
+| `VITE_WHATSAPP_NUMERO` | WhatsApp del local (con indicativo, sin `+`). Solo se usa si la ficha del local no tiene teléfono. | vacío |
+
+Ninguna es obligatoria en desarrollo. `VITE_API_URL` la lee `src/api/client.js`; las demás,
+`src/services/config.js`.
+
+---
+
+## 2. Ejecución
+
+En desarrollo hacen falta **dos terminales**:
 
 ```bash
-npm run api    # API REST en http://localhost:3000  (json-server)
-npm run dev    # aplicación en http://localhost:5173
+# Terminal 1, en Backend-Corralejo-Fast-Food → API en http://localhost:3000
+npm run dev
+
+# Terminal 2, en esta carpeta → aplicación en http://localhost:5173
+npm run dev
 ```
 
-Si la aplicación muestra "No se pudo conectar con la API", es que falta `npm run api`.
+Si la aplicación dice "No se pudo conectar con el servidor", el backend no está en marcha o
+`VITE_API_URL` no apunta a él.
 
-### Variables de entorno
-
-| Variable | Para qué sirve |
+| Comando | Qué hace |
 |---|---|
-| `VITE_SUPABASE_URL` | URL del proyecto de Supabase |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Clave pública de Supabase |
-| `VITE_API_URL` | Base de la API REST. Por defecto `http://localhost:3000` |
+| `npm run dev` | Servidor de desarrollo con recarga en caliente. |
+| `npm run build` | Genera la versión de producción en `dist/`. |
+| `npm run preview` | Sirve `dist/` en local para revisar el build. |
+| `npm run lint` | Revisa el código con ESLint. Debe terminar sin errores. |
+
+Para producción se publica `dist/` en un servidor de archivos estáticos, con `VITE_API_URL`
+apuntando al backend publicado y `VITE_APP_URL` al dominio real.
 
 ---
 
-## Roles
+## 3. Estructura de carpetas
 
-El rol se escribe en `user_metadata.rol` al registrarse y se lee del mismo
-sitio. Valores aceptados: `admin`, `empleado` y `cliente`. Cualquier otro valor
-se trata como `cliente`.
-
-Toda cuenta nueva nace como `cliente`. Para elevar a `empleado` o `admin`:
-Supabase → Authentication → Users → *Edit user metadata* → `{ "rol": "admin" }`.
-Las cuentas creadas antes de este cambio no tienen el campo y entran como
-cliente hasta que se les añada.
-
-| Rol | Pantallas | Rutas |
-|---|---|---|
-| `admin` | Establecimiento, Inventario, Menú, Indicadores, Empleados, Moderación de PQRS | `/admin/*` |
-| `empleado` | Pedidos, Menú, Ventas, PQRS | `/empleado/*` |
-| `cliente` | Inicio (local, horarios y valoraciones), Menú, PQRS (solo crear y leer) | `/cliente/*` |
-| *(sin sesión)* | Calificar un pedido con el QR del tiquete | `/calificar/:qr` |
-
-La única pantalla sin sesión es la del QR: quien tiene el código del tiquete
-hizo la compra, y eso es lo que le da derecho a puntuar su pedido. Está
-declarada en la misma tabla (`RUTAS_PUBLICAS` en `src/config/navegacion.jsx`),
-no suelta en `App.jsx`.
-
-**Menú** y **Establecimiento** son el mismo componente para los tres roles
-(`src/modules/menu/` y `src/modules/establecimiento/`). La única diferencia es la prop `editable`, que solo
-recibe el administrador: con ella aparecen los botones de crear, actualizar y
-eliminar. El empleado y el cliente ven exactamente la misma pantalla, en modo
-consulta, y el cliente no ve las categorías inhabilitadas.
-
-El control de acceso vive en un único archivo: **`src/config/navegacion.jsx`**,
-y se aplica en tres capas: el guardia de ruta (`RutaProtegida`), el menú lateral
-y el render de cada página. Si una vista no aparece en el menú del rol activo,
-ni se renderiza ni se puede navegar hacia ella, ni escribiendo la URL a mano.
-
----
-
-## Sesión y navegación
-
-- La sesión vive en **`src/context/AuthContext.jsx`**, que expone
-  `{ usuario, rol, cargando, cerrarSesion }` y se suscribe a
-  `onAuthStateChange`: cerrar sesión en una pestaña cierra también las demás.
-- Cada pantalla tiene su propia URL, así que se puede compartir, marcar como
-  favorita y recargar. El botón Atrás del navegador recorre la aplicación.
-- Una URL desconocida muestra la pantalla 404 propia
-  (`src/components/layout/NoEncontrado.jsx`), nunca una página en blanco.
-- Un usuario que pide una ruta ajena a su rol es redirigido a su propio panel,
-  sin pasar por el login.
-
----
-
-## Estructura
-
-El código se ordena por **módulo de dominio**, no por rol. Un rol no es una
-carpeta: es una fila de la tabla de `src/config/navegacion.jsx`. Así una
-pantalla que ven dos roles vive en un solo sitio y no hace falta una carpeta
-"compartidas" para las excepciones.
+El código se ordena **por módulo**, y cada módulo del frontend se llama igual que su módulo
+en el backend (`orders`, `sales`, `products`…). Un rol **no** es una carpeta: lo que ve cada
+rol es una tabla en `src/config/navegacion.jsx`.
 
 ```
-FrontEnd/
-├── ARQUITECTURA.md             Contrato de arquitectura
-├── docs/                       Guía para juniors y partes complejas
-├── server/db.json              Base de datos de json-server
-├── public/favicon.svg
-├── index.html
-└── src/
-    ├── main.jsx                Punto de entrada; Router, AuthProvider y estilos
-    ├── App.jsx                 Árbol de rutas (recorre la tabla de navegación)
-    │
-    ├── config/
-    │   ├── navegacion.jsx      LO QUE VE CADA ROL: ruta, título, icono y pantalla
-    │   └── roles.js            Roles, títulos de panel y normalizarRol()
-    │
-    ├── context/
-    │   ├── AuthContext.jsx     Sesión: { usuario, rol, cargando, cerrarSesion }
-    │   └── AvisosContext.jsx   Avisos de 3 s: useAvisos().exito / error / fallo
-    │
-    ├── modules/                Un módulo por dominio del negocio
-    │   ├── autenticacion/      Login, Register, FormularioAuth, CampoTexto
-    │   ├── establecimiento/    Establecimiento, valoraciones por QR, muro, calendario
-    │   ├── menu/               Menu (los tres roles), carta, productosVendibles()
-    │   ├── pqrs/               PqrsCliente, PqrsEmpleado, esquema.js
-    │   ├── pedidos/            Pedidos, CatalogoModal, ConfirmarAccion, gráfica
-    │   ├── ventas/             Ventas, EditarVenta, TicketModal, servicio.js
-    │   ├── inventario/         Inventario, tarjeta, detalle, formulario, esquema
-    │   ├── indicadores/        Indicadores, calculos.js (/sales + /comentarios), meta
-    │   └── empleados/          Empleados, formulario, esquema
-    │
-    ├── components/             Piezas sin dominio, reutilizables
-    │   ├── layout/             Layout, RutaProtegida, LimiteDeError, NoEncontrado…
-    │   └── ui/                 Modal, Aviso, Estado, CampoImagen, PieContacto…
-    │
-    ├── services/               Infraestructura, sin reglas de negocio
-    │   ├── api.js              Cliente REST único (list/get/create/update/patch/remove)
-    │   └── supabase.js         Cliente de Supabase
-    │
-    ├── hooks/
-    │   ├── useRecurso.js       Leer: {datos, cargando, error, recargar}
-    │   ├── usePeticion.js      Escribir: {ejecutar, enviando, error}
-    │   └── useConfirmacion.js  Borrar con confirmación
-    │
-    ├── data/                   Contenido estático, fuera del JSX
-    │   ├── contenido.js        Misión, visión, historias, valoraciones
-    │   ├── local.js            Campos de la ficha y contacto del pie
-    │   └── graficas.js         Paletas de las gráficas (citan var(--cff-…))
-    │
-    ├── utils/
-    │   ├── format.js           Moneda, fechas y horas en formato es-CO
-    │   ├── imagen.js           Valida y reduce los JPG/PNG que sube el admin
-    │   └── seguridad.js        Validación de la URL del mapa
-    ├── styles/theme.css        ÚNICO CSS propio: marca + ajustes de Bootstrap
-    └── assets/                 Logo y fondo del login
+src/
+├── main.jsx                 Punto de entrada: monta React, el router y los dos contextos
+├── App.jsx                  Árbol de rutas (lo genera a partir de config/navegacion.jsx)
+│
+├── api/                     UN archivo por módulo del backend: solo las rutas HTTP
+│   ├── client.js            Instancia de axios: token, renovación, errores, aviso de cambios
+│   ├── auth.api.js          /auth      (login, registro, renovar token)
+│   ├── orders.api.js        /orders    · sales.api.js /sales · products.api.js /products
+│   ├── recipes.api.js       /recipes   · supplies.api.js /supplies · categories.api.js
+│   ├── comments.api.js      /comments  · pqrs.api.js /pqrs · users.api.js /users
+│   └── establecimiento.api.js · indicators.api.js
+│
+├── config/
+│   ├── navegacion.jsx       QUÉ VE CADA ROL: ruta, nombre en el menú, icono y pantalla
+│   └── roles.config.js      Copia de los roles del backend + permisos de los botones
+│
+├── context/
+│   ├── AuthContext.jsx      Sesión: { usuario, rol, cargando, iniciarSesion, cerrarSesion, puede }
+│   └── AvisosContext.jsx    Avisos de 3 segundos: useAvisos().exito / error / fallo
+│
+├── modules/                 Un módulo por módulo del backend
+│   ├── auth/                Login, Registro y validación de contraseña
+│   ├── establecimiento/     Portadas (cliente y visitante), ficha del local, horarios, información
+│   ├── products/            Carta (los tres modos), categorías, combos y estrellas
+│   ├── recipes/             Recetas: qué insumos gasta cada producto
+│   ├── supplies/            Inventario de insumos
+│   ├── orders/              Pedidos, catálogo y disponibilidad de inventario
+│   ├── sales/               Ventas, tiquete con QR y edición de una venta
+│   ├── comments/            Muro de comentarios, "me gusta", calificar por QR y moderación
+│   ├── pqrs/                PQRS del cliente, consulta del empleado y moderación (sin "me gusta")
+│   ├── indicators/          Indicadores y meta anual
+│   └── users/               Gestión de Usuarios (administradores y empleados)
+│
+├── components/              Piezas sin módulo, reutilizables
+│   ├── layout/              Layout (cabecera + menú), RutaProtegida, LimiteDeError, 404
+│   └── ui/                  Modal, ConfirmarEliminacion, Estado, Estrellas, Paginacion…
+│
+├── hooks/                   useRecurso (leer), usePeticion (escribir),
+│                            useConfirmacion (borrar), useSincronizar (refrescar)
+├── services/                config.js (variables de entorno) y sincronizacion.js
+├── data/                    Textos fijos de interfaz y paletas de las gráficas
+├── utils/                   Formato de moneda y fechas, ids, imágenes, validación de URL
+├── styles/theme.css         ÚNICO archivo CSS propio
+└── assets/                  Logo y fondo del login
 ```
 
-### Por qué no hay carpetas por rol
+Dentro de cada módulo, el **nombre del archivo dice qué hace**:
 
-`src/pages/admin|empleado|cliente/` parecía responder a "qué ve cada rol", pero
-dejaba de hacerlo en cuanto dos roles compartían una pantalla: el Menú del
-empleado no estaba en `empleado/`, y PQRS quedó partido entre `cliente/`,
-`empleado/` y `config/`. La relación rol → pantalla es de muchos a muchos, y una
-carpeta solo sabe expresar una de uno. Esa relación vive donde se puede leer
-entera de un vistazo: `src/config/navegacion.jsx`.
-
-### Cómo añadir una pantalla
-
-1. Crea el componente en su módulo: `src/modules/<dominio>/`. Si el dominio no
-   existe todavía, crea la carpeta.
-2. Añade una línea en `MENU`, dentro de `src/config/navegacion.jsx`, al rol o
-   los roles que deban verla: `{ vista, ruta, titulo, icono, elemento }`.
-
-Eso es todo: el árbol de rutas, el menú lateral y el guardia de acceso se
-generan de esa tabla.
-
----
-
-## Capa de red
-
-```
-src/services/
-├── config.js    único lector de import.meta.env
-├── http.js      cliente base: interceptores, timeout, JWT, normalización
-├── errores.js   ErrorApi { codigo, estado, campos }
-├── api.js       compatibilidad con las pantallas aún sin migrar
-└── supabase.js
-src/hooks/
-├── useRecurso.js   lecturas
-└── usePeticion.js  escrituras: { ejecutar, enviando, error }
-src/modules/<dominio>/
-├── api.js       rutas del contrato + adaptador API ↔ UI
-└── use<Dominio>.js
-```
-
-- El JWT lo inyecta `AuthContext` con `registrarProveedorToken()`; `http.js`
-  no conoce Supabase. `{ publica: true }` envía la petición sin cabecera.
-- `http.lista()` acepta array plano (json-server) y `{ datos, total, pagina }`
-  (contrato del back): migrar no obliga a tocar ningún hook.
-- `modules/menu/useMenu.js` está en uso. `usePedidos`, `useVentas`, sus
-  `api.js` y `src/store/` están preparados pero **ninguna pantalla los usa
-  todavía** (fase 2): ver docs/PARTES-COMPLEJAS.md, sección 13.
-- **`.env` es obligatorio**: sin credenciales de Supabase la aplicación falla
-  al arrancar con un mensaje explícito, en lugar de romperse dentro de la
-  librería.
-
----
-
-## Gestión de estado
-
-| Alcance | Herramienta |
+| Archivo | Qué contiene |
 |---|---|
-| Formulario, modal, filtro | `useState` local |
-| Datos del servidor de una pantalla | `useRecurso` o el hook del módulo |
-| Sesión | `AuthContext` |
-| Pedido en curso y bloqueos | Zustand, en `src/store/` |
-
-```
-src/store/
-├── carrito.js    pedido en curso: líneas, descuento, versión, divergencia
-└── bloqueos.js   versión leída al editar + conflictos 409 (RNF-12)
-src/modules/pedidos/
-├── calculos.js   matemática pura: subtotales, totales, payload
-├── api.js        rutas, adaptador y payloads
-└── usePedidos.js red + carrito + bloqueos
-```
-
-- Solo dos cosas son globales: el **pedido en curso** (lo escribe el catálogo,
-  lo lee el encabezado, lo edita la tabla) y los **bloqueos** (Pedidos y Ventas
-  se afectan mutuamente). El resto del estado se queda donde está.
-- Los stores **no guardan totales**: se derivan con `useTotalesCarrito()`.
-- El carrito persiste en `sessionStorage`: un F5 a mitad de un pedido no lo
-  pierde. Es estado de UI; la verdad del pedido es el servidor.
-- El total que se muestra es un preview local (RNF-04). El payload solo lleva
-  `{productoId, cantidad}`: el precio lo fija el back.
+| `Pantalla.jsx` (`Pedidos.jsx`, `Ventas.jsx`…) | Una pantalla del menú. |
+| `FormularioX.jsx`, `DetalleX.jsx`, `TarjetaX.jsx` | Piezas de una pantalla (formularios en modal, detalles, tarjetas). |
+| `api.js` | Traduce los datos del backend a la forma de la pantalla y al revés (adaptador). |
+| `servicio.js` | Reglas del negocio que encadenan varias llamadas (facturar, reabrir…). |
+| `esquema.js` | Constantes, valores por defecto y validaciones del módulo. |
+| `calculos.js` | Cálculos puros: reciben datos y devuelven resultados, sin React ni red. |
+| `useX.js` | Hook propio del módulo (`useMenu`, `useFicha`). |
 
 ---
 
-## Estilos
+## 4. Mapa de rutas
 
-Hay **un solo archivo CSS propio**: `src/styles/theme.css`. Define las variables
-de marca (naranja `#ff9100`, carbón `#212121`), las paletas de las gráficas y
-repinta las variables de Bootstrap. Todo lo demás —rejilla, botones, tablas,
-formularios, tarjetas, badges— sale de las clases de Bootstrap 5. Ningún color
-hexadecimal se escribe fuera de ese archivo.
+Cada ruta se declara **una sola vez**, en `src/config/navegacion.jsx`.
 
-Los modales usan el marcado de Bootstrap pero los controla React
-(`src/components/ui/Modal.jsx`), montados con un portal en `document.body`:
-así ningún contenedor con `overflow` o `z-index` los recorta. Por eso **no** se
-importa el JavaScript de Bootstrap, solo su CSS.
-
-Los iconos son Font Awesome 6, instalado por npm
-(`@fortawesome/fontawesome-free`) e importado en `main.jsx`: queda fijado en el
-lockfile, viaja en el bundle y funciona sin conexión.
-
-Los diálogos de Login y Register usan **sweetalert2**; el resto de la interfaz
-usa `ui/Modal` y `ui/Toast`. Unificar ambos caminos sigue pendiente.
-
----
-
-## Interfaz y validaciones
-
-- **Borrados (RNF-01)**: `components/ui/ConfirmarEliminacion` +
-  `hooks/useConfirmacion`. Un único patrón para las seis pantallas que
-  eliminan. No queda ningún `window.confirm` en el proyecto.
-- **Contraseñas (RNF-15)**: `modules/autenticacion/validaciones.js` declara una
-  regla por requisito (8 caracteres, mayúscula, número, especial). El registro
-  las muestra en vivo y bloquea el envío; el login solo exige campos presentes.
-- **Accesibilidad**: los errores de campo se enlazan con `aria-describedby` y
-  `aria-invalid`; los formularios usan `noValidate` para dar mensajes propios
-  en lugar de los globos del navegador.
-- **Precios numéricos**: el formulario de menú pide `type="number"` y el
-  adaptador los escribe como número. Los registros antiguos en texto
-  (`"$12.500"`) se siguen leyendo, pero ya no se generan nuevos.
-
----
-
-## Correcciones aplicadas sobre la versión anterior
-
-| # | Problema | Solución |
-|---|---|---|
-| 1 | `import './Informacion.css'` con el archivo llamado `informacion.css`, e `indicadores.css` frente a `Indicadores.css`. Funcionaba en Windows, rompía el build en Linux | Se eliminaron los CSS por componente |
-| 2 | Gestión de Menú leía de `:3000` y escribía en `:3001`: nada se guardaba | Un solo origen, configurable por `VITE_API_URL` |
-| 3 | `bootstrap`, `sweetalert2` y `@supabase/supabase-js` estaban en el `package.json` de la carpeta padre | Un único `package.json` con todas las dependencias |
-| 4 | `bootstrap` declarado pero nunca importado | Importado en `main.jsx` y usado en toda la interfaz |
-| 5 | Pedidos recibía `onIrAVentas` sin valor y caía a `window.location.assign('/ventas')`, rompiendo la SPA | Navega con `useNavigate()` del router |
-| 6 | Cliente y empleado escribían campos distintos (`asunto/descripcion` vs `nombre/texto`) sobre la misma colección `pqrs`: no se veían entre sí | Esquema único en `src/modules/pqrs/esquema.js`; `server/db.json` migrado |
-| 7 | La pantalla PQRS del empleado existía pero no estaba enrutada | Añadida al menú del rol `empleado` |
-| 8 | Menú del empleado resolvía endpoints con `if` fijos; 6 de 8 categorías quedaban vacías sin aviso | Cada categoría declara su `endpoint` en `db.json`; si no tiene, se avisa |
-| 9 | No había script para levantar json-server | `npm run api` |
-| 10 | Mezcla de CRLF y LF | Todo en LF |
-| 11 | `window.confirm` y `alert` del navegador en flujos críticos | Modal de confirmación propio y avisos flotantes |
-| 20 | Quedaban 4 `window.confirm` (Inventario, Empleados y los dos PQRS) pese a lo que afirmaba la corrección 11 | `ui/ConfirmarEliminacion` + `useConfirmacion` en las seis pantallas |
-| 21 | Login y registro solo comprobaban que las contraseñas coincidieran | Política RNF-15 con regla por requisito y comprobación antes del submit |
-| 12 | Tres layouts duplicados en `App.jsx` (header, sidebar y navegación idénticos) | Un `Layout` dirigido por `config/navegacion.jsx` |
-| 13 | El mismo `fetch` + cabeceras + manejo de error repetido en 9 archivos | `services/api.js` |
-| 14 | Cuatro modales casi idénticos en Gestión de Menú | Un modal con cuatro modos |
-| 15 | El registro escribía el rol en la tabla `profiles` pero la aplicación lo leía de `user_metadata`: **todos** los usuarios entraban como cliente | El rol viaja en `options.data` del `signUp`, un solo lugar |
-| 16 | La sesión se leía una vez al montar, sin suscripción: un cierre de sesión en otra pestaña pasaba inadvertido | `AuthContext` con `onAuthStateChange` |
-| 17 | La navegación era un `useState` guardado en `localStorage`: ninguna pantalla era compartible y el botón Atrás salía de la aplicación | `react-router-dom`, una URL por pantalla |
-| 18 | Los textos largos y las paletas vivían dentro del JSX | `src/data/` |
-| 19 | Font Awesome por CDN: sin versión fija y sin funcionar sin red | Instalado por npm |
-
----
-
-## Deuda técnica conocida
-
-- **El rol se valida solo en el cliente.** Cualquiera con la consola abierta
-  puede alterar el estado de React y ver otro panel. Para que el control sea
-  real hacen falta políticas RLS en Supabase.
-- **`cliente/Pqrs.jsx` filtra en el navegador**: descarga toda la colección
-  `pqrs` y se queda con las del usuario, así que los datos ajenos llegan al
-  equipo del cliente. Se corrige del lado del servidor, no aquí.
-- **json-server es solo para desarrollo.** No valida, no autentica y no tiene
-  transacciones. Al pasar a producción, estas colecciones deberían migrar a
-  Supabase, con lo que `services/api.js` quedaría como única pieza a reescribir.
-- **La colección `categoriasMenu` y sus `endpoint` quedaron sin uso.** Eran un
-  duplicado de `adminMenu` con 7 de 8 categorías vacías; la carta ahora sale
-  solo de `adminMenu`. Los datos siguen en `db.json` por si hay que recuperar
-  algo, pero deberían borrarse.
-- **Quedan precios antiguos guardados como texto** (`"$12.500"`). El adaptador
-  los convierte al leer y ya se escriben como número, pero los registros viejos
-  siguen en texto hasta que se editen.
-- **Dos sistemas de diálogos**: sweetalert2 en las pantallas de autenticación y
-  `ui/Modal` en el resto.
-
----
-
-## Pantallas compartidas
-
-| Pantalla | Colecciones | admin | empleado / cliente |
+| Ruta | Pantalla (`src/modules/…`) | Roles | Rutas del backend (`/api/…`) |
 |---|---|---|---|
-| Menú | `adminMenu` | crear, editar, eliminar, habilitar/inhabilitar | consultar, buscar y ordenar por precio |
-| Establecimiento | `establecimiento`, `diasEspeciales` | editar la ficha; añadir, editar y eliminar días especiales | consultar ficha, mapa, calendario y narrativa |
+| `/login` · `/registro` | `auth/Login` · `auth/Register` | sin sesión | `auth/login`, `auth/register` |
+| `/visitante/inicio` · `/cliente/inicio` | `establecimiento/InicioVisitante` · `InicioCliente` | visitante · cliente | `ubicaciones`, `horarios`, `comments/public`, `products/public`, `sales` (más vendido del día) |
+| `/visitante/menu` · `/cliente/menu` · `/empleado/menu` | `products/Menu` (consulta) | visitante · cliente · empleado | `products/public` |
+| `/calificar/:qr` | `comments/CalificarQr` | público (QR del tiquete) | `POST comments` con el código del QR |
+| `/cliente/pqrs` | `pqrs/PqrsCliente` | cliente | `POST pqrs`, `GET pqrs/mine` |
+| `/empleado/pedidos` | `orders/Pedidos` | empleado, admin, owner | `orders` (incluye `PUT /:id/items`), `sales`, `recipes`, `supplies`, `products/public` |
+| `/empleado/ventas` | `sales/Ventas` | empleado, admin, owner | `sales` |
+| `/empleado/recetas` | `recipes/Recetas` (solo consulta) | empleado | `recipes`, `categories`, `products`, `supplies` |
+| `/empleado/pqrs` | `pqrs/PqrsEmpleado` (solo consulta) | empleado | `pqrs` |
+| `/admin/usuarios` | `users/GestionUsuarios` | owner, admin | `users` |
+| `/admin/establecimiento` | `establecimiento/Establecimiento` (editable) | admin, owner | `ubicaciones`, `horarios`, `establecimiento`, `comments` |
+| `/admin/inventario` | `supplies/Inventario` | admin, owner | `supplies`, `categories` (tipo Insumo) |
+| `/admin/menu` | `products/Menu` (editable, con combos) | admin, owner | `categories`, `products` |
+| `/admin/recetas` | `recipes/Recetas` (editable) | admin, owner | `recipes`, `categories`, `products`, `supplies` |
+| `/admin/indicadores` | `indicators/Indicadores` | admin, owner | `sales`, `comments`, `indicators/goal` |
+| `/admin/comentarios` | `comments/ModeracionComentarios` | admin, owner | `comments` (`/:id/status`, eliminar) |
+| `/admin/pqrs` | `pqrs/PqrsModeracion` | admin, owner | `pqrs` (responder `{ estado, respuesta }`, eliminar) |
 
-Cada una vive en su módulo (`src/modules/menu/`, `src/modules/establecimiento/`)
-y se declara dos o tres veces en la tabla de navegación, una por rol. La ficha del local y los días
-especiales están en la API, así que lo que el administrador guarda es lo que el
-cliente ve: antes la ficha era una constante en el código y el calendario vivía
-en `localStorage` de cada navegador.
-=======
-# FrontEnd-Corralejo-Fast-Food
-FrontEnd del Sistema de información Corralejo Fast Food
->>>>>>> 6819fce58d1a810b0ed3186de9be9c096469b5a2
+Toda petición sigue el mismo camino:
+**pantalla → `api.js` o `servicio.js` del módulo → `src/api/<modulo>.api.js` →
+`src/api/client.js` (axios) → backend**. El recorrido paso a paso está en
+[ARQUITECTURA.md](ARQUITECTURA.md#3-flujo-de-datos-de-punta-a-punta).
+
+---
+
+## 5. Roles y permisos
+
+`src/config/roles.config.js` es una **copia de `src/config/roles.config.js` del backend**:
+mismos nombres y mismos valores. Si no coinciden, manda el backend.
+
+| Constante | Valor | Quiénes |
+|---|---|---|
+| `ROLES.OWNER` | `'Owner'` | Dueño |
+| `ROLES.ADMIN` | `'Administrador'` | Administración |
+| `ROLES.EMPLOYEE` | `'Empleado'` | Personal operativo |
+| `ROLES.CLIENT` | `'Cliente'` | Cuenta creada en el registro público |
+| `ROLES.VISITOR` | `'Usuario'` | Visitante **sin sesión** (nunca se guarda en la base de datos) |
+| `ADMIN_ROLES` | Owner, Administrador | Crear, editar y borrar |
+| `STAFF_ROLES` | Owner, Administrador, Empleado | Consultar y operar |
+
+**Herencia** (la misma del backend): el Owner tiene todo lo del Administrador, y el
+Administrador todo lo del Empleado. El visitante tiene lo del cliente menos lo que exige
+cuenta (PQRS).
+
+| Rol | Menú (en este orden; el primero es donde aterriza) |
+|---|---|
+| Owner | Gestión de Usuarios + todo lo del Administrador |
+| Administrador | Establecimiento, Inventario, Menú, Recetas, Usuarios, Indicadores, Moderación de Comentarios, **Pedidos y Ventas** (heredados) y Moderación de PQRS |
+| Empleado | Pedidos, Menú (vitrina), Recetas (consulta), Ventas, PQRS (consulta) |
+| Cliente | Inicio, Menú, PQRS |
+| Visitante | Inicio, Menú |
+
+Cuando el Administrador hereda un módulo que ya tiene (Menú, Recetas, PQRS), se queda con su
+versión: su Menú y sus Recetas son los editables, y su PQRS es la Moderación.
+
+Toda cuenta del registro público nace como `Cliente`. Las de Administrador y Empleado se crean
+en **Gestión de Usuarios**. El primer Owner se crea directamente en el backend.
+
+**Permisos de botones** (`PERMISO` en `roles.config.js`, se consultan con
+`useAuth().puede(PERMISO.X)`). Cada uno copia la regla de la ruta del backend que lo
+respalda, así un botón solo aparece a quien el backend le va a aceptar la petición:
+
+| Permiso | Ruta del backend | Owner | Admin | Empleado | Cliente |
+|---|---|:-:|:-:|:-:|:-:|
+| `ELIMINAR_ADMINS` | `DELETE /users/:id` de un Administrador (solo Owner) | ✔ | | | |
+| `ELIMINAR_EMPLEADOS` | `DELETE /users/:id` → `ADMIN_ROLES` | ✔ | ✔ | | |
+| `GESTIONAR_PERSONAL` | `POST`/`PATCH /users` → `ADMIN_ROLES` | ✔ | ✔ | | |
+| `EDITAR_INFORMACION` | `/establecimiento` → `ADMIN_ROLES` | ✔ | ✔ | | |
+| `GESTIONAR_VENTAS` | `PATCH`/`DELETE /sales`, `DELETE /orders` → `ADMIN_ROLES` | ✔ | ✔ | | |
+| `VER_DETALLE_OPINIONES` | `GET /comments` → `STAFF_ROLES` | ✔ | ✔ | ✔ | |
+| `DAR_ME_GUSTA` | `POST`/`DELETE /comments/:id/like` → `ADMIN_ROLES` y Cliente | ✔ | ✔ | | ✔ |
+| `PQRS_PROPIAS` | `POST /pqrs` → solo Cliente | | | | ✔ |
+
+> **Importante:** esconder un botón o una ruta es control **de interfaz**. Lo que protege los
+> datos es el backend, que revisa el token y el rol en cada petición.
+
+---
+
+## 6. Limitaciones conocidas
+
+- **La imagen del QR del tiquete la dibuja un servicio externo** (`api.qrserver.com`, en
+  `modules/sales/servicio.js`): ese servicio ve cada código y el QR no se ve sin internet.
+- **Las imágenes de productos viajan como `data:` URL** dentro del producto. Se reducen antes
+  de guardar (`utils/imagen.js`), pero no es un almacenamiento de archivos.
+- **Una venta registrada solo cambia cliente y dirección.** Los productos se corrigen
+  reabriendo el pedido (eso elimina la venta y el backend devuelve los insumos).
+- **La gráfica de Pedidos agrupa por nombre de producto:** si se renombra un producto, sus
+  ventas antiguas caen en "Otros".
+>>>>>>> origin/main

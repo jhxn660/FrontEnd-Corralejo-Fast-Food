@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+import { useAvisos } from '../../context/AvisosContext'
+import { soloDigitos } from '../../utils/format'
+import { esMapaDeGoogle } from '../../utils/seguridad'
+import { PUNTOS_CLAVE } from '../../data/contenido'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+
+import { useFicha } from './useFicha'
+
+/**
+ * Sección «Ubicación» de las portadas: dónde está el local, cómo llegar y cómo contactarlo.
+ * Solo consulta: la ficha se edita en Gestión del Establecimiento. Los puntos de referencia
+ * salen de `referencia` (una línea por cada « · »); si no hay, su tarjeta no se pinta.
+ */
+export default function Ubicacion() {
+  const { datos: ficha, cargando, error, recargar } = useFicha()
+=======
 import { useCallback } from 'react'
 
 import { useRecurso } from '../../hooks/useRecurso'
@@ -27,6 +44,7 @@ const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '')
 export default function Ubicacion() {
   const cargar = useCallback(() => establecimientoApi.ficha(), [])
   const { datos: ficha, cargando, error, recargar } = useRecurso(cargar, null)
+>>>>>>> origin/main
   const avisos = useAvisos()
 
   if (cargando && !ficha) return <Cargando texto="Cargando información del local…" />
@@ -43,8 +61,12 @@ export default function Ubicacion() {
   }
 
   const direccionCompleta = [ficha.direccion, ficha.ciudad].filter(Boolean).join(', ')
+<<<<<<< HEAD
+  const referencias = ficha.referencias ?? []
+=======
   const referencias = ficha.referencias?.length ? ficha.referencias : REFERENCIAS_POR_DEFECTO
   const tiempos = ficha.tiempos?.length ? ficha.tiempos : TIEMPOS_POR_DEFECTO
+>>>>>>> origin/main
   const whatsapp = soloDigitos(ficha.whatsapp)
 
   // Enlace de indicaciones de Google Maps por dirección. No se usa la URL del
@@ -73,11 +95,17 @@ export default function Ubicacion() {
     <>
       <MensajeError texto={error} onReintentar={recargar} />
 
+<<<<<<< HEAD
+      <div className="card border-0 shadow-sm mb-3">
+        <div className="row g-0">
+          <div className="col-12 col-lg-aureo-mayor">
+=======
       {/* Bloque principal del wireframe: texto y acciones a la izquierda,
           mapa a la derecha. */}
       <div className="card border-0 shadow-sm mb-3">
         <div className="row g-0">
           <div className="col-12 col-lg-6">
+>>>>>>> origin/main
             <div className="card-body p-4 h-100 d-flex flex-column">
               <h2 className="h4 fw-bold mb-3">{ficha.nombre}</h2>
 
@@ -136,9 +164,14 @@ export default function Ubicacion() {
             </div>
           </div>
 
+<<<<<<< HEAD
+          <div className="col-12 col-lg-aureo-menor">
+            {/* Solo se incrusta un mapa de Google (ver utils/seguridad.js). */}
+=======
           <div className="col-12 col-lg-6">
             {/* Solo se incrusta un mapa de Google: la URL viene de la API y se
                 pinta en el panel de todos los clientes (ver utils/seguridad.js). */}
+>>>>>>> origin/main
             {esMapaDeGoogle(ficha.mapa) ? (
               <div className="ratio ratio-4x3 h-100">
                 <iframe
@@ -160,6 +193,30 @@ export default function Ubicacion() {
       </div>
 
       <div className="row g-3 mb-3">
+<<<<<<< HEAD
+        {referencias.length > 0 && (
+          <div className="col-12 col-lg">
+            <div className="card border-0 shadow-sm h-100">
+              <div className="card-header bg-white">
+                <h2 className="h6 fw-bold mb-0">
+                  <i className="fa-solid fa-map-pin text-brand me-2" />
+                  Cómo ubicarnos
+                </h2>
+              </div>
+              <ul className="list-group list-group-flush">
+                {referencias.map(({ id, icono, texto }) => (
+                  <li className="list-group-item d-flex gap-2 small" key={id}>
+                    <i className={`fa-solid ${icono ?? 'fa-location-crosshairs'} text-brand mt-1`} />
+                    <span>{texto}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        <div className="col-12 col-lg">
+=======
         <div className="col-12 col-lg-4">
           <div className="card border-0 shadow-sm h-100">
             <div className="card-header bg-white">
@@ -208,6 +265,7 @@ export default function Ubicacion() {
         </div>
 
         <div className="col-12 col-lg-4">
+>>>>>>> origin/main
           <div className="card border-0 shadow-sm h-100">
             <div className="card-header bg-white">
               <h2 className="h6 fw-bold mb-0">
@@ -227,6 +285,8 @@ export default function Ubicacion() {
         </div>
       </div>
 
+<<<<<<< HEAD
+=======
       <div className="row g-3 mb-3">
         {PILARES.map(({ id, titulo, icono, texto }) => (
           <div className="col-12 col-lg-6" key={id}>
@@ -244,6 +304,7 @@ export default function Ubicacion() {
       </div>
 
       <NarrativaCreativa />
+>>>>>>> origin/main
     </>
   )
 }

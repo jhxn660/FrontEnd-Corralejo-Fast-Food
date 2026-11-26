@@ -1,6 +1,17 @@
 import { useCallback, useState } from 'react'
 
 /**
+<<<<<<< HEAD
+ * Estado de «estoy a punto de eliminar esto»: registro señalado, enviando y error.
+ *
+ * Uso:
+ *   const eliminacion = useConfirmacion((insumo) => insumosApi.eliminar(insumo.id))
+ *   <button onClick={() => eliminacion.pedir(insumo)}>Eliminar</button>
+ *   {eliminacion.objetivo && <ConfirmarEliminacion {...} />}
+ *
+ * `objetivo` es el registro completo: el modal necesita su nombre.
+ * `confirmar()` devuelve true o false, para saber si avisar del borrado o del fallo.
+=======
  * Estado del "estoy a punto de eliminar esto". Evita que cada pantalla repita
  * el mismo trío: registro señalado, enviando y error.
  *
@@ -16,6 +27,7 @@ import { useCallback, useState } from 'react'
  * saber si avisar del borrado o del fallo, y no puede deducirlo leyendo
  * `objetivo` después del await: ese valor es el del render en curso y todavía
  * apunta al registro, aunque el borrado ya haya terminado.
+>>>>>>> origin/main
  */
 export function useConfirmacion(accion, { alTerminar } = {}) {
   const [objetivo, setObjetivo] = useState(null)

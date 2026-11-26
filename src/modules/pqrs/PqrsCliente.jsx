@@ -1,5 +1,20 @@
 import { useCallback, useMemo, useState } from 'react'
 
+<<<<<<< HEAD
+import { useAuth } from '../../context/AuthContext'
+import { useAvisos } from '../../context/AvisosContext'
+import { usePeticion } from '../../hooks/usePeticion'
+import { useRecurso } from '../../hooks/useRecurso'
+import { fechaCorta } from '../../utils/format'
+import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+
+import { pqrsApi } from './api'
+import DetallePqrs from './DetallePqrs'
+import {
+  COLOR_ESTADO,
+  ESTADOS,
+=======
 import { api } from '../../services/api'
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
@@ -11,6 +26,7 @@ import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
 import PieContacto from '../../components/ui/PieContacto'
 import {
   COLOR_ESTADO,
+>>>>>>> origin/main
   ICONO_ESTADO,
   NOMBRES_TIPO,
   ayudaDe,
@@ -19,6 +35,31 @@ import {
   pqrsVacia,
 } from './esquema'
 import FormularioPqrs from './FormularioPqrs'
+<<<<<<< HEAD
+
+/**
+ * PQRS del cliente: CREAR y LEER, nada más. Una PQRS es el registro de lo que se pidió: si se
+ * pudiera reescribir o borrar, la respuesta del local quedaría sin contexto. El backend lo
+ * garantiza: el Cliente solo crea (POST /pqrs) y lee las suyas (GET /pqrs/mine).
+ */
+export default function PqrsCliente() {
+  const { usuario } = useAuth()
+  const avisos = useAvisos()
+
+  // El backend reconoce al cliente por su token y le devuelve SOLO sus PQRS (GET /pqrs/mine).
+  const correo = usuario?.email ?? null
+  const cargar = useCallback(() => (correo ? pqrsApi.listarMias() : Promise.resolve([])), [correo])
+  const { datos: todas, cargando, error, recargar } = useRecurso(cargar, [])
+
+  const [nueva, setNueva] = useState(null) // solicitud en creación
+  // El id y no el registro: la respuesta del local llega por sincronización y
+  // el detalle abierto se actualiza solo.
+  const [detalleId, setDetalleId] = useState(null)
+
+  // Ya filtradas por el backend; aquí solo se ordenan de la más reciente a la más antigua.
+  const mias = useMemo(() => [...todas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)), [todas])
+  const detalle = mias.find((registro) => registro.id === detalleId) ?? null
+=======
 import DetallePqrs from './DetallePqrs'
 
 /**
@@ -59,10 +100,18 @@ export default function ClientePqrs() {
         .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
     [todas, usuario]
   )
+>>>>>>> origin/main
 
   const envio = usePeticion(
     useCallback(
       async (valores) => {
+<<<<<<< HEAD
+        // El autor y el estado ("Pendiente") los pone el backend, nunca el cliente.
+        await pqrsApi.crear(valores)
+        await recargar()
+      },
+      [recargar]
+=======
         await api.create('pqrs', {
           tipo: valores.tipo,
           asunto: valores.asunto.trim(),
@@ -76,6 +125,7 @@ export default function ClientePqrs() {
         await recargar()
       },
       [recargar, usuario]
+>>>>>>> origin/main
     )
   )
 
@@ -134,7 +184,11 @@ export default function ClientePqrs() {
           <h2 className="h6 fw-bold mb-0">Mis solicitudes</h2>
           {mias.length > 0 && (
             <div className="d-flex flex-wrap gap-2">
+<<<<<<< HEAD
+              {ESTADOS.map((estado) => (
+=======
               {['Pendiente', 'En revisión', 'Resuelta'].map((estado) => (
+>>>>>>> origin/main
                 <span className={`badge bg-${COLOR_ESTADO[estado]}`} key={estado}>
                   {porEstado(estado)} {estado.toLowerCase()}
                 </span>
@@ -146,12 +200,16 @@ export default function ClientePqrs() {
         {cargando && mias.length === 0 && <Cargando texto="Cargando solicitudes…" />}
 
         {!cargando && mias.length === 0 && (
+<<<<<<< HEAD
+          <Vacio texto="Aún no has enviado ninguna PQRS." icono="fa-inbox" />
+=======
           <Vacio texto="Aún no has enviado ninguna PQRS." icono="fa-inbox">
             <button className="btn btn-primary" onClick={() => setNueva(pqrsVacia('Petición'))}>
               <i className="fa-solid fa-plus me-2" />
               Enviar la primera
             </button>
           </Vacio>
+>>>>>>> origin/main
         )}
 
         {mias.length > 0 && (
@@ -190,7 +248,11 @@ export default function ClientePqrs() {
 
                 <button
                   className="btn btn-sm btn-outline-secondary flex-shrink-0"
+<<<<<<< HEAD
+                  onClick={() => setDetalleId(registro.id)}
+=======
                   onClick={() => setDetalle(registro)}
+>>>>>>> origin/main
                 >
                   <i className="fa-solid fa-eye me-2" />
                   Ver
@@ -201,9 +263,13 @@ export default function ClientePqrs() {
         )}
       </div>
 
+<<<<<<< HEAD
+      {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalleId(null)} />}
+=======
       <PieContacto />
 
       {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalle(null)} />}
+>>>>>>> origin/main
 
       {nueva && (
         <FormularioPqrs

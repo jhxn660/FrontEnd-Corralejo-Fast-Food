@@ -1,3 +1,35 @@
+<<<<<<< HEAD
+import { useCallback, useState } from 'react'
+
+import { useAvisos } from '../../context/AvisosContext'
+import { useConfirmacion } from '../../hooks/useConfirmacion'
+import { usePeticion } from '../../hooks/usePeticion'
+import { esMapaDeGoogle } from '../../utils/seguridad'
+import { PUNTOS_CLAVE } from '../../data/contenido'
+import ConfirmarEliminacion from '../../components/ui/ConfirmarEliminacion'
+import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+import OpinionesClientes from '../comments/OpinionesClientes'
+
+import { establecimientoApi } from './api'
+import FormularioFicha from './FormularioFicha'
+import FormularioHorario, { horarioVacio } from './FormularioHorario'
+import { DIAS_HORARIO, horaLegible } from './horario'
+import { useFicha } from './useFicha'
+
+// Ficha vacía para el primer alta (base de datos nueva, sin ubicación registrada)
+const FICHA_VACIA = { nombre: '', descripcion: '', ciudad: '', direccion: '', telefono: '', referencia: '', mapa: '' }
+
+// Mismo arreglo vacío en cada render mientras la ficha no ha llegado
+const SIN_HORARIOS = []
+
+/**
+ * Gestión del Establecimiento (Owner y Administrador): ficha del local, horario de cada día
+ * y muro de comentarios. Los formularios son archivos hermanos del módulo; aquí queda la
+ * pantalla, que carga, pinta y recoge eventos.
+ */
+export default function Establecimiento({ editable = false }) {
+=======
 import { useCallback, useMemo, useState } from 'react'
 
 import { api } from '../../services/api'
@@ -47,11 +79,23 @@ export default function Establecimiento({ editable = false }) {
   const cargarFicha = useCallback(async () => (await api.list(FICHA))[0] ?? null, [])
   const cargarDias = useCallback(() => api.list(DIAS), [])
 
+>>>>>>> origin/main
   const {
     datos: ficha,
     cargando: cargandoFicha,
     error: errorFicha,
     recargar: recargarFicha,
+<<<<<<< HEAD
+  } = useFicha()
+
+  // Horario semanal: un registro por día en el backend (/api/horarios). Llega dentro de la
+  // ficha (módulo establecimiento): una sola lectura y una sola recarga para ubicación y horario.
+  const horarios = ficha?.horarios ?? SIN_HORARIOS
+
+  const avisos = useAvisos()
+  const [modalFicha, setModalFicha] = useState(null)
+  const [modalHorario, setModalHorario] = useState(null)
+=======
   } = useRecurso(cargarFicha, null)
 
   const {
@@ -65,17 +109,35 @@ export default function Establecimiento({ editable = false }) {
   const [mes, setMes] = useState({ año: hoy.getFullYear(), mes: hoy.getMonth() })
   const [modalFicha, setModalFicha] = useState(null)
   const [modalDia, setModalDia] = useState(null)
+>>>>>>> origin/main
 
   const guardadoFicha = usePeticion(
     useCallback(
       async (valores) => {
+<<<<<<< HEAD
+        await establecimientoApi.guardarFicha(valores.id, valores)
+=======
         await api.update(FICHA, valores.id, valores)
+>>>>>>> origin/main
         await recargarFicha()
       },
       [recargarFicha]
     )
   )
 
+<<<<<<< HEAD
+  // Recargar la ficha también actualiza el horario resumido de "Ubicación y contacto".
+  const guardadoHorario = usePeticion(
+    useCallback(
+      async (valores) => {
+        await establecimientoApi.guardarHorario(valores)
+        await recargarFicha()
+      },
+      [recargarFicha]
+    )
+  )
+
+=======
   const guardadoDia = usePeticion(
     useCallback(
       async (valores) => {
@@ -108,6 +170,7 @@ export default function Establecimiento({ editable = false }) {
     )
   }
 
+>>>>>>> origin/main
   const guardarFicha = async (valores) => {
     const { ok, error: fallo } = await guardadoFicha.ejecutar(valores)
     if (!ok) {
@@ -118,6 +181,33 @@ export default function Establecimiento({ editable = false }) {
     avisos.exito('Ficha actualizada', 'Los datos del local ya se ven en el panel del cliente.')
   }
 
+<<<<<<< HEAD
+  const guardarHorario = async (valores) => {
+    const editando = Boolean(valores.id)
+    const { ok, error: fallo } = await guardadoHorario.ejecutar(valores)
+    if (!ok) {
+      avisos.fallo('No se pudo guardar el horario', fallo)
+      return
+    }
+    setModalHorario(null)
+    const titulo = editando ? 'Horario actualizado' : 'Horario añadido'
+    avisos.exito(titulo, `El horario del ${valores.dia} ya se ve en el calendario.`)
+  }
+
+  const eliminacionHorario = useConfirmacion((horario) => establecimientoApi.eliminarHorario(horario.id), {
+    alTerminar: recargarFicha,
+  })
+
+  const eliminarHorario = async () => {
+    const dia = eliminacionHorario.objetivo?.dia
+    if (await eliminacionHorario.confirmar()) {
+      avisos.error('Horario eliminado', `El ${dia} ya no tiene horario de atención.`)
+    }
+  }
+
+  const semana = [...horarios].sort((a, b) => DIAS_HORARIO.indexOf(a.dia) - DIAS_HORARIO.indexOf(b.dia))
+  const diasOcupados = horarios.map((horario) => horario.dia)
+=======
   const guardarDia = async (valores) => {
     const editando = Boolean(valores.id)
     const { ok, error: fallo } = await guardadoDia.ejecutar(valores)
@@ -191,6 +281,7 @@ export default function Establecimiento({ editable = false }) {
 
     return [...vacias, ...numeradas]
   }
+>>>>>>> origin/main
 
   if (cargandoFicha && !ficha) return <Cargando texto="Cargando información del local…" />
 
@@ -200,6 +291,13 @@ export default function Establecimiento({ editable = false }) {
         titulo={editable ? 'Gestión del Establecimiento' : 'Nuestro Establecimiento'}
         descripcion={
           editable
+<<<<<<< HEAD
+            ? 'Actualiza la ficha del local y el horario de atención.'
+            : 'Ubicación, horario y todo lo que distingue a Corralejo Fast Food.'
+        }
+      >
+        <button className="btn btn-outline-secondary" onClick={recargarFicha}>
+=======
             ? 'Actualiza la ficha del local y administra los días especiales.'
             : 'Ubicación, horario y todo lo que distingue a Corralejo Fast Food.'
         }
@@ -226,27 +324,46 @@ export default function Establecimiento({ editable = false }) {
             recargarDias()
           }}
         >
+>>>>>>> origin/main
           <i className="fa-solid fa-rotate me-2" />
           Actualizar
         </button>
       </EncabezadoPagina>
 
       <MensajeError texto={errorFicha} onReintentar={recargarFicha} />
+<<<<<<< HEAD
+=======
       <MensajeError texto={errorDias} onReintentar={recargarDias} />
 
       {/* Portada: los más vendidos van antes que la información del local.
           Las estrellas son la calificación de la carta, en solo lectura. */}
       <PodioMasVendidos />
+>>>>>>> origin/main
 
       {!ficha && !cargandoFicha && (
         <div className="card border-0 shadow-sm">
           <Vacio texto="Todavía no hay una ficha del establecimiento." icono="fa-store" />
+<<<<<<< HEAD
+          {editable && (
+            <div className="text-center pb-4">
+              <button className="btn btn-primary" onClick={() => setModalFicha({ ...FICHA_VACIA })}>
+                <i className="fa-solid fa-plus me-2" />
+                Crear ficha
+              </button>
+            </div>
+          )}
+=======
+>>>>>>> origin/main
         </div>
       )}
 
       {ficha && (
         <div className="row g-3 mb-3">
+<<<<<<< HEAD
+          <div className="col-12 col-xl-aureo-mayor">
+=======
           <div className="col-12 col-xl-7">
+>>>>>>> origin/main
             <div className="card border-0 shadow-sm h-100">
               <div className="card-header bg-white">
                 <h2 className="h6 fw-bold mb-0">
@@ -254,8 +371,12 @@ export default function Establecimiento({ editable = false }) {
                   Ubicación y contacto
                 </h2>
               </div>
+<<<<<<< HEAD
+              {/* Solo se incrusta un mapa de Google (ver utils/seguridad.js). */}
+=======
               {/* Solo se incrusta un mapa de Google: la URL viene de la API y
                   se pinta en el panel de todos los clientes. */}
+>>>>>>> origin/main
               {esMapaDeGoogle(ficha.mapa) ? (
                 <div className="ratio ratio-21x9">
                   <iframe
@@ -280,6 +401,20 @@ export default function Establecimiento({ editable = false }) {
                 <ul className="list-unstyled small mb-3">
                   {[
                     { icono: 'fa-solid fa-location-dot', texto: `${ficha.direccion} — ${ficha.ciudad}` },
+<<<<<<< HEAD
+                    // Un solo número en el backend: el teléfono es también el WhatsApp del local
+                    { icono: 'fa-brands fa-whatsapp', texto: `${ficha.telefono} · teléfono y WhatsApp` },
+                    { icono: 'fa-solid fa-map-pin', texto: ficha.referencia },
+                    { icono: 'fa-solid fa-clock', texto: ficha.horario },
+                  ]
+                    .filter(({ texto }) => texto)
+                    .map(({ icono, texto }) => (
+                      <li className="mb-2 d-flex gap-2" key={icono}>
+                        <i className={`${icono} text-brand mt-1`} />
+                        <span>{texto}</span>
+                      </li>
+                    ))}
+=======
                     { icono: 'fa-solid fa-phone', texto: ficha.telefono },
                     { icono: 'fa-brands fa-whatsapp', texto: ficha.whatsapp },
                     { icono: 'fa-solid fa-clock', texto: ficha.horario },
@@ -289,6 +424,7 @@ export default function Establecimiento({ editable = false }) {
                       <span>{texto}</span>
                     </li>
                   ))}
+>>>>>>> origin/main
                 </ul>
 
                 <strong className="small text-uppercase">Puntos clave</strong>
@@ -300,10 +436,81 @@ export default function Establecimiento({ editable = false }) {
                     </li>
                   ))}
                 </ul>
+<<<<<<< HEAD
+
+                {editable && (
+                  <button className="btn btn-primary mt-3" onClick={() => setModalFicha({ ...ficha })}>
+                    <i className="fa-solid fa-pen me-2" />
+                    Editar ficha
+                  </button>
+                )}
+=======
+>>>>>>> origin/main
               </div>
             </div>
           </div>
 
+<<<<<<< HEAD
+          <div className="col-12 col-xl-aureo-menor">
+            <div className="card border-0 shadow-sm h-100">
+              <div className="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h2 className="h6 fw-bold mb-0">
+                  <i className="fa-solid fa-calendar-days text-brand me-2" />
+                  Horario de atención
+                </h2>
+                {editable && diasOcupados.length < DIAS_HORARIO.length && (
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => setModalHorario(horarioVacio(diasOcupados))}
+                  >
+                    <i className="fa-solid fa-plus me-2" />
+                    Añadir horario
+                  </button>
+                )}
+              </div>
+              <div className="card-body">
+                {semana.length === 0 ? (
+                  <p className="text-secondary small fst-italic mb-0">
+                    No hay horarios configurados.
+                    {editable && ' Pulsa "Añadir horario" para crear el de cada día.'}
+                  </p>
+                ) : (
+                  <ul className="list-group list-group-flush">
+                    {semana.map((horario) => (
+                      <li key={horario.id} className="list-group-item d-flex align-items-center gap-2 px-0">
+                        <span className={`badge bg-${horario.estaAbierto ? 'success' : 'danger'} flex-shrink-0`}>
+                          {horario.estaAbierto ? 'Abierto' : 'Cerrado'}
+                        </span>
+                        <span className="small flex-grow-1 min-width-0">
+                          <span className="d-block fw-semibold">{horario.dia}</span>
+                          <span className="text-secondary">
+                            {horario.estaAbierto
+                              ? `${horaLegible(horario.horaApertura)} – ${horaLegible(horario.horaCierre)}`
+                              : 'Sin atención'}
+                            {horario.estadoNota ? ` · ${horario.estadoNota}` : ''}
+                          </span>
+                        </span>
+                        {editable && (
+                          <span className="btn-group btn-group-sm flex-shrink-0">
+                            <button
+                              className="btn btn-outline-primary"
+                              onClick={() => setModalHorario({ ...horario })}
+                              aria-label={`Editar el horario del ${horario.dia}`}
+                            >
+                              <i className="fa-solid fa-pen" />
+                            </button>
+                            <button
+                              className="btn btn-outline-danger"
+                              onClick={() => eliminacionHorario.pedir(horario)}
+                              aria-label={`Eliminar el horario del ${horario.dia}`}
+                            >
+                              <i className="fa-solid fa-trash-can" />
+                            </button>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+=======
           <div className="col-12 col-xl-5">
             <div className="card border-0 shadow-sm h-100">
               <div className="card-header bg-white">
@@ -396,6 +603,7 @@ export default function Establecimiento({ editable = false }) {
                         </li>
                       )
                     })}
+>>>>>>> origin/main
                   </ul>
                 )}
               </div>
@@ -404,6 +612,11 @@ export default function Establecimiento({ editable = false }) {
         </div>
       )}
 
+<<<<<<< HEAD
+      {/* Comentarios y valoraciones por QR en un solo bloque. Misión, visión y narrativa están en
+         el botón «Información» del menú lateral. */}
+      <OpinionesClientes puedeComentar={!editable} />
+=======
       <div className="row g-3 mb-3">
         {PILARES.map(({ id, titulo, icono, texto }) => (
           <div className="col-12 col-lg-6" key={id}>
@@ -429,6 +642,7 @@ export default function Establecimiento({ editable = false }) {
       {/* Comentarios de clientes que el administrador aprobó. Solo el cliente
           puede escribir uno nuevo. */}
       <MuroComentarios puedeComentar={!editable} />
+>>>>>>> origin/main
 
       {modalFicha && (
         <FormularioFicha
@@ -439,6 +653,27 @@ export default function Establecimiento({ editable = false }) {
         />
       )}
 
+<<<<<<< HEAD
+      {modalHorario && (
+        <FormularioHorario
+          horario={modalHorario}
+          diasOcupados={diasOcupados}
+          enviando={guardadoHorario.enviando}
+          onGuardar={guardarHorario}
+          onCerrar={() => setModalHorario(null)}
+        />
+      )}
+
+      {eliminacionHorario.objetivo && (
+        <ConfirmarEliminacion
+          entidad="el horario del"
+          nombre={eliminacionHorario.objetivo.dia}
+          consecuencias={['El cliente verá ese día sin horario de atención en el calendario.']}
+          enviando={eliminacionHorario.enviando}
+          error={eliminacionHorario.error}
+          onConfirmar={eliminarHorario}
+          onCancelar={eliminacionHorario.cancelar}
+=======
       {modalDia && (
         <FormularioDiaEspecial
           dia={modalDia}
@@ -462,6 +697,7 @@ export default function Establecimiento({ editable = false }) {
           error={eliminacionDia.error}
           onConfirmar={eliminarDia}
           onCancelar={eliminacionDia.cancelar}
+>>>>>>> origin/main
         />
       )}
     </>

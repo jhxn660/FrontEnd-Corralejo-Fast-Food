@@ -3,6 +3,13 @@ import { useId, useRef, useState } from 'react'
 import { ACEPTA, archivoArrastrado, leerImagenReducida } from '../../utils/imagen'
 
 /**
+<<<<<<< HEAD
+ * Campo de imagen (JPG o PNG). Se elige arrastrando el archivo, con un clic o con el teclado
+ * (la zona es un <button>): en un móvil no hay nada que arrastrar.
+ *
+ * `valor` es una `data:` URL o null; con null se muestra `respaldo` (el logo), tal como lo verá
+ * el cliente. No guarda nada: avisa con `onCambiar` y el formulario decide cuándo guardar.
+=======
  * Campo de imagen con arrastrar y soltar.
  *
  * Vive en components/ui y no en el módulo de menú porque no sabe nada de
@@ -21,6 +28,7 @@ import { ACEPTA, archivoArrastrado, leerImagenReducida } from '../../utils/image
  *
  * El componente no guarda nada: avisa con `onCambiar` y el formulario de turno
  * decide cuándo escribir.
+>>>>>>> origin/main
  */
 export default function CampoImagen({
   valor,

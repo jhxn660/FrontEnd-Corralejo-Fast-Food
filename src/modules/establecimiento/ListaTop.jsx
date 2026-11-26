@@ -5,11 +5,19 @@ import { useRecurso } from '../../hooks/useRecurso'
 import { moneda } from '../../utils/format'
 import { Cargando, Vacio } from '../../components/ui/Estado'
 import Estrellas from '../../components/ui/Estrellas'
+<<<<<<< HEAD
+import { imagenDe, tieneImagen } from '../products/esquema'
+
+import { destacadosApi } from './api'
+
+// En escritorio el primero va al centro y más grande; en móvil se apilan 1, 2, 3.
+=======
 import { imagenDe, tieneImagen } from '../menu/esquema'
 import { destacadosApi } from './api'
 
 // En escritorio el primero va al centro y más grande, como en el wireframe; en
 // móvil se apilan en orden natural 1, 2, 3.
+>>>>>>> origin/main
 const ORDEN = {
   1: 'order-1 order-md-2',
   2: 'order-2 order-md-1',
@@ -17,6 +25,18 @@ const ORDEN = {
 }
 
 /**
+<<<<<<< HEAD
+ * «Lista top»: los tres productos mejor calificados (destacadosApi.mejorValorados).
+ *
+ * Las estrellas las dan los clientes al calificar una compra con el QR del tiquete; el backend
+ * las promedia por producto (`rating` de /products/public). Gana el promedio más alto; si
+ * empatan, el que tiene más valoraciones.
+ *
+ * `rutaComentarios`: a dónde lleva el bocadillo de cada tarjeta (el muro de la portada del
+ * rol); sin ella no se pinta. `rutaMenu`: muestra «Ver nuestro menú» (solo en la portada).
+ */
+export default function ListaTop({ rutaComentarios = null, rutaMenu = null }) {
+=======
  * «Lista top»: los tres platos mejor calificados de la carta.
  *
  * La calificación es la que mantiene el administrador; el cliente ya no vota
@@ -28,6 +48,7 @@ const ORDEN = {
  * se llame la sección de al lado.
  */
 export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
+>>>>>>> origin/main
   const cargar = useCallback(() => destacadosApi.mejorValorados(), [])
   const { datos: top, cargando } = useRecurso(cargar, [])
 
@@ -36,7 +57,14 @@ export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
   if (top.length === 0) {
     return (
       <div className="card border-0 shadow-sm mb-3">
+<<<<<<< HEAD
+        <Vacio
+          texto="Todavía no hay productos calificados: aparecen aquí cuando los clientes califican su compra con el QR del tiquete."
+          icono="fa-star"
+        />
+=======
         <Vacio texto="Todavía no hay platos calificados en la carta." icono="fa-star" />
+>>>>>>> origin/main
       </div>
     )
   }
@@ -63,6 +91,18 @@ export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
               <div className="card-body p-3 d-flex flex-column">
                 <div className="d-flex justify-content-between align-items-start mb-2">
                   <span className="badge bg-secondary">{plato.categoria}</span>
+<<<<<<< HEAD
+                  {rutaComentarios && (
+                    <Link
+                      className="btn btn-sm btn-link text-secondary p-0"
+                      to={rutaComentarios}
+                      aria-label="Ir a los comentarios de los clientes"
+                      title="Ver los comentarios de los clientes"
+                    >
+                      <i className="fa-regular fa-comment fs-5" />
+                    </Link>
+                  )}
+=======
                   <a
                     className="btn btn-sm btn-link text-secondary p-0"
                     href={`#${anclaComentarios}`}
@@ -71,6 +111,7 @@ export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
                   >
                     <i className="fa-regular fa-comment fs-5" />
                   </a>
+>>>>>>> origin/main
                 </div>
 
                 <img
@@ -84,7 +125,16 @@ export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
                 />
 
                 <div className="d-flex justify-content-between align-items-center gap-2 mb-2">
+<<<<<<< HEAD
+                  <span className="d-inline-flex align-items-center gap-2">
+                    <Estrellas valor={plato.calificacion} />
+                    <small className="text-secondary">
+                      {plato.calificacion.toLocaleString('es-CO')} · {plato.totalCalificaciones} valoración(es)
+                    </small>
+                  </span>
+=======
                   <Estrellas valor={plato.calificacion} />
+>>>>>>> origin/main
                   <strong>{moneda(plato.precio)}</strong>
                 </div>
 
@@ -94,6 +144,14 @@ export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
                   <p className="small text-secondary recorte-3 mb-3">{plato.descripcion}</p>
                 )}
 
+<<<<<<< HEAD
+                {rutaMenu && (
+                  <Link className="btn btn-primary btn-sm w-100 mt-auto" to={rutaMenu}>
+                    <i className="fa-solid fa-utensils me-2" />
+                    Ver nuestro menú
+                  </Link>
+                )}
+=======
                 <Link
                   className="btn btn-primary btn-sm w-100 mt-auto"
                   to="/cliente/panel?vista=menu"
@@ -101,6 +159,7 @@ export default function ListaTop({ anclaComentarios = 'muro-comentarios' }) {
                   <i className="fa-solid fa-utensils me-2" />
                   Ver nuestro menú
                 </Link>
+>>>>>>> origin/main
               </div>
             </article>
           </div>

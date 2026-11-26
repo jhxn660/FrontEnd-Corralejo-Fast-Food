@@ -1,6 +1,10 @@
 import { useState } from 'react'
 
 import Modal from '../../components/ui/Modal'
+<<<<<<< HEAD
+
+import { LARGO_MAXIMO_TEXTO, ayudaDe, colorDe, hayFallos, iconoDe, validarPqrs } from './esquema'
+=======
 import {
   ESTADOS,
   LARGO_MAXIMO_TEXTO,
@@ -11,10 +15,25 @@ import {
   iconoDe,
   validarPqrs,
 } from './esquema'
+>>>>>>> origin/main
 
 const ID_FORMULARIO = 'formulario-pqrs'
 
 /**
+<<<<<<< HEAD
+ * Formulario para que el CLIENTE envíe una PQRS nueva (POST /pqrs).
+ *
+ * - El tipo (Petición, Queja, Reclamo o Sugerencia) ya lo eligió con el botón que abrió el
+ *   formulario: aquí solo se muestra, no se cambia.
+ * - Se valida antes de enviar (asunto y descripción con un mínimo de caracteres) para
+ *   señalar el campo exacto; el backend vuelve a validar al recibirla.
+ * - Una PQRS enviada no se edita: es el registro de lo que pidió el cliente.
+ */
+export default function FormularioPqrs({ pqrs, enviando, onGuardar, onCerrar }) {
+  const [valores, setValores] = useState(pqrs)
+  const [errores, setErrores] = useState({})
+
+=======
  * Alta y edición de una PQRS. Un solo formulario para los dos paneles: el del
  * empleado añade los campos de gestión —de parte de quién viene y en qué estado
  * está— y el del cliente no los necesita, porque el solicitante es él mismo
@@ -48,6 +67,7 @@ export default function FormularioPqrs({
 
   const editando = Boolean(valores.id)
 
+>>>>>>> origin/main
   const cambiar = (cambios) => {
     setValores((previos) => ({ ...previos, ...cambios }))
     setErrores({})
@@ -55,7 +75,11 @@ export default function FormularioPqrs({
 
   const enviar = (evento) => {
     evento.preventDefault()
+<<<<<<< HEAD
+    const fallos = validarPqrs(valores)
+=======
     const fallos = validarPqrs(valores, { conSolicitante: gestion })
+>>>>>>> origin/main
     if (hayFallos(fallos)) {
       setErrores(fallos)
       return
@@ -67,19 +91,27 @@ export default function FormularioPqrs({
 
   return (
     <Modal
+<<<<<<< HEAD
+      titulo={`Nueva ${valores.tipo.toLowerCase()}`}
+=======
       titulo={editando ? `Editar ${valores.tipo.toLowerCase()}` : `Nueva ${valores.tipo.toLowerCase()}`}
+>>>>>>> origin/main
       icono={iconoDe(valores.tipo)}
       tamano="modal-lg"
       cerrarAlPulsarFuera={false}
       onClose={onCerrar}
       footer={
         <>
+<<<<<<< HEAD
+          <button type="button" className="btn btn-outline-secondary" onClick={onCerrar} disabled={enviando}>
+=======
           <button
             type="button"
             className="btn btn-outline-secondary"
             onClick={onCerrar}
             disabled={enviando}
           >
+>>>>>>> origin/main
             Cancelar
           </button>
           <button className="btn btn-primary" form={ID_FORMULARIO} type="submit" disabled={enviando}>
@@ -91,7 +123,11 @@ export default function FormularioPqrs({
             ) : (
               <>
                 <i className="fa-solid fa-paper-plane me-2" />
+<<<<<<< HEAD
+                Enviar solicitud
+=======
                 {editando ? 'Guardar cambios' : 'Enviar solicitud'}
+>>>>>>> origin/main
               </>
             )}
           </button>
@@ -99,6 +135,20 @@ export default function FormularioPqrs({
       }
     >
       <form id={ID_FORMULARIO} onSubmit={enviar} noValidate>
+<<<<<<< HEAD
+        <div className="modal-resumen d-flex align-items-center gap-3 mb-4">
+          <div
+            className="icon-tile d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{ background: colorDe(valores.tipo) }}
+          >
+            <i className={`fa-solid ${iconoDe(valores.tipo)}`} />
+          </div>
+          <div className="min-width-0">
+            <strong className="d-block">{valores.tipo}</strong>
+            <small className="text-secondary">{ayudaDe(valores.tipo)}</small>
+          </div>
+        </div>
+=======
         {tipoFijo ? (
           <div className="modal-resumen d-flex align-items-center gap-3 mb-4">
             <div
@@ -162,6 +212,7 @@ export default function FormularioPqrs({
             )}
           </div>
         )}
+>>>>>>> origin/main
 
         <div className="mb-3">
           <label className="form-label" htmlFor="pqrs-asunto">
@@ -185,7 +236,11 @@ export default function FormularioPqrs({
           )}
         </div>
 
+<<<<<<< HEAD
+        <div className="mb-0">
+=======
         <div className={gestion ? 'mb-3' : 'mb-0'}>
+>>>>>>> origin/main
           <label className="form-label" htmlFor="pqrs-texto">
             Descripción
           </label>
@@ -211,6 +266,8 @@ export default function FormularioPqrs({
             </div>
           )}
         </div>
+<<<<<<< HEAD
+=======
 
         {gestion && (
           <div>
@@ -230,6 +287,7 @@ export default function FormularioPqrs({
             </select>
           </div>
         )}
+>>>>>>> origin/main
       </form>
     </Modal>
   )

@@ -1,5 +1,24 @@
 import { useCallback, useMemo, useState } from 'react'
 
+<<<<<<< HEAD
+import { useRecurso } from '../../hooks/useRecurso'
+import { fechaCorta } from '../../utils/format'
+import EncabezadoPagina from '../../components/ui/EncabezadoPagina'
+import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
+
+import { pqrsApi } from './api'
+import DetallePqrs from './DetallePqrs'
+import { COLOR_ESTADO, ESTADOS, ICONO_ESTADO, NOMBRES_TIPO, colorDe, iconoDe } from './esquema'
+
+/**
+ * PQRS para el EMPLEADO: consulta todas las que enviaron los clientes (filtros, búsqueda y
+ * detalle). Responder, cambiar el estado o eliminar es de administración (Moderación de PQRS);
+ * el backend no se lo permite al empleado.
+ */
+export default function PqrsEmpleado() {
+  const cargar = useCallback(() => pqrsApi.listar(), [])
+  const { datos: solicitudes, cargando, error, recargar } = useRecurso(cargar, [])
+=======
 import { api } from '../../services/api'
 import { useRecurso } from '../../hooks/useRecurso'
 import { usePeticion } from '../../hooks/usePeticion'
@@ -25,12 +44,20 @@ export default function EmpleadoPqrs() {
   const cargar = useCallback(() => api.list('pqrs'), [])
   const { datos: solicitudes, cargando, error, recargar } = useRecurso(cargar, [])
   const avisos = useAvisos()
+>>>>>>> origin/main
 
   const [filtroEstado, setFiltroEstado] = useState('Todas')
   const [filtroTipo, setFiltroTipo] = useState('Todos')
   const [busqueda, setBusqueda] = useState('')
+<<<<<<< HEAD
+  // El id y no el registro: si otro rol lo cambia, el detalle abierto se
+  // actualiza con la siguiente sincronización.
+  const [detalleId, setDetalleId] = useState(null)
+  const detalle = solicitudes.find((registro) => registro.id === detalleId) ?? null
+=======
   const [formulario, setFormulario] = useState(null)
   const [detalle, setDetalle] = useState(null)
+>>>>>>> origin/main
 
   const visibles = useMemo(() => {
     const texto = busqueda.toLowerCase().trim()
@@ -60,6 +87,13 @@ export default function EmpleadoPqrs() {
     [solicitudes]
   )
 
+<<<<<<< HEAD
+  return (
+    <>
+      <EncabezadoPagina
+        titulo="PQRS de clientes"
+        descripcion="Consulta las peticiones, quejas, reclamos y sugerencias que enviaron los clientes."
+=======
   const guardado = usePeticion(
     useCallback(
       async (valores) => {
@@ -138,15 +172,19 @@ export default function EmpleadoPqrs() {
       <EncabezadoPagina
         titulo="Gestión de PQRS"
         descripcion="Administra las peticiones, quejas, reclamos y sugerencias recibidas."
+>>>>>>> origin/main
       >
         <button className="btn btn-outline-secondary" onClick={recargar} disabled={cargando}>
           <i className="fa-solid fa-rotate me-2" />
           Actualizar
         </button>
+<<<<<<< HEAD
+=======
         <button className="btn btn-primary" onClick={() => setFormulario(pqrsVacia())}>
           <i className="fa-solid fa-plus me-2" />
           Registrar solicitud
         </button>
+>>>>>>> origin/main
       </EncabezadoPagina>
 
       <MensajeError texto={error} onReintentar={recargar} />
@@ -278,6 +316,15 @@ export default function EmpleadoPqrs() {
                   {fechaCorta(registro.fecha)}
                 </small>
 
+<<<<<<< HEAD
+                <span className={`badge bg-${COLOR_ESTADO[registro.estado] ?? 'secondary'} ms-auto`}>
+                  {registro.estado}
+                </span>
+
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setDetalleId(registro.id)}
+=======
                 <select
                   className="form-select form-select-sm ms-auto"
                   style={{ width: 'auto' }}
@@ -294,10 +341,13 @@ export default function EmpleadoPqrs() {
                 <button
                   className="btn btn-sm btn-outline-secondary"
                   onClick={() => setDetalle(registro)}
+>>>>>>> origin/main
                   aria-label={`Ver ${registro.asunto}`}
                 >
                   <i className="fa-solid fa-eye" />
                 </button>
+<<<<<<< HEAD
+=======
                 <button
                   className="btn btn-sm btn-outline-primary"
                   onClick={() => setFormulario(registro)}
@@ -312,12 +362,16 @@ export default function EmpleadoPqrs() {
                 >
                   <i className="fa-solid fa-trash-can" />
                 </button>
+>>>>>>> origin/main
               </div>
             </article>
           </div>
         ))}
       </div>
 
+<<<<<<< HEAD
+      {detalle && <DetallePqrs pqrs={detalle} onCerrar={() => setDetalleId(null)} />}
+=======
       {detalle && !formulario && (
         <DetallePqrs
           pqrs={detalle}
@@ -354,6 +408,7 @@ export default function EmpleadoPqrs() {
           onCancelar={eliminacion.cancelar}
         />
       )}
+>>>>>>> origin/main
     </>
   )
 }

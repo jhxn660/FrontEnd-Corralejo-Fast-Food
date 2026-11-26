@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+// Paletas de las gráficas.
+// Los valores hexadecimales viven en styles/theme.css; aquí solo se citan las
+// variables, de modo que ningún color se escriba fuera del tema.
+
+=======
 // Paletas de las gráficas (R23, R24, R28).
 // Los valores hexadecimales viven en styles/theme.css; aquí solo se citan las
 // variables, de modo que ningún color se escriba fuera del tema.
@@ -20,6 +26,7 @@ export const CATEGORIAS = {
   combos: { titulo: 'Combos', color: 'var(--cff-cat-combos)' },
 }
 
+>>>>>>> origin/main
 export const COLOR_SIN_CATEGORIA = 'var(--cff-cat-otros)'
 
 /** Diez tonos distintos para repartir categorías de la carta en una gráfica. */

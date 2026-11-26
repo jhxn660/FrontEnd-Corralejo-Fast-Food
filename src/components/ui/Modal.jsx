@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+import { useEffect, useId, useRef } from 'react'
+import { createPortal } from 'react-dom'
+
+/**
+ * Pila de modales abiertos (el último está encima). Cuando un modal abre otro (detalle →
+ * confirmar borrado), solo el de arriba atiende el teclado, y el scroll de la página se libera
+ * al cerrar el último.
+=======
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -8,11 +17,20 @@ import { createPortal } from 'react-dom'
  * vez: un Escape cerraba ambos, la trampa de foco del de abajo le robaba el
  * Tab al de arriba, y al cerrarse el de arriba se liberaba el scroll de la
  * página aunque el de abajo siguiera abierto.
+>>>>>>> origin/main
  */
 const pila = []
 const bloqueo = { paddingPrevio: '' }
 
 /**
+<<<<<<< HEAD
+ * Modal con estilos de Bootstrap controlado por React. Se monta en document.body (portal)
+ * para que ningún contenedor con overflow o z-index lo recorte.
+ *
+ * El contenedor lleva la clase `modal` (y `d-block`): Bootstrap declara ahí las variables
+ * --bs-modal-*, y sin ella el diálogo sale transparente y sin ancho.
+ * Atrapa el foco mientras está abierto, lo devuelve al cerrar y compensa la barra de scroll.
+=======
  * Modal con estilos de Bootstrap pero controlado por React (R30).
  * Se monta en document.body para que ningún contenedor con overflow o z-index
  * (como el header fijo) lo recorte.
@@ -31,12 +49,17 @@ const bloqueo = { paddingPrevio: '' }
  *   mientras está abierto: tabular no debe llevar a la página de detrás.
  * - Compensa el ancho de la barra de desplazamiento al bloquear el scroll, para
  *   que la página no dé un salto lateral al abrirse.
+>>>>>>> origin/main
  *
  * @param {string}  titulo       encabezado del diálogo
  * @param {string}  icono        clase de Font Awesome sin el prefijo fa-solid
  * @param {string}  descripcion  subtítulo opcional bajo el título
  * @param {string}  tamano       'modal-lg' | 'modal-xl' | 'modal-sm' | ''
+<<<<<<< HEAD
+ * @param {string}  tono         'peligro' | '' (color de la cabecera)
+=======
  * @param {string}  tono         'peligro' | 'exito' | '' (color de la cabecera)
+>>>>>>> origin/main
  * @param {boolean} cerrarAlPulsarFuera  false en formularios con datos a medias
  */
 export default function Modal({
@@ -51,6 +74,13 @@ export default function Modal({
   footer,
 }) {
   const contenido = useRef(null)
+<<<<<<< HEAD
+  const idTitulo = useId()
+
+  // `onClose` se guarda en una ref para que el efecto de abajo corra UNA sola vez. Los
+  // padres suelen pasar una función nueva en cada render; si el efecto dependiera de ella,
+  // se repetiría con cada tecla y el foco saltaría al primer campo del formulario.
+=======
   const idTitulo = useRef(`modal-${Math.random().toString(36).slice(2, 9)}`)
 
   // `onClose` se guarda en una ref y el efecto de abajo corre UNA vez. Antes
@@ -59,6 +89,7 @@ export default function Modal({
   // deshacía y se rehacía, y el foco saltaba al primer campo. En "Modificar
   // venta" eso pasaba con cada tecla, así que era imposible escribir en el
   // segundo o el tercer campo.
+>>>>>>> origin/main
   const cerrarRef = useRef(onClose)
   useEffect(() => {
     cerrarRef.current = onClose
@@ -79,7 +110,11 @@ export default function Modal({
       ).filter((elemento) => elemento.offsetParent !== null)
 
     // Foco inicial: el primer campo del formulario si hay, y si no el propio
+<<<<<<< HEAD
+    // diálogo. Nunca un botón destructivo del pie.
+=======
     // diálogo. Nunca un botón destructivo del pie (R58).
+>>>>>>> origin/main
     const candidatos = enfocables()
     const primerCampo = candidatos.find((e) => e.matches('input, select, textarea'))
     ;(primerCampo ?? contenido.current)?.focus()
@@ -111,9 +146,14 @@ export default function Modal({
 
     document.addEventListener('keydown', alPulsarTecla)
 
+<<<<<<< HEAD
+    // Bloquea el scroll compensando el ancho de la barra (si no, la página da un salto).
+    // Lo pone el primer modal de la pila y lo quita el último en cerrarse.
+=======
     // Bloqueo del scroll compensando la barra: sin el padding, quitar el scroll
     // ensancha la página y todo se desplaza unos píxeles al abrir el modal. Lo
     // pone el primer modal de la pila y lo quita el último en cerrarse.
+>>>>>>> origin/main
     if (pila.length === 1) {
       const anchoBarra = window.innerWidth - document.documentElement.clientWidth
       bloqueo.paddingPrevio = document.body.style.paddingRight
@@ -137,7 +177,11 @@ export default function Modal({
       className="modal d-block cff-backdrop p-2 p-sm-3"
       role="dialog"
       aria-modal="true"
+<<<<<<< HEAD
+      aria-labelledby={idTitulo}
+=======
       aria-labelledby={idTitulo.current}
+>>>>>>> origin/main
       onMouseDown={(evento) => {
         if (cerrarAlPulsarFuera && evento.target === evento.currentTarget) cerrarRef.current()
       }}
@@ -149,7 +193,11 @@ export default function Modal({
       >
         <div className="modal-content" ref={contenido} tabIndex={-1}>
           <div className="modal-header">
+<<<<<<< HEAD
+            <h5 className="modal-title min-width-0" id={idTitulo}>
+=======
             <h5 className="modal-title min-width-0" id={idTitulo.current}>
+>>>>>>> origin/main
               {icono && <i className={`fa-solid ${icono} text-brand`} />}
               <span className="text-truncate">{titulo}</span>
             </h5>

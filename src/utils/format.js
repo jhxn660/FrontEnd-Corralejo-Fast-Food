@@ -24,6 +24,12 @@ export const hora12 = (date = new Date()) => {
   return `${h % 12 || 12}:${String(date.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
 
+<<<<<<< HEAD
+/** wa.me y tel: solo aceptan dígitos: "+57 311 8370904" → "573118370904". */
+export const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '')
+
+=======
+>>>>>>> origin/main
 /** "Carlos Ramírez" → "CR". Para avatares con iniciales. */
 export const inicialesDe = (nombre = '') =>
   String(nombre)
