@@ -176,6 +176,45 @@ export const eliminarPedido = async (pedido) => {
   await ordersApi.remove(pedido.id)
 }
 
+/* ───────────── Pedidos por día ───────────── */
+
+/** Valor del desplegable para ver los pedidos de todos los días juntos. */
+export const TODOS_LOS_DIAS = 'todos'
+
+/** Clave del día de hoy en la hora del navegador: "2026-11-27". */
+export const diaDeHoy = () => fechaISO(new Date())
+
+/** "2026-11-27" → Date local (sin pasar por UTC, que en Colombia cae el día anterior). */
+const fechaLocal = (clave) => {
+  const [año, mes, dia] = clave.split('-').map(Number)
+  return new Date(año, mes - 1, dia)
+}
+
+/**
+ * Días que tienen pedidos, del más reciente al más antiguo: [{ fecha, cantidad }].
+ * Hoy aparece siempre, aunque todavía no tenga pedidos (es donde se toman los nuevos).
+ */
+export const diasConPedidos = (pedidos, hoy = diaDeHoy()) => {
+  const cuenta = new Map([[hoy, 0]])
+  pedidos.forEach((pedido) => cuenta.set(pedido.fecha, (cuenta.get(pedido.fecha) ?? 0) + 1))
+  return [...cuenta]
+    .map(([fecha, cantidad]) => ({ fecha, cantidad }))
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+}
+
+/** Nombre de un día para el desplegable: "Hoy", "Ayer" o "miércoles, 25 de noviembre". */
+export const etiquetaDia = (fecha, hoy = diaDeHoy()) => {
+  if (fecha === hoy) return 'Hoy'
+  const ayer = fechaLocal(hoy)
+  ayer.setDate(ayer.getDate() - 1)
+  if (fecha === fechaISO(ayer)) return 'Ayer'
+  return fechaLocal(fecha).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+/** Fecha corta de un pedido para la lista de «Todos los días»: "25 nov.". */
+export const fechaCortaDe = (fecha) =>
+  fechaLocal(fecha).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+
 /**
  * Reparte el total de unidades vendidas por categoría para el gráfico de torta.
  * Un producto vendido que ya no está en la carta cae en "Otros".

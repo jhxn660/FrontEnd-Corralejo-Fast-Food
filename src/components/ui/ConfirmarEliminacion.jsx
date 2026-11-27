@@ -3,30 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 import Modal from './Modal'
 
 /**
-<<<<<<< HEAD
  * Confirmación obligatoria antes de cualquier borrado (RNF-01), en lugar de window.confirm.
  *
  * - Bloquea la pantalla (Modal) y nombra el registro y sus consecuencias.
  * - El foco arranca en Cancelar: un Enter por reflejo nunca borra.
  * - Mientras se envía no se puede cerrar ni pulsar dos veces.
  * - `requiereCasilla`: en borrados en cascada hay que marcar una casilla a propósito.
-=======
- * Confirmación obligatoria antes de cualquier DELETE (RNF-01).
- *
- * Sustituye a window.confirm, que el navegador puede suprimir, no se puede
- * estilar, no dice QUÉ se está borrando y en algunos navegadores se salta con
- * "no volver a preguntar".
- *
- * Cuatro garantías:
- *   1. Bloquea la interacción: Modal monta un backdrop sobre todo el DOM.
- *   2. Nombra el registro concreto y sus consecuencias.
- *   3. El botón destructivo nunca es el foco inicial ni el de Enter.
- *   4. Mientras se envía no se puede cerrar ni pulsar dos veces.
- *
- * `requiereCasilla` se reserva para los borrados en cascada (una venta que
- * arrastra su pedido): un clic de más es fácil, marcar una casilla a propósito
- * no lo es.
->>>>>>> origin/main
  */
 export default function ConfirmarEliminacion({
   entidad,
@@ -51,7 +33,7 @@ export default function ConfirmarEliminacion({
 
   return (
     <Modal
-      titulo={`Eliminar ${entidad}`}
+      titulo={`Eliminar ${entidad} ${nombre}`}
       icono="fa-triangle-exclamation"
       onClose={enviando ? () => {} : onCancelar}
       footer={

@@ -1,16 +1,11 @@
 /* Tema de Corralejo Fast Food.
-<<<<<<< HEAD
    Único archivo CSS propio: define la marca, repinta las variables de
-=======
-   Único archivo CSS propio (R26): define la marca, repinta las variables de
->>>>>>> origin/main
    Bootstrap y resuelve lo que Bootstrap no cubre (calendario, torta, avisos,
    impresión del ticket). Todo lo demás sale de las clases de Bootstrap. */
 
 @import url('https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-<<<<<<< HEAD
   /* ---------- Escala general ----------
      El panel se pinta al 95 % en escritorio, como el zoom del navegador (ver
      `html { zoom }` justo después de este bloque). Cambiar este número escala
@@ -23,8 +18,6 @@
   --vh-pantalla: calc(100vh / var(--escala));
   --dvh-pantalla: calc(100dvh / var(--escala));
 
-=======
->>>>>>> origin/main
   --cff-naranja: #ff8a00;
   --cff-naranja-oscuro: #c96400;
   --cff-naranja-claro: #ffb24d;
@@ -36,7 +29,6 @@
   --cff-borde: #d6d9e0;
   --cff-tinta: #16181d;
   --cff-tinta-suave: #596070;
-<<<<<<< HEAD
 
   /* ---------- Sistema Fibonacci / proporción áurea ----------
      Toda medida de espacio, radio, tipografía y alto de pieza sale de esta
@@ -57,9 +49,6 @@
   --aureo-menor: 38.2%;
 
   --cff-header: var(--fib-55);
-=======
-  --cff-header: 72px;
->>>>>>> origin/main
 
   /* Sombras en una sola escala: así todas las tarjetas pertenecen al mismo
      sistema en vez de inventar cada una la suya. */
@@ -78,7 +67,6 @@
   --bs-body-font-family: 'Albert Sans', system-ui, sans-serif;
   --bs-link-color: var(--cff-naranja-oscuro);
   --bs-link-hover-color: var(--cff-carbon);
-<<<<<<< HEAD
   /* Radios Fibonacci: control 8 · pequeño 5 · tarjeta 13 · modal 21. */
   --bs-border-radius: var(--fib-8);
   --bs-border-radius-sm: var(--fib-5);
@@ -89,11 +77,6 @@
   /* Interlineado áureo para el texto corrido. Los botones y campos conservan
      el suyo (Bootstrap los fija aparte), así no crecen de alto. */
   --bs-body-line-height: var(--phi);
-=======
-  --bs-border-radius: 0.75rem;
-  --bs-border-radius-sm: 0.5rem;
-  --bs-border-radius-lg: 1rem;
->>>>>>> origin/main
   --bs-border-color: var(--cff-borde);
 
   /* El gris de Bootstrap (#6c757d) baja de 4.5:1 sobre el fondo de la página.
@@ -101,11 +84,7 @@
   --bs-secondary-color: var(--cff-tinta-suave);
 
   /* Paleta de las gráficas. Los componentes las citan como var(…) para que
-<<<<<<< HEAD
      ningún color viva fuera de este archivo. */
-=======
-     ningún color viva fuera de este archivo (R28). */
->>>>>>> origin/main
   --cff-grafica-1: #ff8a00;
   --cff-grafica-2: #ff6b35;
   --cff-grafica-3: #ffb24d;
@@ -121,7 +100,6 @@
   --cff-cat-otros: #6b7280;
 }
 
-<<<<<<< HEAD
 /* Escritorio al 95 %. En móvil se queda al 100 %: el texto pequeño ya está en
    13 px, el mínimo legible de la escala, y bajarlo un 5 % lo dejaría corto. */
 @media (min-width: 992px) {
@@ -139,8 +117,6 @@ html { zoom: var(--escala); }
 .min-vh-100 { min-height: var(--vh-pantalla) !important; }
 .vh-100 { height: var(--vh-pantalla) !important; }
 
-=======
->>>>>>> origin/main
 body {
   background-color: var(--cff-fondo);
   /* Un fondo con una veladura cálida separa las tarjetas blancas del lienzo sin
@@ -273,25 +249,6 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   font-weight: 600;
 }
 
-<<<<<<< HEAD
-=======
-/* Los pills del catálogo y de las pestañas también nacen azules. */
-.nav-pills {
-  --bs-nav-pills-link-active-bg: var(--cff-naranja);
-  --bs-nav-pills-link-active-color: #fff;
-  --bs-nav-link-color: var(--cff-carbon);
-  --bs-nav-link-hover-color: var(--cff-naranja-oscuro);
-}
-
-.nav-pills .nav-link {
-  font-weight: 600;
-  border: 1px solid var(--cff-borde);
-  background: #fff;
-}
-
-.nav-pills .nav-link.active { border-color: var(--cff-naranja-oscuro); }
-
->>>>>>> origin/main
 .form-check-input:checked {
   background-color: var(--cff-naranja);
   border-color: var(--cff-naranja-oscuro);
@@ -316,7 +273,6 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 
 .app-header .text-brand { color: var(--cff-naranja-claro) !important; }
 
-<<<<<<< HEAD
 /* 233px: número de Fibonacci (144 · 233 · 377). */
 .app-sidebar {
   width: var(--fib-233);
@@ -357,27 +313,6 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   }
 
   .app-sidebar-inner { height: auto; box-shadow: var(--cff-sombra-3); }
-=======
-.app-sidebar {
-  width: 260px;
-  flex-shrink: 0;
-}
-
-/* El sidebar acompaña el scroll en escritorio y se pliega en móvil.
-   El <aside> se estira a la altura del contenido (align-self: stretch): un
-   elemento sticky solo se queda pegado mientras su contenedor tenga altura
-   por recorrer, y antes el aside medía lo mismo que el menú, así que al bajar
-   el menú se iba con la página. */
-@media (min-width: 992px) {
-  .app-sidebar { align-self: stretch; }
-
-  .app-sidebar-inner {
-    position: sticky;
-    top: calc(var(--cff-header) + 1rem);
-    max-height: calc(100vh - var(--cff-header) - 2rem);
-    overflow-y: auto;
-  }
->>>>>>> origin/main
 }
 
 /* Botón de navegación del panel: activo = naranja. */
@@ -385,11 +320,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   color: var(--cff-carbon);
   text-align: left;
   border-radius: var(--bs-border-radius);
-<<<<<<< HEAD
   padding: var(--fib-8) var(--fib-13);
-=======
-  padding: 0.6rem 0.9rem;
->>>>>>> origin/main
   width: 100%;
   border: 0;
   background: transparent;
@@ -410,20 +341,12 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   box-shadow: 0 3px 10px rgba(255, 138, 0, 0.4);
 }
 
-<<<<<<< HEAD
 .nav-panel .nav-link i { width: var(--fib-21); }
-=======
-.nav-panel .nav-link i { width: 1.25rem; }
->>>>>>> origin/main
 
 /* ---------- Piezas reutilizables ---------- */
 
 .auth-screen {
-<<<<<<< HEAD
   min-height: var(--vh-pantalla);
-=======
-  min-height: 100vh;
->>>>>>> origin/main
   background-size: cover;
   background-position: center;
 }
@@ -436,19 +359,13 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 }
 
 .logo-circle {
-<<<<<<< HEAD
   width: var(--fib-89);
   height: var(--fib-89);
-=======
-  width: 72px;
-  height: 72px;
->>>>>>> origin/main
   border-radius: 50%;
   background: var(--cff-naranja-tenue);
   border: 2px solid var(--cff-naranja);
 }
 
-<<<<<<< HEAD
 /* Cuadro de icono: fondo sólido e icono blanco (contraste de al menos 3:1). */
 .icon-tile {
   width: var(--fib-55);
@@ -457,31 +374,14 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   background: linear-gradient(140deg, var(--cff-naranja) 0%, var(--cff-naranja-oscuro) 100%);
   color: #fff;
   font-size: var(--fib-21);
-=======
-/* Cuadro de icono: fondo sólido e icono blanco. La versión anterior era naranja
-   claro sobre naranja y no llegaba a 3:1. */
-.icon-tile {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--bs-border-radius);
-  background: linear-gradient(140deg, var(--cff-naranja) 0%, var(--cff-naranja-oscuro) 100%);
-  color: #fff;
-  font-size: 1.25rem;
->>>>>>> origin/main
   box-shadow: 0 3px 8px rgba(255, 138, 0, 0.35);
 }
 
 .icon-tile-sm {
-<<<<<<< HEAD
   width: var(--fib-34);
   height: var(--fib-34);
   border-radius: var(--bs-border-radius);
   font-size: var(--fib-13);
-=======
-  width: 36px;
-  height: 36px;
-  font-size: 1rem;
->>>>>>> origin/main
 }
 
 /* Bootstrap no trae utilidades de min-width: sin esto, un flex hijo con texto
@@ -504,11 +404,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   outline-offset: 2px;
 }
 
-<<<<<<< HEAD
 /* Cinta superior de color para clasificar tarjetas. */
-=======
-/* Cinta superior de color para clasificar tarjetas (empleados, insumos). */
->>>>>>> origin/main
 .cinta-superior { box-shadow: inset 0 4px 0 var(--color-cinta, var(--cff-naranja)); }
 
 /* Texto recortado a N líneas: una descripción larga no debe estirar la tarjeta
@@ -525,21 +421,11 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 
 /* ---------- Modales ---------- */
 
-<<<<<<< HEAD
 /* El portal monta el diálogo con la clase .modal de Bootstrap: ahí viven TODAS las variables
    --bs-modal-*. Sin esa clase, .modal-content se queda sin fondo ni relleno y modal-lg no hace nada. */
 .modal {
   --bs-modal-bg: var(--cff-superficie);
   --bs-modal-border-radius: var(--bs-border-radius-xl);
-=======
-/* El portal monta el diálogo con la clase .modal de Bootstrap: ahí es donde
-   viven TODAS las variables --bs-modal-*. Sin esa clase, .modal-content se
-   queda sin fondo ni relleno y modal-lg no tiene ningún efecto, que era el
-   motivo real de que los modales se vieran mal en toda la aplicación. */
-.modal {
-  --bs-modal-bg: var(--cff-superficie);
-  --bs-modal-border-radius: var(--bs-border-radius-lg);
->>>>>>> origin/main
   --bs-modal-border-width: 0;
   --bs-modal-header-border-color: var(--cff-borde);
   --bs-modal-footer-border-color: var(--cff-borde);
@@ -611,23 +497,12 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   background: linear-gradient(100deg, #8c1420 0%, #c1272d 100%);
 }
 
-<<<<<<< HEAD
-=======
-.modal-tono-exito .modal-header {
-  background: linear-gradient(100deg, #10614f 0%, #2a9d8f 100%);
-}
-
->>>>>>> origin/main
 /* Cuerpo desplazable con cabecera y pie fijos: un formulario largo ya no
    empuja los botones fuera de la pantalla. */
 .modal-body {
   padding: 1.25rem;
   overflow-y: auto;
-<<<<<<< HEAD
   max-height: calc(var(--vh-pantalla) - var(--cff-header) - 9rem);
-=======
-  max-height: calc(100vh - var(--cff-header) - 9rem);
->>>>>>> origin/main
 }
 
 .modal-footer {
@@ -651,11 +526,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   top: calc(var(--cff-header) + 0.75rem);
   right: 1rem;
   z-index: 1090;
-<<<<<<< HEAD
   width: min(23rem, calc(100vw / var(--escala) - 2rem));
-=======
-  width: min(23rem, calc(100vw - 2rem));
->>>>>>> origin/main
   display: grid;
   gap: 0.6rem;
   pointer-events: none;
@@ -701,11 +572,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
   to { width: 0%; }
 }
 
-<<<<<<< HEAD
 /* ---------- Calendario ---------- */
-=======
-/* ---------- Calendario de días especiales ---------- */
->>>>>>> origin/main
 
 .calendar-grid {
   display: grid;
@@ -747,6 +614,10 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 .calendar-day.is-muted { color: #c2c6d0; cursor: default; background: transparent; border-color: transparent; }
 .calendar-day.is-today { border: 2px solid var(--cff-naranja); color: var(--cff-naranja-oscuro); }
 .calendar-day.cerrado { background: #c1272d; color: #fff; border-color: #8c1420; }
+/* Una fecha con su propio horario: azul, distinto del naranja de la marca y de los eventos */
+.calendar-day.horario,
+.badge-horario-especial { background: #1f6fd1; color: #fff; border-color: #17539c; }
+.texto-horario-especial { color: #17539c; }
 .calendar-day.evento { background: var(--cff-naranja); color: #fff; border-color: var(--cff-naranja-oscuro); }
 
 /* Dos cierres distintos, dos marcas distintas: "los lunes no abrimos" es la
@@ -799,12 +670,7 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.015em; }
 
 /* ---------- Carta del cliente ---------- */
 
-<<<<<<< HEAD
 /* Hueco de la foto de un plato: un degradado con el tono de su categoría detrás de la imagen. */
-=======
-/* Tarjeta de plato: la imagen es un degradado con el emoji de su categoría, así
-   que la carta se ve apetecible sin depender de fotos que no existen. */
->>>>>>> origin/main
 .plato-foto {
   aspect-ratio: 16 / 10;
   display: grid;
@@ -920,24 +786,10 @@ img.miniatura-respaldo {
 
 /* ---------- Impresión del ticket ---------- */
 
-<<<<<<< HEAD
 /* Al imprimir solo sale el ticket, centrado y sin los botones del modal (la clase la pone
    TicketModal mientras está abierto): se apaga todo lo que no es el portal del modal y, dentro,
    la cabecera y el pie. El diálogo pasa a `position: static`: un elemento fijo se repetiría en
    cada hoja y saldría una segunda hoja en blanco. */
-=======
-/* Al imprimir solo sale el ticket, centrado y sin los botones del modal. La
-   clase la pone el propio modal del ticket mientras está abierto.
-
-   `window.print()` imprime la página entera: antes salía la aplicación completa
-   —cabecera, menú, tabla de ventas— con el ticket pegado arriba y los botones
-   "Cerrar" e "Imprimir" dentro del papel. La salida es apagar todo lo que no es
-   el portal del modal, y dentro del portal apagar la cabecera y el pie.
-
-   Importa que el diálogo pase a `position: static`: un elemento fijo se repite
-   en cada página impresa, y el `inset: 0` del fondo hacía que el documento
-   mantuviera la altura de la pantalla y saliera una segunda hoja en blanco. */
->>>>>>> origin/main
 @media print {
   @page {
     margin: 10mm;
@@ -1050,16 +902,8 @@ img.miniatura-respaldo {
 
 /* ---------- Barras de desplazamiento ---------- */
 
-<<<<<<< HEAD
 /* Barras de desplazamiento finas con los colores del tema: el carril se funde con el fondo y
    el pulgar se vuelve naranja al pasar el cursor. */
-=======
-/* La barra del sistema (gris claro y ancha en Windows) cortaba la página con
-   una franja ajena a la marca. Se afina y se pinta con los colores del tema:
-   el carril se funde con el fondo y el pulgar es un gris suave que se vuelve
-   naranja al pasar el cursor, para que se encuentre sin estorbar. Vale para
-   la página, el menú lateral, los modales y las listas con scroll propio. */
->>>>>>> origin/main
 * {
   scrollbar-width: thin; /* Firefox y Chrome 121+ */
   scrollbar-color: #c3c8d2 transparent;
@@ -1120,7 +964,6 @@ html:hover { scrollbar-color: #aab0bc transparent; }
   }
 }
 
-<<<<<<< HEAD
 /* Selector de valoración 1-10 (Estrellas con onCalificar). Solo aparece al
    calificar un pedido por QR. Cada estrella lleva dos botones invisibles que
    cubren su mitad izquierda (2n-1) y derecha (2n). */
@@ -1131,24 +974,10 @@ html:hover { scrollbar-color: #aab0bc transparent; }
   font-size: var(--fib-34);
   line-height: 1;
   color: #c3c8d2;
-=======
-/* El botón de votar. Solo aparece en la pantalla de calificar un pedido por
-   QR, donde el ticket demuestra la compra; en los listados las estrellas son
-   texto. */
-.estrella {
-  border: 0;
-  background: none;
-  padding: 0 .15rem;
-  font-size: 1.75rem;
-  line-height: 1;
-  color: #c3c8d2;
-  cursor: pointer;
->>>>>>> origin/main
   transition: transform .1s ease, color .1s ease;
 }
 
 .estrella.activa { color: #f5a623; }
-<<<<<<< HEAD
 .estrella:hover { transform: scale(1.1); }
 
 .estrella-mitad {
@@ -1176,36 +1005,12 @@ html:hover { scrollbar-color: #aab0bc transparent; }
    del personal (tablas y formularios densos). El cristal usa la paleta de la casa.
    CONTRASTE: la superficie queda en blanco al 72 % sobre fondo claro, así la tinta y el gris de
    apoyo mantienen su ratio. El texto nunca es translúcido. */
-=======
-.estrella:hover:not(:disabled) { transform: scale(1.15); }
-.estrella:focus-visible { outline: 2px solid var(--cff-naranja); border-radius: .25rem; }
-.estrella:disabled { cursor: default; opacity: .7; }
-
-/* ---------- Estética Frutiger Aero (solo rol cliente) ---------- */
-
-/* La añade Layout con la clase `cff-aero` cuando el rol es cliente, así que
-   ninguna de estas reglas alcanza las pantallas del administrador ni del
-   empleado: ahí hay tablas y formularios densos donde el cristal resta
-   legibilidad.
-
-   El cristal se monta sobre la paleta de la casa —naranja y carbón— con dos
-   velos frescos muy suaves para el aire de Frutiger Aero, no sobre los azules
-   y verdes saturados del estilo original, que no son de la marca.
-
-   CONTRASTE: la superficie se queda en blanco al 72 % sobre un fondo claro, de
-   modo que la tinta (#16181d) y el gris de apoyo (#596070) mantienen su ratio.
-   El texto nunca se vuelve translúcido. */
->>>>>>> origin/main
 .cff-aero {
   --cff-cristal: rgb(255 255 255 / 72%);
   --cff-cristal-borde: rgb(255 255 255 / 70%);
   --cff-brillo: linear-gradient(180deg, rgb(255 255 255 / 55%) 0%, rgb(255 255 255 / 0%) 55%);
 
-<<<<<<< HEAD
   min-height: var(--vh-pantalla);
-=======
-  min-height: 100vh;
->>>>>>> origin/main
   background-image:
     radial-gradient(900px 500px at 8% 0%, rgb(255 178 77 / 28%) 0%, transparent 62%),
     radial-gradient(760px 460px at 100% 12%, rgb(67 97 238 / 12%) 0%, transparent 60%),
@@ -1285,7 +1090,6 @@ html:hover { scrollbar-color: #aab0bc transparent; }
     --cff-cristal: rgb(255 255 255 / 94%);
   }
 }
-<<<<<<< HEAD
 
 /* =====================================================================
    SISTEMA FIBONACCI — tipografía, piezas y rejilla áurea.
@@ -1421,5 +1225,3 @@ small, .small, .form-text { font-size: var(--fib-13); }
   aspect-ratio: 16 / 9;
   font-size: 2.5rem;
 }
-=======
->>>>>>> origin/main

@@ -1,12 +1,4 @@
-<<<<<<< HEAD
 // Calendario: tipos, meses y aritmética de fechas (funciones puras, sin React).
-=======
-// Calendario de días especiales: tipos, meses y aritmética de fechas.
-//
-// Vive aparte de la pantalla porque lo usan tres piezas del módulo (la
-// pantalla, el formulario del día y el modal de borrado) y porque son funciones
-// puras que se pueden razonar sin React.
->>>>>>> origin/main
 
 export const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -22,6 +14,12 @@ export const TIPOS_DIA = {
     color: 'danger',
     ayuda: 'El local no abre ese día.',
   },
+  horario: {
+    etiqueta: 'Horario especial',
+    icono: 'fa-clock',
+    color: 'info',
+    ayuda: 'Ese día abre con un horario distinto al de la semana.',
+  },
   evento: {
     etiqueta: 'Evento',
     icono: 'fa-star',
@@ -30,11 +28,6 @@ export const TIPOS_DIA = {
   },
 }
 
-<<<<<<< HEAD
-=======
-export const diaVacio = () => ({ fecha: '', tipo: 'cerrado', motivo: '' })
-
->>>>>>> origin/main
 /**
  * "2026-12-24" → { año: 2026, mes: 11, dia: 24 }, SIN pasar por la zona
  * horaria. `new Date('2026-12-24')` se interpreta como medianoche UTC, y en

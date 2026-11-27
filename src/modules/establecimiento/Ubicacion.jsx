@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useAvisos } from '../../context/AvisosContext'
 import { soloDigitos } from '../../utils/format'
 import { esMapaDeGoogle } from '../../utils/seguridad'
@@ -14,37 +13,6 @@ import { useFicha } from './useFicha'
  */
 export default function Ubicacion() {
   const { datos: ficha, cargando, error, recargar } = useFicha()
-=======
-import { useCallback } from 'react'
-
-import { useRecurso } from '../../hooks/useRecurso'
-import { useAvisos } from '../../context/AvisosContext'
-import { esMapaDeGoogle } from '../../utils/seguridad'
-import { Cargando, MensajeError, Vacio } from '../../components/ui/Estado'
-import { PILARES, PUNTOS_CLAVE } from '../../data/contenido'
-import { REFERENCIAS_POR_DEFECTO, TIEMPOS_POR_DEFECTO } from '../../data/local'
-import NarrativaCreativa from './NarrativaCreativa'
-import { establecimientoApi } from './api'
-
-/** wa.me solo acepta dígitos: "+57 311 8370904" → "573118370904". */
-const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '')
-
-/**
- * Sección «Ubicación» de la portada del cliente: dónde está el local, cómo se
- * llega y cómo contactarlo.
- *
- * Es solo consulta. La edición de la ficha vive en la pantalla del
- * administrador (`Establecimiento` con `editable`), que es la única que
- * escribe: así el cliente y el administrador leen el mismo dato y nadie puede
- * cambiarlo desde aquí ni escribiendo la URL a mano (R44).
- *
- * Los puntos de referencia y los tiempos salen de la ficha si la API los trae
- * y, si no, del respaldo en data/local.js. El back todavía no los expone.
- */
-export default function Ubicacion() {
-  const cargar = useCallback(() => establecimientoApi.ficha(), [])
-  const { datos: ficha, cargando, error, recargar } = useRecurso(cargar, null)
->>>>>>> origin/main
   const avisos = useAvisos()
 
   if (cargando && !ficha) return <Cargando texto="Cargando información del local…" />
@@ -61,12 +29,7 @@ export default function Ubicacion() {
   }
 
   const direccionCompleta = [ficha.direccion, ficha.ciudad].filter(Boolean).join(', ')
-<<<<<<< HEAD
   const referencias = ficha.referencias ?? []
-=======
-  const referencias = ficha.referencias?.length ? ficha.referencias : REFERENCIAS_POR_DEFECTO
-  const tiempos = ficha.tiempos?.length ? ficha.tiempos : TIEMPOS_POR_DEFECTO
->>>>>>> origin/main
   const whatsapp = soloDigitos(ficha.whatsapp)
 
   // Enlace de indicaciones de Google Maps por dirección. No se usa la URL del
@@ -95,17 +58,9 @@ export default function Ubicacion() {
     <>
       <MensajeError texto={error} onReintentar={recargar} />
 
-<<<<<<< HEAD
       <div className="card border-0 shadow-sm mb-3">
         <div className="row g-0">
           <div className="col-12 col-lg-aureo-mayor">
-=======
-      {/* Bloque principal del wireframe: texto y acciones a la izquierda,
-          mapa a la derecha. */}
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="row g-0">
-          <div className="col-12 col-lg-6">
->>>>>>> origin/main
             <div className="card-body p-4 h-100 d-flex flex-column">
               <h2 className="h4 fw-bold mb-3">{ficha.nombre}</h2>
 
@@ -164,14 +119,8 @@ export default function Ubicacion() {
             </div>
           </div>
 
-<<<<<<< HEAD
           <div className="col-12 col-lg-aureo-menor">
             {/* Solo se incrusta un mapa de Google (ver utils/seguridad.js). */}
-=======
-          <div className="col-12 col-lg-6">
-            {/* Solo se incrusta un mapa de Google: la URL viene de la API y se
-                pinta en el panel de todos los clientes (ver utils/seguridad.js). */}
->>>>>>> origin/main
             {esMapaDeGoogle(ficha.mapa) ? (
               <div className="ratio ratio-4x3 h-100">
                 <iframe
@@ -193,7 +142,6 @@ export default function Ubicacion() {
       </div>
 
       <div className="row g-3 mb-3">
-<<<<<<< HEAD
         {referencias.length > 0 && (
           <div className="col-12 col-lg">
             <div className="card border-0 shadow-sm h-100">
@@ -216,56 +164,6 @@ export default function Ubicacion() {
         )}
 
         <div className="col-12 col-lg">
-=======
-        <div className="col-12 col-lg-4">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-white">
-              <h2 className="h6 fw-bold mb-0">
-                <i className="fa-solid fa-map-pin text-brand me-2" />
-                Cómo ubicarnos
-              </h2>
-            </div>
-            <ul className="list-group list-group-flush">
-              {referencias.map(({ id, icono, texto }) => (
-                <li className="list-group-item d-flex gap-2 small" key={id}>
-                  <i className={`fa-solid ${icono ?? 'fa-location-crosshairs'} text-brand mt-1`} />
-                  <span>{texto}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="col-12 col-lg-4">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-white">
-              <h2 className="h6 fw-bold mb-0">
-                <i className="fa-solid fa-stopwatch text-brand me-2" />
-                Tiempos aproximados
-              </h2>
-            </div>
-            <ul className="list-group list-group-flush">
-              {tiempos.map(({ id, icono, medio, texto }) => (
-                <li
-                  className="list-group-item d-flex align-items-center gap-2 small"
-                  key={id}
-                >
-                  <i className={`fa-solid ${icono ?? 'fa-clock'} text-brand`} />
-                  <span className="min-width-0">{medio}</span>
-                  <strong className="ms-auto text-nowrap">{texto}</strong>
-                </li>
-              ))}
-            </ul>
-            <div className="card-footer bg-white">
-              <p className="small text-secondary mb-0">
-                Son estimaciones; en horas pico pueden variar.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-lg-4">
->>>>>>> origin/main
           <div className="card border-0 shadow-sm h-100">
             <div className="card-header bg-white">
               <h2 className="h6 fw-bold mb-0">
@@ -285,26 +183,6 @@ export default function Ubicacion() {
         </div>
       </div>
 
-<<<<<<< HEAD
-=======
-      <div className="row g-3 mb-3">
-        {PILARES.map(({ id, titulo, icono, texto }) => (
-          <div className="col-12 col-lg-6" key={id}>
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <h2 className="h6 fw-bold text-uppercase mb-3">
-                  <i className={`fa-solid ${icono} text-brand me-2`} />
-                  {titulo}
-                </h2>
-                <p className="text-secondary mb-0">{texto}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <NarrativaCreativa />
->>>>>>> origin/main
     </>
   )
 }

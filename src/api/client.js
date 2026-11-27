@@ -10,7 +10,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').r
 const TOKEN_STORAGE_KEY = 'token'
 export const USER_STORAGE_KEY = 'User'
 
-export function getToken() {
+function getToken() {
   return localStorage.getItem(TOKEN_STORAGE_KEY)
 }
 
