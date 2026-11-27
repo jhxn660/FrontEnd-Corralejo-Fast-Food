@@ -151,7 +151,7 @@ Cada ruta se declara **una sola vez**, en `src/config/navegacion.jsx`.
 | Ruta | Pantalla (`src/modules/…`) | Roles | Rutas del backend (`/api/…`) |
 |---|---|---|---|
 | `/login` · `/registro` | `auth/Login` · `auth/Register` | sin sesión | `auth/login`, `auth/register` |
-| `/visitante/inicio` · `/cliente/inicio` | `establecimiento/InicioVisitante` · `InicioCliente` | visitante · cliente | `ubicaciones`, `horarios`, `comments/public`, `products/public`, `sales` (más vendido del día) |
+| `/visitante/inicio` · `/cliente/inicio` | `establecimiento/InicioVisitante` · `InicioCliente` | visitante · cliente | `ubicaciones`, `horarios`, `cierres`, `comments/public`, `products/public`, `sales` (más vendido del día) |
 | `/visitante/menu` · `/cliente/menu` · `/empleado/menu` | `products/Menu` (consulta) | visitante · cliente · empleado | `products/public` |
 | `/calificar/:qr` | `comments/CalificarQr` | público (QR del tiquete) | `POST comments` con el código del QR |
 | `/cliente/pqrs` | `pqrs/PqrsCliente` | cliente | `POST pqrs`, `GET pqrs/mine` |
@@ -160,7 +160,7 @@ Cada ruta se declara **una sola vez**, en `src/config/navegacion.jsx`.
 | `/empleado/recetas` | `recipes/Recetas` (solo consulta) | empleado | `recipes`, `categories`, `products`, `supplies` |
 | `/empleado/pqrs` | `pqrs/PqrsEmpleado` (solo consulta) | empleado | `pqrs` |
 | `/admin/usuarios` | `users/GestionUsuarios` | owner, admin | `users` |
-| `/admin/establecimiento` | `establecimiento/Establecimiento` (editable) | admin, owner | `ubicaciones`, `horarios`, `establecimiento`, `comments` |
+| `/admin/establecimiento` | `establecimiento/Establecimiento` (editable) | admin, owner | `ubicaciones`, `horarios`, `cierres`, `establecimiento`, `comments` |
 | `/admin/inventario` | `supplies/Inventario` | admin, owner | `supplies`, `categories` (tipo Insumo) |
 | `/admin/menu` | `products/Menu` (editable, con combos) | admin, owner | `categories`, `products` |
 | `/admin/recetas` | `recipes/Recetas` (editable) | admin, owner | `recipes`, `categories`, `products`, `supplies` |
@@ -238,4 +238,3 @@ respalda, así un botón solo aparece a quien el backend le va a aceptar la peti
   reabriendo el pedido (eso elimina la venta y el backend devuelve los insumos).
 - **La gráfica de Pedidos agrupa por nombre de producto:** si se renombra un producto, sus
   ventas antiguas caen en "Otros".
->>>>>>> origin/main

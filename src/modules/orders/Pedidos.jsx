@@ -19,6 +19,11 @@ import {
   cambiarEstado as cambiarEstadoDePedido,
   cargarPedidos,
   combinarItems,
+  diaDeHoy,
+  diasConPedidos,
+  etiquetaDia,
+  fechaCortaDe,
+  TODOS_LOS_DIAS,
   crearPedido as crearPedidoVacio,
   eliminarPedido as eliminarPedidoConVenta,
   facturarPedido,
@@ -68,20 +73,34 @@ export default function Pedidos() {
   const [confirmacion, setConfirmacion] = useState(null)
   const [filtroEstado, setFiltroEstado] = useState('todos')
 
+  // DÍA QUE SE MIRA: por defecto solo los pedidos de hoy; el desplegable lleva a cualquier
+  // otro día con pedidos o a «Todos los días». La lista, los contadores y la gráfica lo siguen.
+  const hoy = diaDeHoy()
+  const [dia, setDia] = useState(hoy)
+  const dias = useMemo(() => diasConPedidos(pedidos, hoy), [pedidos, hoy])
+  const delDia = useMemo(
+    () => (dia === TODOS_LOS_DIAS ? pedidos : pedidos.filter((pedido) => pedido.fecha === dia)),
+    [pedidos, dia]
+  )
+  const verDia = (nuevoDia) => {
+    setDia(nuevoDia)
+    setActivoId(null)
+  }
+
   const visibles = useMemo(
     () =>
       filtroEstado === 'todos'
-        ? pedidos
-        : pedidos.filter((pedido) => pedido.estado === filtroEstado),
-    [pedidos, filtroEstado]
+        ? delDia
+        : delDia.filter((pedido) => pedido.estado === filtroEstado),
+    [delDia, filtroEstado]
   )
 
-  const activo = pedidos.find((pedido) => pedido.id === activoId) ?? visibles[0] ?? pedidos[0]
+  const activo = delDia.find((pedido) => pedido.id === activoId) ?? visibles[0] ?? delDia[0]
   const resuelto = activo?.estado === 'resuelto'
   const items = activo?.items ?? SIN_ITEMS
   const unidades = items.reduce((suma, item) => suma + (Number(item.qty) || 0), 0)
   const total = items.reduce((suma, item) => suma + item.price * item.qty, 0)
-  const reparto = useMemo(() => calcularVentasPorCategoria(pedidos, catalogo), [pedidos, catalogo])
+  const reparto = useMemo(() => calcularVentasPorCategoria(delDia, catalogo), [delDia, catalogo])
 
   // Inventario: qué cabe todavía y qué falta para facturar ESTE pedido. Se
   // recalcula cada vez que llega disponibilidad nueva (otra caja facturó,
@@ -97,11 +116,11 @@ export default function Pedidos() {
       Object.keys(ESTADOS).reduce(
         (cuenta, clave) => ({
           ...cuenta,
-          [clave]: pedidos.filter((pedido) => pedido.estado === clave).length,
+          [clave]: delDia.filter((pedido) => pedido.estado === clave).length,
         }),
         {}
       ),
-    [pedidos]
+    [delDia]
   )
 
   /**
@@ -134,6 +153,8 @@ export default function Pedidos() {
     const siguiente = siguienteNumero(pedidos)
     const creado = await crearPedidoVacio(siguiente)
 
+    // Un pedido nuevo es de hoy: la lista vuelve a hoy para mostrarlo
+    setDia(diaDeHoy())
     setActivoId(creado.id)
     setFiltroEstado('todos')
     await recargar()
@@ -279,10 +300,36 @@ export default function Pedidos() {
               <small className="text-secondary">{new Date().toLocaleDateString('es-CO')}</small>
             </div>
 
+            {/* Día que se mira: hoy por defecto; el desplegable muestra cualquier otro día */}
+            <div className="card-body p-2 border-bottom d-flex align-items-center gap-2">
+              <label className="small text-secondary mb-0 flex-shrink-0" htmlFor="dia-pedidos">
+                <i className="fa-solid fa-calendar-day text-brand me-1" />
+                Día
+              </label>
+              <select
+                id="dia-pedidos"
+                className="form-select form-select-sm"
+                value={dia}
+                onChange={(evento) => verDia(evento.target.value)}
+              >
+                {dias.map(({ fecha, cantidad }) => (
+                  <option key={fecha} value={fecha}>
+                    {etiquetaDia(fecha, hoy)} · {cantidad} pedido{cantidad === 1 ? '' : 's'}
+                  </option>
+                ))}
+                <option value={TODOS_LOS_DIAS}>Todos los días · {pedidos.length} pedidos</option>
+              </select>
+              {dia !== hoy && (
+                <button className="btn btn-sm btn-outline-primary flex-shrink-0" onClick={() => verDia(hoy)}>
+                  Hoy
+                </button>
+              )}
+            </div>
+
             <div className="card-body p-2 border-bottom">
               <div className="row row-cols-4 g-1" role="group" aria-label="Filtrar por estado">
                 {[
-                  { clave: 'todos', etiqueta: 'Todos', cantidad: pedidos.length, color: 'secondary' },
+                  { clave: 'todos', etiqueta: 'Todos', cantidad: delDia.length, color: 'secondary' },
                   ...Object.entries(ESTADOS).map(([clave, { etiqueta, color }]) => ({
                     clave,
                     etiqueta: clave === 'preparacion' ? 'Preparando' : etiqueta,
@@ -310,7 +357,9 @@ export default function Pedidos() {
 
             {visibles.length === 0 ? (
               <p className="text-secondary small text-center my-4 mb-4">
-                No hay pedidos con ese estado.
+                {delDia.length === 0 && dia === hoy && 'Hoy todavía no hay pedidos. Pulsa «Nuevo pedido».'}
+                {delDia.length === 0 && dia !== hoy && 'Ese día no tiene pedidos.'}
+                {delDia.length > 0 && 'No hay pedidos con ese estado.'}
               </p>
             ) : (
               <ul
@@ -348,7 +397,10 @@ export default function Pedidos() {
                           </span>
                         </span>
                         <span className="d-flex gap-3 small text-secondary mt-1 ps-4">
-                          <span>{pedido.hora}</span>
+                          <span>
+                            {dia === TODOS_LOS_DIAS && `${fechaCortaDe(pedido.fecha)} · `}
+                            {pedido.hora}
+                          </span>
                           <span>{lineas} línea(s)</span>
                           <span className="ms-auto fw-semibold text-brand">{moneda(importe)}</span>
                         </span>
@@ -544,7 +596,9 @@ export default function Pedidos() {
           <div className="card border-0 shadow-sm">
             <div className="card-header bg-white d-flex justify-content-between align-items-center gap-2">
               <h2 className="h6 fw-bold mb-0">Productos vendidos por categoría</h2>
-              <span className="badge bg-secondary">Pedidos resueltos</span>
+              <span className="badge bg-secondary">
+                Pedidos resueltos · {dia === TODOS_LOS_DIAS ? 'todos los días' : etiquetaDia(dia, hoy).toLowerCase()}
+              </span>
             </div>
             <div className="card-body d-flex flex-wrap align-items-center gap-4">
               <GraficaCategorias reparto={reparto} />

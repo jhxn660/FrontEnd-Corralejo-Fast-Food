@@ -3,28 +3,12 @@ import { Component } from 'react'
 /**
  * Límite de error alrededor del contenido de cada pantalla.
  *
-<<<<<<< HEAD
  * Sin él, una excepción durante el render desmonta todo el árbol de React (también el menú y
  * la cabecera) y no queda más salida que recargar la página.
  *
  * `clave` es la ruta activa: al cambiar, el límite se rearma y la nueva pantalla se muestra.
  *
  * Es una clase porque getDerivedStateFromError y componentDidCatch no tienen equivalente en hooks.
-=======
- * POR QUÉ EXISTE
- * Sin él, una excepción durante el render desmonta TODO el árbol de React: la
- * pantalla se queda en blanco y también el menú y el header, así que no hay por
- * dónde salir y hay que recargar a mano. Es exactamente lo que pasaba al abrir
- * Gestión de Indicadores. El error de fondo se corrige donde esté, pero una
- * aplicación no debería quedarse sin salida por el fallo de una pantalla.
- *
- * `clave` es la ruta activa: cuando cambia, el límite se rearma. Sin eso, una
- * pantalla que falló deja el límite "pegado" y la siguiente navegación seguiría
- * mostrando el error aunque la nueva pantalla funcione.
- *
- * Es una clase porque getDerivedStateFromError y componentDidCatch no tienen
- * equivalente en hooks; es el único componente de clase del proyecto.
->>>>>>> origin/main
  */
 export default class LimiteDeError extends Component {
   state = { error: null }

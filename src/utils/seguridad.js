@@ -1,9 +1,5 @@
 // Comprobaciones de seguridad que hace la interfaz antes de pintar contenido
-<<<<<<< HEAD
 // que viene de la API. No sustituyen a las del servidor: evitan que un
-=======
-// que viene de la API. No sustituyen a las del servidor (R17): evitan que un
->>>>>>> origin/main
 // dato malicioso guardado allí llegue a la pantalla de otros usuarios.
 
 const HOSTS_MAPA = new Set(['www.google.com', 'google.com', 'maps.google.com'])
@@ -11,19 +7,10 @@ const HOSTS_MAPA = new Set(['www.google.com', 'google.com', 'maps.google.com'])
 /**
  * ¿Es esta URL un mapa insertado de Google Maps?
  *
-<<<<<<< HEAD
  * La ficha del local guarda una URL que se pinta en un <iframe> en el panel de TODOS los
  * clientes. Comprobar solo que contenga "/maps/embed" no basta: también lo cumple
  * `https://sitio-falso.com/?/maps/embed`, que incrustaría una página falsa. Por eso se
  * analiza la URL completa: protocolo https, dominio de Google y ruta de inserción.
-=======
- * La ficha del local guarda una URL que se pinta en un <iframe> en el panel de
- * TODOS los clientes. Antes solo se comprobaba que contuviera "/maps/embed",
- * y eso lo cumple también `https://sitio-falso.com/?/maps/embed`: cualquiera
- * que pudiera escribir en la API —json-server no tiene autenticación— podía
- * incrustar una página de phishing dentro de la aplicación. Aquí se analiza la
- * URL de verdad: protocolo https, dominio de Google y ruta de inserción.
->>>>>>> origin/main
  */
 export const esMapaDeGoogle = (valor) => {
   try {
